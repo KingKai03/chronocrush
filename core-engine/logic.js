@@ -80,7 +80,7 @@ function getRandomPiece() {
     return currentPieces[Math.floor(Math.random() * currentPieces.length)];
 }
 
-// BLACK HOLE REVERSED TRANSITION ENGINE
+// BLACK HOLE TRANSITION ENGINE
 function triggerTimeTravelWarp(nextEraName) {
     document.body.classList.add("portal-active");
     canvas.className = "implode-active";
@@ -126,7 +126,6 @@ function updateUI() {
     if (targetText) targetText.innerText = eraConfigs[currentEra].target;
     if (currentEraText) currentEraText.innerText = eraConfigs[currentEra].title;
     
-    canvas.style.backgroundColor = eraConfigs[currentEra].boardBg;
     canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
     // Inventory Reward Switchboard Rendering
@@ -140,7 +139,7 @@ function updateUI() {
             btn.style.cursor = "pointer";
         } else {
             btn.disabled = true;
-            btn.style.backgroundColor = "#332a22";
+            btn.style.backgroundColor = #332a22;
             btn.style.color = "#665544";
             btn.style.borderColor = "#44372c";
             btn.style.cursor = "not-allowed";
@@ -153,21 +152,30 @@ function updateUI() {
     processBtn(jumpsuitBtn, unlockedInventory.jumpsuit, "#701b34");
 }
 
+// FIXED HIGH-PERFORMANCE RENDERING MATRIX DETONATOR (Prevents ghosting artifact)
 function drawGrid() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 1. Force context-level solid background painting to prevent transparent layout bleeding
+    ctx.fillStyle = eraConfigs[currentEra].boardBg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             const xPos = c * TILE_SIZE; const yPos = r * TILE_SIZE;
+            
+            // Highlight selected active elements
             if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
-                ctx.fillStyle = "rgba(255,255,255,0.15)";
+                ctx.fillStyle = "rgba(255,255,255,0.18)";
                 ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             }
+            
             ctx.strokeStyle = eraConfigs[currentEra].borderColor;
-            ctx.lineWidth = 1; ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
+            ctx.lineWidth = 1; 
+            ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             
             if (grid[r][c] !== "") {
                 ctx.font = `${TILE_SIZE * 0.45}px serif`;
-                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.textAlign = "center"; 
+                ctx.textBaseline = "middle";
                 ctx.fillText(grid[r][c], xPos + TILE_SIZE / 2, yPos + TILE_SIZE / 2);
             }
         }
@@ -216,7 +224,7 @@ function handleTileSelection(row, col) {
                 checkGameStatus();
             } else {
                 grid[row][col] = grid[firstSelectedTile.row][firstSelectedTile.col];
-                grid[firstSelectedTile.row][firstSelectedTile.col] = temp;
+                firstSelectedTile = null;
             }
         }
         firstSelectedTile = null;
@@ -250,7 +258,7 @@ function clearAndRefill(awardPoints) {
         for (let m of matches) { if (!unique.some(u => u.r === m.r && u.c === m.c)) unique.push(m); }
         score += unique.length * 50;
         
-        // Match Crush Celebration Hop Trigger
+        // Match Celebration Hop Trigger
         if (avatarContainer) {
             avatarContainer.classList.remove("breathing");
             avatarContainer.classList.add("jump-active");
