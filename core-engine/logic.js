@@ -22,13 +22,13 @@ const eraConfigs = {
     "1970s": { pieces: ["🪩", "✨", "🛼", "🕺"], target: 1250, boardBg: "#3d1822", borderColor: "#7a2b3f", title: "Current Era: 1970s Disco Funk 🪩✨" }
 };
 
-// Layout DOM Pointers
+// Layout Pointers
 const scoreText = document.getElementById("scoreText");
 const movesText = document.getElementById("movesText");
 const targetText = document.getElementById("targetText");
 const currentEraText = document.getElementById("currentEraText");
 
-// Modular Layer References
+// Modular Avatar Layer Elements
 const layerHair = document.getElementById("layerHair");
 const layerFace = document.getElementById("layerFace");
 const layerOutfit = document.getElementById("layerOutfit");
@@ -43,11 +43,11 @@ const jacketBtn = document.getElementById("jacketBtn");
 const vestBtn = document.getElementById("vestBtn");
 const jumpsuitBtn = document.getElementById("jumpsuitBtn");
 
-// Mobile scaling factor adjuster engine
+// Mobile Layout Scale Calculator Engine
 function resizeGame() {
     const width = window.innerWidth;
     if (width <= 768) {
-        let evaluatedSize = Math.floor((width * 0.92) / 4);
+        let evaluatedSize = Math.floor((width * 0.90) / 4);
         TILE_SIZE = Math.min(evaluatedSize, 90);
     } else {
         TILE_SIZE = 100;
@@ -59,7 +59,9 @@ function resizeGame() {
 window.addEventListener("resize", resizeGame);
 
 function initGrid() {
-    score = 0; movesLeft = 20; gameActive = true;
+    score = 0; 
+    movesLeft = 20; 
+    gameActive = true;
     updateUI();
     setAvatarMood("encouraging"); 
     
@@ -78,7 +80,7 @@ function getRandomPiece() {
     return currentPieces[Math.floor(Math.random() * currentPieces.length)];
 }
 
-// BLACK HOLE REVERSED TRANSITION INTERNALS
+// BLACK HOLE REVERSED TRANSITION ENGINE
 function triggerTimeTravelWarp(nextEraName) {
     document.body.classList.add("portal-active");
     canvas.className = "implode-active";
@@ -97,14 +99,14 @@ function triggerTimeTravelWarp(nextEraName) {
     setTimeout(() => {
         document.body.classList.remove("portal-active");
         canvas.className = "";
-        avatarContainer.className = "breathing"; // Restore physical idle loop movement
+        avatarContainer.className = "breathing"; 
     }, 1000);
 }
 
 function setAvatarMood(mood) {
     if (!avatarMoodBubble || !layerFace) return;
     if (mood === "encouraging") {
-        avatarMoodBubble.innerText = "LET'S GO";
+        avatarMoodBubble.innerText = "READY";
         avatarMoodBubble.style.backgroundColor = "#d4af37";
         layerFace.innerText = "😊";
     } else if (mood === "happy") {
@@ -112,7 +114,7 @@ function setAvatarMood(mood) {
         avatarMoodBubble.style.backgroundColor = "#2ce642";
         layerFace.innerText = "🤩";
     } else if (mood === "sad") {
-        avatarMoodBubble.innerText = "💥 ERROR";
+        avatarMoodBubble.innerText = "ERROR 💥";
         avatarMoodBubble.style.backgroundColor = "#e62c2c";
         layerFace.innerText = "😭";
     }
@@ -127,20 +129,28 @@ function updateUI() {
     canvas.style.backgroundColor = eraConfigs[currentEra].boardBg;
     canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
-    // Button state controller configurations
-    const updateBtn = (btn, flag, activeBg) => {
-        if (flag && btn) {
+    // Inventory Reward Switchboard Rendering
+    const processBtn = (btn, unlockedFlag, bgStyle) => {
+        if (!btn) return;
+        if (unlockedFlag) {
             btn.disabled = false;
-            btn.style.backgroundColor = activeBg;
+            btn.style.backgroundColor = bgStyle;
             btn.style.color = "#fff";
             btn.style.borderColor = "#d4af37";
             btn.style.cursor = "pointer";
+        } else {
+            btn.disabled = true;
+            btn.style.backgroundColor = "#332a22";
+            btn.style.color = "#665544";
+            btn.style.borderColor = "#44372c";
+            btn.style.cursor = "not-allowed";
         }
     };
-    updateBtn(coatBtn, unlockedInventory.coat, "#5c4731");
-    updateBtn(jacketBtn, unlockedInventory.jacket, "#24405e");
-    updateBtn(vestBtn, unlockedInventory.vest, "#56245e");
-    updateBtn(jumpsuitBtn, unlockedInventory.jumpsuit, "#701b34");
+
+    processBtn(coatBtn, unlockedInventory.coat, "#5c4731");
+    processBtn(jacketBtn, unlockedInventory.jacket, "#24405e");
+    processBtn(vestBtn, unlockedInventory.vest, "#56245e");
+    processBtn(jumpsuitBtn, unlockedInventory.jumpsuit, "#701b34");
 }
 
 function drawGrid() {
@@ -164,7 +174,7 @@ function drawGrid() {
     }
 }
 
-// Touch/Click Interaction Handling
+// Global Multi-Device Touch/Mouse Processing Input Handler
 canvas.addEventListener("mousedown", handleInputEvent);
 canvas.addEventListener("touchstart", function(e) {
     if(e.touches.length > 0) {
@@ -240,7 +250,7 @@ function clearAndRefill(awardPoints) {
         for (let m of matches) { if (!unique.some(u => u.r === m.r && u.c === m.c)) unique.push(m); }
         score += unique.length * 50;
         
-        // Physical Action Jump Trigger!
+        // Match Crush Celebration Hop Trigger
         if (avatarContainer) {
             avatarContainer.classList.remove("breathing");
             avatarContainer.classList.add("jump-active");
@@ -281,12 +291,10 @@ function checkGameStatus() {
     }
 }
 
-// LAB BAY SETTERS
+// Styling Bay State Overrides
 window.changeIdentity = function(genderType, colorValue) {
     if(lblBase) lblBase.innerText = genderType;
     if(layerBody) layerBody.style.backgroundColor = colorValue;
-    // Real pipeline switch code example:
-    // document.getElementById("layerBody").src = "assets/body_" + genderType.toLowerCase() + ".png";
 };
 window.changeHair = function(emoji) { if (layerHair) layerHair.innerText = emoji; };
 window.changeOutfit = function(emoji) { if (layerOutfit) layerOutfit.innerText = emoji; };
