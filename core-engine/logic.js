@@ -66,7 +66,6 @@ function resizeGame() {
   canvas.height = TILE_SIZE * ROWS;
   drawGrid();
 }
-window.addEventListener('resize', resizeGame);
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function initGrid(resetScore) {
@@ -154,11 +153,13 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ── INPUT ────────────────────────────────────────────────────────────────────
-canvas.addEventListener('mousedown', onInput);
-canvas.addEventListener('touchstart', function(e) {
-  if (e.touches.length > 0) { e.preventDefault(); onInput(e.touches[0]); }
-}, { passive: false });
+// ── INPUT ── (attached in boot() once canvas exists) ─────────────────────────
+function attachInputListeners() {
+  canvas.addEventListener('mousedown', onInput);
+  canvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 0) { e.preventDefault(); onInput(e.touches[0]); }
+  }, { passive: false });
+}
 
 function onInput(e) {
   if (!gameActive) return;
@@ -578,6 +579,8 @@ function boot() {
   overlayScreen = document.getElementById('overlayScreen');
   overlayTitle  = document.getElementById('overlayTitle');
   overlayBody   = document.getElementById('overlayBody');
+  attachInputListeners();
+  window.addEventListener('resize', resizeGame);
   applyOutfit('base');
   initGrid();
 }
