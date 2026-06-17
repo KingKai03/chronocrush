@@ -5,24 +5,53 @@ const ROWS = 4;
 const COLS = 4;
 const TILE_SIZE = 100; 
 
-const vintagePieces = ["📻", "✒️", "🎩", "🎷"];
 let grid = [];
 let firstSelectedTile = null; 
 
-// GAME STATE VARIABLES
+// GAME STATE ENGINE VARIABLES
 let score = 0;
 let movesLeft = 20;
-const TARGET_SCORE = 500;
 let gameActive = true;
+let currentEra = "1940s"; // Starts in '40s, updates to '50s on win
 
-// Connect to our HTML display text boxes
+// UNLOCKED CLOSET INVENTORY DATABASE
+let unlockedInventory = {
+    coat: false,
+    jacket: false
+};
+
+// ERA DESIGN CONFIGURATION SCHEMES
+const eraConfigs = {
+    "1940s": {
+        pieces: ["📻", "✒️", "🎩", "🎷"], // Radio, Pen, Fedora, Saxophone
+        target: 500,
+        boardBg: "#2b2520",
+        borderColor: "#4a3c31",
+        title: "Current Era: 1940s Noir 🕵️‍♂️"
+    },
+    "1950s": {
+        pieces: ["🪩", "🥤", "🎸", "🕶️"], // Vinyl Record, Milkshake, Rock Guitar, Retro Glasses
+        target: 750, // Higher difficulty score target!
+        boardBg: "#1f2a38", // Cool retro teal slate tone background
+        borderColor: "#3b526b",
+        title: "Current Era: 1950s Rock & Roll 🎸⚡"
+    }
+};
+
+// Connect to our HTML UI components
 const scoreText = document.getElementById("scoreText");
 const movesText = document.getElementById("movesText");
+const targetText = document.getElementById("targetText");
+const currentEraText = document.getElementById("currentEraText");
+const avatarEquipped = document.getElementById("avatarEquipped");
+const coatBtn = document.getElementById("coatBtn");
+const jacketBtn = document.getElementById("jacketBtn");
 
 function initGrid() {
     score = 0;
     movesLeft = 20;
     gameActive = true;
+    
     updateUI();
     
     for (let r = 0; r < ROWS; r++) {
@@ -37,12 +66,37 @@ function initGrid() {
 }
 
 function getRandomPiece() {
-    return vintagePieces[Math.floor(Math.random() * vintagePieces.length)];
+    const currentPieces = eraConfigs[currentEra].pieces;
+    return currentPieces[Math.floor(Math.random() * currentPieces.length)];
 }
 
 function updateUI() {
     if (scoreText) scoreText.innerText = score;
     if (movesText) movesText.innerText = movesLeft;
+    if (targetText) targetText.innerText = eraConfigs[currentEra].target;
+    if (currentEraText) currentEraText.innerText = eraConfigs[currentEra].title;
+    
+    // Canvas frame layout theme updates dynamically based on the current era config
+    canvas.style.backgroundColor = eraConfigs[currentEra].boardBg;
+    canvas.style.borderColor = eraConfigs[currentEra].borderColor;
+
+    // Refresh closet layout buttons state based on unlocks database
+    if (unlockedInventory.coat) {
+        coatBtn.disabled = false;
+        coatBtn.style.backgroundColor = "#5c4731";
+        coatBtn.style.color = "#fff";
+        coatBtn.style.border = "2px solid #d4af37";
+        coatBtn.style.cursor = "pointer";
+        coatBtn.innerText = "🧥 Wear Coat";
+    }
+    if (unlockedInventory.jacket) {
+        jacketBtn.disabled = false;
+        jacketBtn.style.backgroundColor = "#24405e";
+        jacketBtn.style.color = "#fff";
+        jacketBtn.style.border = "2px solid #5cb3ff";
+        jacketBtn.style.cursor = "pointer";
+        jacketBtn.innerText = "🧥⚡ Wear Jacket";
+    }
 }
 
 function drawGrid() {
@@ -54,11 +108,11 @@ function drawGrid() {
             const yPos = r * TILE_SIZE;
             
             if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
-                ctx.fillStyle = "#5c4d3c"; 
+                ctx.fillStyle = currentEra === "1940s" ? "#5c4d3c" : "#3b4d61"; 
                 ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             }
             
-            ctx.strokeStyle = "#4a3c31"; 
+            ctx.strokeStyle = eraConfigs[currentEra].borderColor; 
             ctx.lineWidth = 2;
             ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             
@@ -182,23 +236,42 @@ function clearAndRefill(awardPoints) {
 }
 
 function checkGameStatus() {
-    if (score >= TARGET_SCORE) {
+    const currentTarget = eraConfigs[currentEra].target;
+    
+    if (score >= currentTarget) {
         gameActive = false;
         setTimeout(() => {
-            alert("✨ TIME PORTAL RECHARGED! ✨\nYou scored over 500! You unlocked the 1940s Detective Trench Coat for your Avatar!");
+            if (currentEra === "1940s") {
+                alert("✨ TIMELINE RESTORED! ✨\nYou won Level 1! You unlocked the '40s Trench Coat. Teleporting to the 1950s Rock & Roll world!");
+                unlockedInventory.coat = true; // Unlock the closet entry!
+                currentEra = "1950s"; // ADVANCE ERA STATE
+            } else if (currentEra === "1950s") {
+                alert("🎸 NEON TIMELINE CHARGED! ✨\nYou beat Level 2! You unlocked the '50s Greaser Leather Jacket prize!");
+                unlockedInventory.jacket = true; // Unlock the closet entry!
+                currentEra = "1940s"; // Loop back to start for fun!
+            }
             initGrid(); 
             drawGrid();
         }, 300);
     } else if (movesLeft <= 0) {
         gameActive = false;
         setTimeout(() => {
-            alert("❌ TIMELINE COLLAPSED! ❌\nYou ran out of moves. The Time Engine needs to reboot!");
+            alert("❌ TIMELINE COLLAPSED! ❌\nThe engine failed. Redoing this level!");
             initGrid(); 
             drawGrid();
         }, 300);
     }
 }
 
-// Start game
+// INTERACTIVE CLOSET ACTION CONTROLLER
+window.equipItem = function(itemType) {
+    if (itemType === 'coat' && unlockedInventory.coat) {
+        avatarEquipped.innerText = "1940s Detective Noir 🕵️‍♂️🧥";
+    } else if (itemType === 'jacket' && unlockedInventory.jacket) {
+        avatarEquipped.innerText = "1950s Rockabilly Rebel 🎸🧥⚡";
+    }
+}
+
+// Start game on initialization
 initGrid();
 drawGrid();
