@@ -1,47 +1,46 @@
-// 1. Connect to the canvas box we created in the HTML
+// 1. Connect to the canvas box
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 2. Set up our grid math rules
+// 2. Grid math and rules
 const ROWS = 4;
 const COLS = 4;
-const TILE_SIZE = 100; // Each piece takes up 100x100 pixels
+const TILE_SIZE = 100; 
 
-// 3. Define our 1940s vintage pieces (Emojis act as placeholders for now!)
 const vintagePieces = ["📻", "✒️", "🎩", "🎷"];
-
-// 4. Create an empty container (array) to hold the board data
 let grid = [];
 
-// 5. This function builds a randomized board behind the scenes
+// Track player clicks
+let firstSelectedTile = null; 
+
 function initGrid() {
     for (let r = 0; r < ROWS; r++) {
-        grid[r] = []; // Create a blank row
+        grid[r] = []; 
         for (let c = 0; c < COLS; c++) {
-            // Pick a completely random item from our 1940s list
             const randomPiece = vintagePieces[Math.floor(Math.random() * vintagePieces.length)];
-            grid[r][c] = randomPiece; // Assign it to a specific box (row, column)
+            grid[r][c] = randomPiece; 
         }
     }
 }
 
-// 6. This function takes that behind-the-scenes data and draws it beautifully
 function drawGrid() {
-    // Clear any old drawing from the canvas box first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            // Calculate where this specific tile belongs on the screen
             const xPos = c * TILE_SIZE;
             const yPos = r * TILE_SIZE;
             
-            // Draw a vintage dark border line around each individual box
+            // If this tile is the one the player clicked first, give it a glowing background!
+            if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
+                ctx.fillStyle = "#5c4d3c"; // Highlight color
+                ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
+            }
+            
             ctx.strokeStyle = "#4a3c31"; 
             ctx.lineWidth = 2;
             ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             
-            // Center our vintage emoji perfectly inside its square
             ctx.font = "44px serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -50,6 +49,46 @@ function drawGrid() {
     }
 }
 
-// 7. Fire up the game!
+// 3. NEW: Listen for the player clicking on the canvas
+canvas.addEventListener("mousedown", function(event) {
+    // Get the exact pixel coordinates of the click inside the canvas bounds
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+    
+    // Convert pixels into grid Columns and Rows
+    const clickedCol = Math.floor(clickX / TILE_SIZE);
+    const clickedRow = Math.floor(clickY / TILE_SIZE);
+    
+    handleTileSelection(clickedRow, clickedCol);
+});
+
+// 4. NEW: Decide whether to highlight a tile or swap it
+function handleTileSelection(row, col) {
+    if (firstSelectedTile === null) {
+        // First click: select the piece
+        firstSelectedTile = { row: row, col: col };
+    } else {
+        // Second click: check if the new tile is a direct neighbor (up, down, left, right)
+        const dRow = Math.abs(row - firstSelectedTile.row);
+        const dCol = Math.abs(col - firstSelectedTile.col);
+        const isNeighbor = (dRow + dCol === 1);
+        
+        if (isNeighbor) {
+            // Swap them in the math array!
+            let temp = grid[firstSelectedTile.row][firstSelectedTile.col];
+            grid[firstSelectedTile.row][firstSelectedTile.col] = grid[row][col];
+            grid[row][col] = temp;
+        }
+        
+        // Reset selection whether they swapped or missed
+        firstSelectedTile = null;
+    }
+    
+    // Redraw the screen to update the visuals instantly
+    drawGrid();
+}
+
+// Fire up the game!
 initGrid();
 drawGrid();
