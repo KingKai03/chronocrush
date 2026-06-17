@@ -18,10 +18,11 @@ let currentEra = "1940s";
 let unlockedInventory = {
     coat: false,
     jacket: false,
-    vest: false
+    vest: false,
+    jumpsuit: false
 };
 
-// ERA CONFIGURATIONS DEFINITION MATRIX
+// ERA CONFIGURATIONS DEFINITION MATRIX WITH LEVEL 4 DISCO ADDED
 const eraConfigs = {
     "1940s": {
         pieces: ["📻", "✒️", "🎩", "🎷"], 
@@ -43,6 +44,13 @@ const eraConfigs = {
         boardBg: "#341f38", 
         borderColor: "#603b6b",
         title: "Current Era: 1960s Peace & Love ☮️🌸"
+    },
+    "1970s": {
+        pieces: ["🪩", "✨", "🛼", "🕺"], 
+        target: 1250, 
+        boardBg: "#3d1822", 
+        borderColor: "#7a2b3f",
+        title: "Current Era: 1970s Disco Funk 🪩✨"
     }
 };
 
@@ -51,7 +59,6 @@ const scoreText = document.getElementById("scoreText");
 const movesText = document.getElementById("movesText");
 const targetText = document.getElementById("targetText");
 const currentEraText = document.getElementById("currentEraText");
-const gameContainer = document.getElementById("gamePanel");
 
 // Avatar Specific Layer Links
 const layerHair = document.getElementById("layerHair");
@@ -64,7 +71,7 @@ const avatarContainer = document.getElementById("avatarContainer");
 const coatBtn = document.getElementById("coatBtn");
 const jacketBtn = document.getElementById("jacketBtn");
 const vestBtn = document.getElementById("vestBtn");
-const warpOverlay = document.getElementById("warpOverlay");
+const jumpsuitBtn = document.getElementById("jumpsuitBtn");
 
 function initGrid() {
     score = 0;
@@ -72,7 +79,7 @@ function initGrid() {
     gameActive = true;
     
     updateUI();
-    setAvatarMood("encouraging"); // Set avatar back to focus state
+    setAvatarMood("encouraging"); 
     
     for (let r = 0; r < ROWS; r++) {
         grid[r] = []; 
@@ -90,28 +97,34 @@ function getRandomPiece() {
     return currentPieces[Math.floor(Math.random() * currentPieces.length)];
 }
 
-// PHYSICAL TIME PORTAL TELEPORTATION ANIMATION TRIGGER LOOP EFFECT
+// BLACK HOLE COSMIC TIME TELEPORTATION ENGINE ENGINE
 function triggerTimeTravelWarp(nextEraName) {
-    // 1. Play flash element screen overlay classes animation loops
-    warpOverlay.className = "warp-active";
-    gameContainer.className = "shake-active";
-    
-    // 2. Midpoint swap data configurations layout update values instantly
+    // Step 1: Engage universe space background overlay and open black hole event horizon
+    document.body.classList.add("portal-active");
+    canvas.className = "grid-implode"; // Suck canvas into black hole
+    avatarContainer.className = "grid-implode"; // Suck companion in too!
+
+    // Step 2: At full implosion, shift engine variables, load next stage items quietly
     setTimeout(() => {
         currentEra = nextEraName;
         initGrid();
         drawGrid();
-        setAvatarMood("happy"); // Trigger happy victory cheer pose!
-    }, 400);
+        setAvatarMood("happy");
+        
+        // Reverse warp direction to "spit out" next world layout elements
+        canvas.className = "grid-explode";
+        avatarContainer.className = "grid-explode";
+    }, 500);
 
-    // 3. Clear style classes elements cleanly once animation finishes
+    // Step 3: Dissolve universe environment view overlay clean
     setTimeout(() => {
-        warpOverlay.className = "";
-        gameContainer.className = "";
-    }, 800);
+        document.body.classList.remove("portal-active");
+        canvas.className = "";
+        avatarContainer.className = "";
+    }, 1000);
 }
 
-// LIVE STATE DRIVEN COMPANION COMPOSITE REACTION ACTION CONTROLLER MATRIX SYSTEM
+// COMPANION EMOTION DRIVER CONTROLLER
 function setAvatarMood(mood) {
     if (!avatarMoodBubble || !layerFace || !avatarContainer) return;
 
@@ -121,21 +134,25 @@ function setAvatarMood(mood) {
         layerFace.innerText = "😊";
         avatarContainer.style.transform = "scale(1) rotate(0deg)";
     } else if (mood === "happy") {
-        avatarMoodBubble.innerText = "Groovy! 🎉";
+        avatarMoodBubble.innerText = "Boogie On! 🪩";
         avatarMoodBubble.style.backgroundColor = "#2ce642";
         layerFace.innerText = "🤩";
-        // Dance bounce pose animation simulation coordinates tracking logic parameters loop
-        avatarContainer.style.transform = "scale(1.2) translateY(-15px) rotate(10deg)";
+        avatarContainer.style.transform = "scale(1.15) translateY(-12px) rotate(8deg)";
     } else if (mood === "sad") {
-        avatarMoodBubble.innerText = "Oh no! 💥";
+        avatarMoodBubble.innerText = "Bummer... 💥";
         avatarMoodBubble.style.backgroundColor = "#e62c2c";
         layerFace.innerText = "😭";
-        avatarContainer.style.transform = "scale(0.9) translateY(10px) rotate(-15px)";
+        avatarContainer.style.transform = "scale(0.9) translateY(8px) rotate(-12deg)";
     }
 }
 
 function updateUI() {
     if (scoreText) scoreText.innerText = score;
+    if (movesLeft <= 5) {
+        movesText.style.color = "#e62c2c";
+    } else {
+        movesText.style.color = "#fff";
+    }
     if (movesText) movesText.innerText = movesLeft;
     if (targetText) targetText.innerText = eraConfigs[currentEra].target;
     if (currentEraText) currentEraText.innerText = eraConfigs[currentEra].title;
@@ -143,7 +160,7 @@ function updateUI() {
     canvas.style.backgroundColor = eraConfigs[currentEra].boardBg;
     canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
-    // Evaluate wardrobe reward availability status values configuration blocks
+    // Evaluate inventory flags
     if (unlockedInventory.coat && coatBtn) {
         coatBtn.disabled = false;
         coatBtn.style.backgroundColor = "#5c4731";
@@ -165,6 +182,13 @@ function updateUI() {
         vestBtn.style.border = "1px solid #df5cff";
         vestBtn.style.cursor = "pointer";
     }
+    if (unlockedInventory.jumpsuit && jumpsuitBtn) {
+        jumpsuitBtn.disabled = false;
+        jumpsuitBtn.style.backgroundColor = "#701b34";
+        jumpsuitBtn.style.color = "#fff";
+        jumpsuitBtn.style.border = "1px solid #ff5c8a";
+        jumpsuitBtn.style.cursor = "pointer";
+    }
 }
 
 function drawGrid() {
@@ -178,7 +202,8 @@ function drawGrid() {
             if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
                 if (currentEra === "1940s") ctx.fillStyle = "#5c4d3c";
                 else if (currentEra === "1950s") ctx.fillStyle = "#3b4d61";
-                else ctx.fillStyle = "#543b61";
+                else if (currentEra === "1960s") ctx.fillStyle = "#543b61";
+                else ctx.fillStyle = "#69293a";
                 ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             }
             
@@ -273,10 +298,10 @@ function clearAndRefill(awardPoints) {
         }
         score += uniqueMatches.length * 50;
         
-        // Brief animated hop behavior feedback whenever scoring matches happen live!
+        // Match hop jump
         if (avatarContainer) {
-            avatarContainer.style.transform = "translateY(-8px)";
-            setTimeout(() => { avatarContainer.style.transform = "translateY(0px)"; }, 150);
+            avatarContainer.style.transform = "translateY(-12px)";
+            setTimeout(() => { avatarContainer.style.transform = "translateY(0px)"; }, 120);
         }
     }
 
@@ -316,36 +341,39 @@ function checkGameStatus() {
     
     if (score >= currentTarget) {
         gameActive = false;
-        setAvatarMood("happy"); // VICTORY CHEER
+        setAvatarMood("happy"); 
         
         setTimeout(() => {
             if (currentEra === "1940s") {
-                alert("✨ TIMELINE RESTORED! ✨\nYou won Level 1! The '40s Trench Coat is now in your Lab closet!");
+                alert("✨ TIMELINE RESTORED! ✨\nYou unlocked the '40s Detective Trench Coat!");
                 unlockedInventory.coat = true; 
-                triggerTimeTravelWarp("1950s"); // ENGAGE PHYSICAL TELEPORT WARP EFFECT
+                triggerTimeTravelWarp("1950s"); 
             } else if (currentEra === "1950s") {
-                alert("🎸 NEON TIMELINE CHARGED! ✨\nYou beat Level 2! The '50s Leather Jacket is unlocked!");
+                alert("🎸 NEON TIMELINE CHARGED! ✨\nYou unlocked the '50s Greaser Leather Jacket!");
                 unlockedInventory.jacket = true; 
-                triggerTimeTravelWarp("1960s"); // ENGAGE PHYSICAL TELEPORT WARP EFFECT
+                triggerTimeTravelWarp("1960s"); 
             } else if (currentEra === "1960s") {
-                alert("🌸 GROOVY HARMONY ACHIEVED! ✌️\nYou beat Level 3! The '60s Fringe Vest is unlocked!");
+                alert("🌸 GROOVY HARMONY ACHIEVED! ✌️\nYou unlocked the '60s Hippie Fringe Vest!");
                 unlockedInventory.vest = true;
-                triggerTimeTravelWarp("1940s"); // Loop timeline around
+                triggerTimeTravelWarp("1970s"); 
+            } else if (currentEra === "1970s") {
+                alert("🪩 OUT-SIGHT DISCO FEVER DANCE UNLOCKED! ✨\nYou conquered Level 4! The '70s Shimmer Jumpsuit is yours!");
+                unlockedInventory.jumpsuit = true;
+                triggerTimeTravelWarp("1940s"); 
             }
         }, 500);
     } else if (movesLeft <= 0) {
         gameActive = false;
-        setAvatarMood("sad"); // FAILURE STATE DEFLECTION LOOK
+        setAvatarMood("sad"); 
         
         setTimeout(() => {
-            alert("❌ TIMELINE COLLAPSED! ❌\nYou ran out of moves. Let's rebuild this timeline!");
+            alert("❌ TIMELINE COLLAPSED! ❌\nYou ran out of moves. Rebuilding this level!");
             initGrid(); 
             drawGrid();
         }, 500);
     }
 }
 
-// STYLING BAY COMPONENT INVENTORY HOOK METHODS
 window.changeHair = function(hairEmoji) {
     if (layerHair) layerHair.innerText = hairEmoji;
 };
@@ -354,6 +382,5 @@ window.changeOutfit = function(outfitEmoji) {
     if (layerOutfit) layerOutfit.innerText = outfitEmoji;
 };
 
-// Initiate loop
 initGrid();
 drawGrid();
