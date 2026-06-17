@@ -65,13 +65,18 @@ function initGrid() {
     updateUI();
     setAvatarMood("encouraging"); 
     
+    // Generate clean grid structure
     for (let r = 0; r < ROWS; r++) {
         grid[r] = []; 
         for (let c = 0; c < COLS; c++) {
             grid[r][c] = getRandomPiece(); 
         }
     }
-    while (checkMatches().length > 0) { clearAndRefill(false); }
+    
+    // Clear out natural matches on setup without giving free score points
+    while (checkMatches().length > 0) { 
+        clearAndRefill(false); 
+    }
     resizeGame();
 }
 
@@ -80,7 +85,7 @@ function getRandomPiece() {
     return currentPieces[Math.floor(Math.random() * currentPieces.length)];
 }
 
-// BLACK HOLE TRANSITION ENGINE
+// STABLE WARP TRANSITION CONTROL
 function triggerTimeTravelWarp(nextEraName) {
     document.body.classList.add("portal-active");
     canvas.className = "implode-active";
@@ -104,19 +109,16 @@ function triggerTimeTravelWarp(nextEraName) {
 }
 
 function setAvatarMood(mood) {
-    if (!avatarMoodBubble || !layerFace) return;
+    if (!avatarMoodBubble) return;
     if (mood === "encouraging") {
         avatarMoodBubble.innerText = "READY";
         avatarMoodBubble.style.backgroundColor = "#d4af37";
-        layerFace.innerText = "😊";
     } else if (mood === "happy") {
         avatarMoodBubble.innerText = "BOOGIE! 🪩";
         avatarMoodBubble.style.backgroundColor = "#2ce642";
-        layerFace.innerText = "🤩";
     } else if (mood === "sad") {
         avatarMoodBubble.innerText = "ERROR 💥";
         avatarMoodBubble.style.backgroundColor = "#e62c2c";
-        layerFace.innerText = "😭";
     }
 }
 
@@ -128,7 +130,6 @@ function updateUI() {
     
     if (canvas) canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
-    // Fixed Switchboard Rendering (Added absolute quotes around hex values)
     const processBtn = (btn, unlockedFlag, bgStyle) => {
         if (!btn) return;
         if (unlockedFlag) {
@@ -139,7 +140,7 @@ function updateUI() {
             btn.style.cursor = "pointer";
         } else {
             btn.disabled = true;
-            btn.style.backgroundColor = "#332a22"; // Fixed missing quotes syntax crash
+            btn.style.backgroundColor = "#332a22";
             btn.style.color = "#665544";
             btn.style.borderColor = "#44372c";
             btn.style.cursor = "not-allowed";
@@ -152,11 +153,9 @@ function updateUI() {
     processBtn(jumpsuitBtn, unlockedInventory.jumpsuit, "#701b34");
 }
 
-// HIGH-PERFORMANCE RENDERING MATRIX 
 function drawGrid() {
     if (!ctx || !canvas) return;
     
-    // Paint background loop inside canvas context directly to stop flickering
     ctx.fillStyle = eraConfigs[currentEra].boardBg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -184,7 +183,6 @@ function drawGrid() {
     }
 }
 
-// Global Touch/Mouse Input Router
 if (canvas) {
     canvas.addEventListener("mousedown", handleInputEvent);
     canvas.addEventListener("touchstart", function(e) {
@@ -209,6 +207,7 @@ function handleInputEvent(eventSource) {
     }
 }
 
+// RESTORED STABLE SWAP MECHANICS
 function handleTileSelection(row, col) {
     if (firstSelectedTile === null) {
         firstSelectedTile = { row: row, col: col };
@@ -216,19 +215,23 @@ function handleTileSelection(row, col) {
     } else {
         const dRow = Math.abs(row - firstSelectedTile.row);
         const dCol = Math.abs(col - firstSelectedTile.col);
+        
+        // Ensure choice is an adjacent tile card explicitly
         if (dRow + dCol === 1) {
             let temp = grid[firstSelectedTile.row][firstSelectedTile.col];
             grid[firstSelectedTile.row][firstSelectedTile.col] = grid[row][col];
             grid[row][col] = temp;
             
+            // Check if the move created a genuine sequence match
             if (checkMatches().length > 0) {
                 movesLeft--;
                 clearAndRefill(true);
                 updateUI();
                 checkGameStatus();
             } else {
+                // Not a match! Roll back swap position immediately
                 grid[row][col] = grid[firstSelectedTile.row][firstSelectedTile.col];
-                firstSelectedTile = null;
+                grid[firstSelectedTile.row][firstSelectedTile.col] = temp;
             }
         }
         firstSelectedTile = null;
@@ -238,6 +241,7 @@ function handleTileSelection(row, col) {
 
 function checkMatches() {
     let matchPositions = [];
+    // Horizontal row checking sequence 
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS - 2; c++) {
             if (grid[r] && grid[r][c] !== "" && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) {
@@ -245,6 +249,7 @@ function checkMatches() {
             }
         }
     }
+    // Vertical column checking sequence
     for (let r = 0; r < ROWS - 2; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r] && grid[r+1] && grid[r+2] && grid[r][c] !== "" && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) {
@@ -257,9 +262,13 @@ function checkMatches() {
 
 function clearAndRefill(awardPoints) {
     let matches = checkMatches();
-    if (awardPoints && matches.length > 0) {
+    if (matches.length === 0) return;
+
+    if (awardPoints) {
         let unique = [];
-        for (let m of matches) { if (!unique.some(u => u.r === m.r && u.c === m.c)) unique.push(m); }
+        for (let m of matches) { 
+            if (!unique.some(u => u.r === m.r && u.c === m.c)) unique.push(m); 
+        }
         score += unique.length * 50;
         
         if (avatarContainer) {
@@ -271,25 +280,44 @@ function clearAndRefill(awardPoints) {
             }, 450);
         }
     }
-    for (let m of matches) if (grid[m.r]) grid[m.r][m.c] = "";
+
+    // Nullify existing match items
+    for (let m of matches) {
+        if (grid[m.r]) grid[m.r][m.c] = "";
+    }
+
+    // Cascade existing tiles downward to populate empty spaces
     for (let c = 0; c < COLS; c++) {
         for (let r = ROWS - 1; r >= 0; r--) {
             if (grid[r] && grid[r][c] === "") {
                 for (let l = r - 1; l >= 0; l--) {
-                    if (grid[l] && grid[l][c] !== "") { grid[r][c] = grid[l][c]; grid[l][c] = ""; break; }
+                    if (grid[l] && grid[l][c] !== "") { 
+                        grid[r][c] = grid[l][c]; 
+                        grid[l][c] = ""; 
+                        break; 
+                    }
                 }
             }
         }
     }
+
+    // Refill top gaps safely with current era elements
     for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) { if (grid[r] && grid[r][c] === "") grid[r][c] = getRandomPiece(); }
+        for (let c = 0; c < COLS; c++) { 
+            if (grid[r] && grid[r][c] === "") grid[r][c] = getRandomPiece(); 
+        }
     }
-    if (checkMatches().length > 0) clearAndRefill(awardPoints);
+
+    // Check for cascade chain reactions recursively
+    if (checkMatches().length > 0) {
+        clearAndRefill(awardPoints);
+    }
 }
 
 function checkGameStatus() {
     if (score >= eraConfigs[currentEra].target) {
-        gameActive = false; setAvatarMood("happy");
+        gameActive = false; 
+        setAvatarMood("happy");
         setTimeout(() => {
             if (currentEra === "1940s") { unlockedInventory.coat = true; triggerTimeTravelWarp("1950s"); }
             else if (currentEra === "1950s") { unlockedInventory.jacket = true; triggerTimeTravelWarp("1960s"); }
@@ -297,12 +325,16 @@ function checkGameStatus() {
             else if (currentEra === "1970s") { unlockedInventory.jumpsuit = true; triggerTimeTravelWarp("1940s"); }
         }, 600);
     } else if (movesLeft <= 0) {
-        gameActive = false; setAvatarMood("sad");
-        setTimeout(() => { alert("Timeline Collapsed! Resetting..."); initGrid(); }, 500);
+        gameActive = false; 
+        setAvatarMood("sad");
+        setTimeout(() => { 
+            alert("Timeline Collapsed! Resetting..."); 
+            initGrid(); 
+        }, 500);
     }
 }
 
-// Customization Connectors
+// Styling Bay State Controls
 window.changeIdentity = function(genderType, colorValue) {
     if(lblBase) lblBase.innerText = genderType;
     if(layerBody) layerBody.style.backgroundColor = colorValue;
