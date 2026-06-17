@@ -1,8 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  GAME ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
-const ctx    = canvas.getContext('2d');
+let canvas, ctx;
 
 const ROWS = 4, COLS = 4;
 let TILE_SIZE = 100;
@@ -52,16 +51,7 @@ const ERA_CFG = {
 };
 
 // DOM refs
-const scoreText  = document.getElementById('scoreText');
-const movesText  = document.getElementById('movesText');
-const targetText = document.getElementById('targetText');
-const eraBadge   = document.getElementById('eraBadge');
-const moodBubble = document.getElementById('moodBubble');
-const avatarSVG  = document.getElementById('avatarSVG');
-const portalFlash= document.getElementById('portalFlash');
-const overlayScreen = document.getElementById('overlayScreen');
-const overlayTitle  = document.getElementById('overlayTitle');
-const overlayBody   = document.getElementById('overlayBody');
+let scoreText, movesText, targetText, eraBadge, moodBubble, avatarSVG, portalFlash, overlayScreen, overlayTitle, overlayBody;
 
 // ── RESIZE ───────────────────────────────────────────────────────────────────
 function resizeGame() {
@@ -573,7 +563,27 @@ window.setOutfit = function(key) {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  BOOT
+//  BOOT — wait for DOM then initialise
 // ─────────────────────────────────────────────────────────────────────────────
-applyOutfit('base');
-initGrid();
+function boot() {
+  canvas      = document.getElementById('gameCanvas');
+  ctx         = canvas.getContext('2d');
+  scoreText   = document.getElementById('scoreText');
+  movesText   = document.getElementById('movesText');
+  targetText  = document.getElementById('targetText');
+  eraBadge    = document.getElementById('eraBadge');
+  moodBubble  = document.getElementById('moodBubble');
+  avatarSVG   = document.getElementById('avatarSVG');
+  portalFlash = document.getElementById('portalFlash');
+  overlayScreen = document.getElementById('overlayScreen');
+  overlayTitle  = document.getElementById('overlayTitle');
+  overlayBody   = document.getElementById('overlayBody');
+  applyOutfit('base');
+  initGrid();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
