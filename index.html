@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ChronoCrush: The Era Odyssey</title>
     <style>
-        /* Core Layout Reset */
+        /* Core Reset */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             background-color: #1a1a1a; color: #f0e6d2; font-family: sans-serif;
             margin: 0; padding: 20px; text-align: center; overflow-x: hidden;
         }
 
-        /* Flex Grid System */
+        /* Flex Layout Grid System */
         #mainLayout {
             display: flex; justify-content: center; align-items: flex-start;
             gap: 30px; max-width: 950px; margin: 0 auto; flex-wrap: wrap;
         }
         .panel { max-width: 420px; width: 100%; }
 
-        /* Game Board Canvas Viewport */
+        /* Game Board Canvas Configuration (Fixed Solid Frame rendering) */
         #gameCanvas { 
             border: 4px solid #4a3c31; 
             box-shadow: 0px 10px 25px rgba(0,0,0,0.7); 
@@ -29,9 +29,12 @@
             transform-origin: center;
         }
 
-        /* Stable Avatar Framework Wrapper */
+        /* AVATAR BOX STRUCTURE SYSTEM */
         #avatarContainer {
-            position: relative; width: 160px; height: 260px; margin: 15px auto;
+            position: relative; 
+            width: 180px; 
+            height: 260px; 
+            margin: 15px auto;
             transform-origin: bottom center;
         }
 
@@ -42,40 +45,56 @@
             100% { transform: scaleY(1); }
         }
 
-        /* Absolute Stack Alignment (Keeps head attached to body) */
+        /* Fixed Overlay Layout Engine (Glue layers together relative to container) */
         .avatar-layer {
             position: absolute;
-            left: 0;
-            top: 0;
             width: 100%;
             height: 100%;
+            top: 0;
+            left: 0;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
             pointer-events: none;
         }
 
-        /* Fine-tuned Positioning for Individual Avatar Pieces */
+        /* Layer Base Stacking Blocks */
         #layerBody { 
             background-color: rgba(212, 175, 55, 0.12); 
             border-radius: 40px 40px 15px 15px; 
             border: 2px dashed #d4af37; 
-            transition: background-color 0.4s ease;
             z-index: 1;
         }
-        #layerOutfit { font-size: 75px; z-index: 2; margin-top: 60px; }
-        #layerFace { font-size: 60px; z-index: 3; margin-top: -120px; }
-        #layerHair { font-size: 65px; z-index: 4; margin-top: -195px; }
+
+        /* Absolute Percentage Placements (Keeps components anchored to body) */
+        #layerHair { 
+            font-size: 65px; 
+            z-index: 5; 
+            top: 15%;
+            height: auto;
+        }
+        #layerFace { 
+            font-size: 55px; 
+            z-index: 4; 
+            top: 25%;
+            height: auto;
+        }
+        #layerOutfit { 
+            font-size: 72px; 
+            z-index: 3; 
+            top: 55%;
+            height: auto;
+        }
 
         #lblBase {
             position: absolute;
-            bottom: 15px;
+            bottom: 12px;
             color: #d4af37; font-size: 11px; font-weight: bold; text-transform: uppercase;
             background: #221c17; padding: 2px 8px; border-radius: 4px; border: 1px solid #4a3c31;
+            z-index: 10;
         }
 
-        /* Interactive Menu Custom UI Buttons */
+        /* Menu UI Control Buttons */
         .chip-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
         .style-btn {
             background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a;
@@ -91,7 +110,7 @@
             transition: all 0.3s ease;
         }
 
-        /* Screen Scaling Fixes */
+        /* Mobile View Optimization */
         @media (max-width: 768px) {
             body { padding: 10px; }
             #mainLayout { flex-direction: column; align-items: center; gap: 20px; }
