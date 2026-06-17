@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -12,29 +13,37 @@ let firstSelectedTile = null;
 let score = 0;
 let movesLeft = 20;
 let gameActive = true;
-let currentEra = "1940s"; // Starts in '40s, updates to '50s on win
+let currentEra = "1940s"; 
 
 // UNLOCKED CLOSET INVENTORY DATABASE
 let unlockedInventory = {
     coat: false,
-    jacket: false
+    jacket: false,
+    vest: false
 };
 
 // ERA DESIGN CONFIGURATION SCHEMES
 const eraConfigs = {
     "1940s": {
-        pieces: ["📻", "✒️", "🎩", "🎷"], // Radio, Pen, Fedora, Saxophone
+        pieces: ["📻", "✒️", "🎩", "🎷"], 
         target: 500,
         boardBg: "#2b2520",
         borderColor: "#4a3c31",
         title: "Current Era: 1940s Noir 🕵️‍♂️"
     },
     "1950s": {
-        pieces: ["🪩", "🥤", "🎸", "🕶️"], // Vinyl Record, Milkshake, Rock Guitar, Retro Glasses
-        target: 750, // Higher difficulty score target!
-        boardBg: "#1f2a38", // Cool retro teal slate tone background
+        pieces: ["🪩", "🥤", "🎸", "🕶️"], 
+        target: 750, 
+        boardBg: "#1f2a38", 
         borderColor: "#3b526b",
         title: "Current Era: 1950s Rock & Roll 🎸⚡"
+    },
+    "1960s": {
+        pieces: ["☮️", "🌸", "🚌", "🎨"], // Peace, Flower, VW Bus, Tie-Dye Palette
+        target: 1000, // Higher master target score!
+        boardBg: "#341f38", // Psychadelic deep purple background
+        borderColor: "#603b6b",
+        title: "Current Era: 1960s Peace & Love ☮️🌸"
     }
 };
 
@@ -46,6 +55,7 @@ const currentEraText = document.getElementById("currentEraText");
 const avatarEquipped = document.getElementById("avatarEquipped");
 const coatBtn = document.getElementById("coatBtn");
 const jacketBtn = document.getElementById("jacketBtn");
+const vestBtn = document.getElementById("vestBtn");
 
 function initGrid() {
     score = 0;
@@ -76,7 +86,6 @@ function updateUI() {
     if (targetText) targetText.innerText = eraConfigs[currentEra].target;
     if (currentEraText) currentEraText.innerText = eraConfigs[currentEra].title;
     
-    // Canvas frame layout theme updates dynamically based on the current era config
     canvas.style.backgroundColor = eraConfigs[currentEra].boardBg;
     canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
@@ -87,7 +96,7 @@ function updateUI() {
         coatBtn.style.color = "#fff";
         coatBtn.style.border = "2px solid #d4af37";
         coatBtn.style.cursor = "pointer";
-        coatBtn.innerText = "🧥 Wear Coat";
+        coatBtn.innerHTML = "🧥 Wear Coat";
     }
     if (unlockedInventory.jacket) {
         jacketBtn.disabled = false;
@@ -95,7 +104,15 @@ function updateUI() {
         jacketBtn.style.color = "#fff";
         jacketBtn.style.border = "2px solid #5cb3ff";
         jacketBtn.style.cursor = "pointer";
-        jacketBtn.innerText = "🧥⚡ Wear Jacket";
+        jacketBtn.innerHTML = "🧥⚡ Wear Jacket";
+    }
+    if (unlockedInventory.vest) {
+        vestBtn.disabled = false;
+        vestBtn.style.backgroundColor = "#56245e";
+        vestBtn.style.color = "#fff";
+        vestBtn.style.border = "2px solid #df5cff";
+        vestBtn.style.cursor = "pointer";
+        vestBtn.innerHTML = "🎽🌸 Wear Vest";
     }
 }
 
@@ -108,7 +125,9 @@ function drawGrid() {
             const yPos = r * TILE_SIZE;
             
             if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
-                ctx.fillStyle = currentEra === "1940s" ? "#5c4d3c" : "#3b4d61"; 
+                if (currentEra === "1940s") ctx.fillStyle = "#5c4d3c";
+                else if (currentEra === "1950s") ctx.fillStyle = "#3b4d61";
+                else ctx.fillStyle = "#543b61";
                 ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             }
             
@@ -243,12 +262,16 @@ function checkGameStatus() {
         setTimeout(() => {
             if (currentEra === "1940s") {
                 alert("✨ TIMELINE RESTORED! ✨\nYou won Level 1! You unlocked the '40s Trench Coat. Teleporting to the 1950s Rock & Roll world!");
-                unlockedInventory.coat = true; // Unlock the closet entry!
-                currentEra = "1950s"; // ADVANCE ERA STATE
+                unlockedInventory.coat = true; 
+                currentEra = "1950s"; 
             } else if (currentEra === "1950s") {
-                alert("🎸 NEON TIMELINE CHARGED! ✨\nYou beat Level 2! You unlocked the '50s Greaser Leather Jacket prize!");
-                unlockedInventory.jacket = true; // Unlock the closet entry!
-                currentEra = "1940s"; // Loop back to start for fun!
+                alert("🎸 NEON TIMELINE CHARGED! ✨\nYou beat Level 2! You unlocked the '50s Leather Jacket! Teleporting to the 1960s Woodstock era!");
+                unlockedInventory.jacket = true; 
+                currentEra = "1960s"; 
+            } else if (currentEra === "1960s") {
+                alert("🌸 GROOVY HARMONY ACHIEVED! ✌️\nYou beat Level 3! You unlocked the '60s Fringe Vest! The timeline loop is stable!");
+                unlockedInventory.vest = true;
+                currentEra = "1940s"; // Loop back around to the beginning
             }
             initGrid(); 
             drawGrid();
@@ -269,9 +292,11 @@ window.equipItem = function(itemType) {
         avatarEquipped.innerText = "1940s Detective Noir 🕵️‍♂️🧥";
     } else if (itemType === 'jacket' && unlockedInventory.jacket) {
         avatarEquipped.innerText = "1950s Rockabilly Rebel 🎸🧥⚡";
+    } else if (itemType === 'vest' && unlockedInventory.vest) {
+        avatarEquipped.innerText = "1960s Flower Child ✌️🎽🌸";
     }
 }
 
-// Start game on initialization
+// Start game
 initGrid();
 drawGrid();
