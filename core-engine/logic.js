@@ -9,21 +9,40 @@ const vintagePieces = ["📻", "✒️", "🎩", "🎷"];
 let grid = [];
 let firstSelectedTile = null; 
 
+// GAME STATE VARIABLES
+let score = 0;
+let movesLeft = 20;
+const TARGET_SCORE = 500;
+let gameActive = true;
+
+// Connect to our HTML display text boxes
+const scoreText = document.getElementById("scoreText");
+const movesText = document.getElementById("movesText");
+
 function initGrid() {
+    score = 0;
+    movesLeft = 20;
+    gameActive = true;
+    updateUI();
+    
     for (let r = 0; r < ROWS; r++) {
         grid[r] = []; 
         for (let c = 0; c < COLS; c++) {
             grid[r][c] = getRandomPiece(); 
         }
     }
-    // Check if the board accidentally spawned with matches, clean them up
     while (checkMatches().length > 0) {
-        clearAndRefill();
+        clearAndRefill(false); 
     }
 }
 
 function getRandomPiece() {
     return vintagePieces[Math.floor(Math.random() * vintagePieces.length)];
+}
+
+function updateUI() {
+    if (scoreText) scoreText.innerText = score;
+    if (movesText) movesText.innerText = movesLeft;
 }
 
 function drawGrid() {
@@ -43,7 +62,6 @@ function drawGrid() {
             ctx.lineWidth = 2;
             ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             
-            // If empty string (matched), don't draw text
             if (grid[r][c] !== "") {
                 ctx.font = "44px serif";
                 ctx.textAlign = "center";
@@ -55,6 +73,8 @@ function drawGrid() {
 }
 
 canvas.addEventListener("mousedown", function(event) {
+    if (!gameActive) return; 
+
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
@@ -75,74 +95,68 @@ function handleTileSelection(row, col) {
         const isNeighbor = (dRow + dCol === 1);
         
         if (isNeighbor) {
-            // 1. Swap the items in our math grid
             let temp = grid[firstSelectedTile.row][firstSelectedTile.col];
             grid[firstSelectedTile.row][firstSelectedTile.col] = grid[row][col];
             grid[row][col] = temp;
             
-            // 2. Scan to see if this swap made a match
             let matchesFound = checkMatches();
             
             if (matchesFound.length > 0) {
-                // Yes! Process the score and drop new pieces down
-                clearAndRefill();
+                movesLeft--;
+                clearAndRefill(true); 
+                updateUI();
+                checkGameStatus();
             } else {
-                // No match? Swap them back instantly (unsuccessful move)
                 grid[row][col] = grid[firstSelectedTile.row][firstSelectedTile.col];
                 grid[firstSelectedTile.row][firstSelectedTile.col] = temp;
             }
         }
-        
         firstSelectedTile = null;
         drawGrid();
     }
 }
 
-// Scans the board looking for horizontal or vertical streaks of 3
 function checkMatches() {
     let matchPositions = [];
-
-    // Horizontal Scanning
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS - 2; c++) {
-            let p1 = grid[r][c];
-            let p2 = grid[r][c+1];
-            let p3 = grid[r][c+2];
+            let p1 = grid[r][c]; let p2 = grid[r][c+1]; let p3 = grid[r][c+2];
             if (p1 !== "" && p1 === p2 && p1 === p3) {
                 matchPositions.push({r: r, c: c}, {r: r, c: c+1}, {r: r, c: c+2});
             }
         }
     }
-
-    // Vertical Scanning
     for (let r = 0; r < ROWS - 2; r++) {
         for (let c = 0; c < COLS; c++) {
-            let p1 = grid[r][c];
-            let p2 = grid[r+1][c];
-            let p3 = grid[r+2][c];
+            let p1 = grid[r][c]; let p2 = grid[r+1][c]; let p3 = grid[r+2][c];
             if (p1 !== "" && p1 === p2 && p1 === p3) {
                 matchPositions.push({r: r, c: c}, {r: r+1, c: c}, {r: r+2, c: c});
             }
         }
     }
-
     return matchPositions;
 }
 
-// Clears matching items, slides pieces down, refills top rows
-function clearAndRefill() {
+function clearAndRefill(awardPoints) {
     let matches = checkMatches();
     
-    // Clear items by turning them into empty strings
+    if (awardPoints && matches.length > 0) {
+        let uniqueMatches = [];
+        for (let m of matches) {
+            if (!uniqueMatches.some(u => u.r === m.r && u.c === m.c)) {
+                uniqueMatches.push(m);
+            }
+        }
+        score += uniqueMatches.length * 50;
+    }
+
     for (let m of matches) {
         grid[m.r][m.c] = "";
     }
 
-    // Shift pieces down into empty spaces
     for (let c = 0; c < COLS; c++) {
         for (let r = ROWS - 1; r >= 0; r--) {
             if (grid[r][c] === "") {
-                // Look above for a real piece to drop down
                 for (let lookup = r - 1; lookup >= 0; lookup--) {
                     if (grid[lookup][c] !== "") {
                         grid[r][c] = grid[lookup][c];
@@ -154,7 +168,6 @@ function clearAndRefill() {
         }
     }
 
-    // Fill top row remaining gaps with new random items
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (grid[r][c] === "") {
@@ -163,12 +176,29 @@ function clearAndRefill() {
         }
     }
 
-    // Repeat check recursively if falling pieces generated a new cascade match!
     if (checkMatches().length > 0) {
-        clearAndRefill();
+        clearAndRefill(awardPoints);
     }
 }
 
-// Fire up the board
+function checkGameStatus() {
+    if (score >= TARGET_SCORE) {
+        gameActive = false;
+        setTimeout(() => {
+            alert("✨ TIME PORTAL RECHARGED! ✨\nYou scored over 500! You unlocked the 1940s Detective Trench Coat for your Avatar!");
+            initGrid(); 
+            drawGrid();
+        }, 300);
+    } else if (movesLeft <= 0) {
+        gameActive = false;
+        setTimeout(() => {
+            alert("❌ TIMELINE COLLAPSED! ❌\nYou ran out of moves. The Time Engine needs to reboot!");
+            initGrid(); 
+            drawGrid();
+        }, 300);
+    }
+}
+
+// Start game
 initGrid();
 drawGrid();
