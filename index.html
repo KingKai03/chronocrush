@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ChronoCrush: The Era Odyssey</title>
     <style>
-        /* CSS Reset for Core Cross-Device Stability */
+        /* Core Layout Reset */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             background-color: #1a1a1a; color: #f0e6d2; font-family: sans-serif;
             margin: 0; padding: 20px; text-align: center; overflow-x: hidden;
         }
 
-        /* Flex Layout Alignment System */
+        /* Flex Grid System */
         #mainLayout {
             display: flex; justify-content: center; align-items: flex-start;
             gap: 30px; max-width: 950px; margin: 0 auto; flex-wrap: wrap;
         }
         .panel { max-width: 420px; width: 100%; }
 
-        /* FIXED HIGH-PERFORMANCE CANVAS LAYOUT STYLE (Fixes the dimming ghost overlay) */
+        /* Game Board Canvas Viewport */
         #gameCanvas { 
             border: 4px solid #4a3c31; 
             box-shadow: 0px 10px 25px rgba(0,0,0,0.7); 
@@ -29,54 +29,53 @@
             transform-origin: center;
         }
 
-        /* FIXED HIGH-PERFORMANCE AVATAR DISPLAY BOX */
+        /* Stable Avatar Framework Wrapper */
         #avatarContainer {
             position: relative; width: 160px; height: 260px; margin: 15px auto;
-            transform-origin: bottom center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: bottom center;
         }
 
-        /* Continuous Idle Breathing Loop Physical Movement */
+        .breathing { animation: avatarBreath 3.5s ease-in-out infinite; }
         @keyframes avatarBreath {
             0% { transform: scaleY(1); }
-            50% { transform: scaleY(1.03) scaleX(0.98) translateY(-3px); }
+            50% { transform: scaleY(1.02) translateY(-2px); }
             100% { transform: scaleY(1); }
         }
-        .breathing { animation: avatarBreath 3.5s ease-in-out infinite; }
 
-        /* Match Crush Celebration Leap Trigger Loop Animation */
-        @keyframes popJump {
-            0% { transform: translateY(0) scale(1); }
-            30% { transform: translateY(-30px) scale(1.05); }
-            70% { transform: translateY(5px) scale(0.95); }
-            100% { transform: translateY(0) scale(1); }
-        }
-        .jump-active { animation: popJump 0.45s ease-out; }
-
-        /* CHRONO-COMPANION COORDINATE RECONCILIATION CORES */
+        /* Absolute Stack Alignment (Keeps head attached to body) */
         .avatar-layer {
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
             height: 100%;
-            display: flex; 
-            justify-content: center; /* Horizontally centers content inside layer */
-            align-items: center;    /* Vertically centers content inside layer */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             pointer-events: none;
         }
 
-        /* Micro-Adjustments for Absolute Part Assembly Alignment Stacking */
+        /* Fine-tuned Positioning for Individual Avatar Pieces */
         #layerBody { 
             background-color: rgba(212, 175, 55, 0.12); 
             border-radius: 40px 40px 15px 15px; 
             border: 2px dashed #d4af37; 
             transition: background-color 0.4s ease;
+            z-index: 1;
         }
-        #layerHair { font-size: 65px; align-items: flex-start; padding-top: 15px; z-index: 4; }
-        #layerFace { font-size: 55px; align-items: flex-start; padding-top: 42px; z-index: 3; }
-        #layerOutfit { font-size: 72px; align-items: center; padding-top: 100px; z-index: 2; }
+        #layerOutfit { font-size: 75px; z-index: 2; margin-top: 60px; }
+        #layerFace { font-size: 60px; z-index: 3; margin-top: -120px; }
+        #layerHair { font-size: 65px; z-index: 4; margin-top: -195px; }
 
-        /* Styling Chip Button Sets */
+        #lblBase {
+            position: absolute;
+            bottom: 15px;
+            color: #d4af37; font-size: 11px; font-weight: bold; text-transform: uppercase;
+            background: #221c17; padding: 2px 8px; border-radius: 4px; border: 1px solid #4a3c31;
+        }
+
+        /* Interactive Menu Custom UI Buttons */
         .chip-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
         .style-btn {
             background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a;
@@ -92,28 +91,7 @@
             transition: all 0.3s ease;
         }
 
-        /* COSMIC PORTAL COSMIC TRANSITION OVERLAYS */
-        #warpOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999;
-            pointer-events: none; opacity: 0; background-color: #0b132b;
-            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px);
-            background-size: 350px 350px; transition: opacity 0.4s ease-in-out;
-        }
-        #blackHole {
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
-            background: radial-gradient(circle, #000 60%, #7209b7 100%); border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0); transition: transform 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045); 
-            z-index: 10000; pointer-events: none;
-        }
-        .portal-active #warpOverlay { opacity: 1; }
-        .portal-active #blackHole { transform: translate(-50%, -50%) scale(90); }
-
-        @keyframes implode { 100% { transform: scale(0) rotate(540deg); filter: blur(6px); } }
-        @keyframes explode { 0% { transform: scale(0) rotate(-540deg); filter: blur(6px); } 100% { transform: scale(1) rotate(0deg); filter: blur(0px); } }
-        .implode-active { animation: implode 0.5s ease-in forwards; }
-        .explode-active { animation: explode 0.5s ease-out forwards; }
-
-        /* Smart Screen Device Layout Breaks */
+        /* Screen Scaling Fixes */
         @media (max-width: 768px) {
             body { padding: 10px; }
             #mainLayout { flex-direction: column; align-items: center; gap: 20px; }
@@ -123,9 +101,6 @@
     </style>
 </head>
 <body>
-
-    <div id="warpOverlay"></div>
-    <div id="blackHole"></div>
 
     <h1 style="color: #d4af37; letter-spacing: 2px; margin-bottom: 5px; margin-top: 5px;">ChronoCrush</h1>
     <h3 style="color: #a09080; margin-top: 0; font-weight: 300; margin-bottom: 15px;">The Era Odyssey</h3>
@@ -151,7 +126,7 @@
                 
                 <div id="avatarContainer" class="breathing">
                     <div id="layerBody" class="avatar-layer">
-                        <span id="lblBase" style="color: #d4af37; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 220px; background: #221c17; padding: 2px 8px; border-radius: 4px; border: 1px solid #4a3c31;">Androgynous</span>
+                        <span id="lblBase">Androgynous</span>
                     </div>
                     <div id="layerOutfit" class="avatar-layer">👕</div>
                     <div id="layerFace" class="avatar-layer">😊</div>
