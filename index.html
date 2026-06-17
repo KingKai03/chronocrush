@@ -5,37 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChronoCrush: The Era Odyssey</title>
     <style>
-        /* Flash animation for time traveling warp effect */
-        @keyframes warpFlash {
-            0% { background-color: #fff; opacity: 1; }
-            50% { background-color: #d4af37; opacity: 0.8; }
-            100% { background-color: #1a1a1a; opacity: 0; }
-        }
-        .warp-active {
+        /* Cosmic Space Portal Overlay */
+        #warpOverlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 9999;
             pointer-events: none;
-            animation: warpFlash 0.8s ease-out forwards;
+            opacity: 0;
+            background-color: #0b132b; /* Deep Navy Blue */
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            transition: opacity 0.4s ease-in-out;
         }
-        /* Screen shake effect */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(0px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            100% { transform: translate(1px, 1px) rotate(0deg); }
+
+        /* Black Hole Event Horizon Visual Layer */
+        #blackHole {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 10px; height: 10px;
+            background: radial-gradient(circle, #000 60%, #1c2541 80%, transparent 100%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            box-shadow: 0 0 50px #48cae4, 0 0 100px #7209b7;
+            transition: transform 0.5s ease-in-out;
+            z-index: 10000;
+            pointer-events: none;
         }
-        .shake-active {
-            animation: shake 0.5s infinite;
+
+        /* Triggered active cosmic warp classes */
+        .portal-active #warpOverlay {
+            opacity: 1;
+        }
+        .portal-active #blackHole {
+            transform: translate(-50%, -50%) scale(80);
+        }
+
+        /* Implosion / Spitting Out Grid Effect */
+        @keyframes implodeToBlackHole {
+            0% { transform: scale(1) rotate(0deg); filter: blur(0px); }
+            100% { transform: scale(0) rotate(720deg); filter: blur(8px); }
+        }
+        @keyframes explodeFromBlackHole {
+            0% { transform: scale(0) rotate(-720deg); filter: blur(8px); }
+            100% { transform: scale(1) rotate(0deg); filter: blur(0px); }
+        }
+
+        .grid-implode {
+            animation: implodeToBlackHole 0.5s ease-in forwards;
+        }
+        .grid-explode {
+            animation: explodeFromBlackHole 0.5s ease-out forwards;
         }
     </style>
 </head>
-<body id="mainBody" style="background-color: #1a1a1a; color: #f0e6d2; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; transition: background 0.5s;">
+<body id="mainBody" style="background-color: #1a1a1a; color: #f0e6d2; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; transition: background 0.5s; overflow-x: hidden;">
 
     <div id="warpOverlay"></div>
+    <div id="blackHole"></div>
 
     <h1 style="color: #d4af37; letter-spacing: 2px; margin-bottom: 5px;">ChronoCrush</h1>
     <h3 style="color: #a09080; margin-top: 0; font-weight: 300; margin-bottom: 20px;">The Era Odyssey</h3>
@@ -51,31 +81,32 @@
                 <div><span style="color: #a09080;">SCORE:</span> <strong id="scoreText" style="color: #d4af37; font-size: 20px;">0</strong></div>
             </div>
 
-            <canvas id="gameCanvas" width="400" height="400" style="border: 4px solid #4a3c31; background-color: #2b2520; box-shadow: 0px 10px 25px rgba(0,0,0,0.7); display: block; margin: 0 auto; border-radius: 4px; transition: all 0.5s;"></canvas>
+            <canvas id="gameCanvas" width="400" height="400" style="border: 4px solid #4a3c31; background-color: #2b2520; box-shadow: 0px 10px 25px rgba(0,0,0,0.7); display: block; margin: 0 auto; border-radius: 4px; transition: background 0.5s, border-color 0.5s; transform-origin: center;"></canvas>
         </div>
 
         <div id="labPanel" style="max-width: 420px; width: 100%; background-color: #221c17; border: 2px solid #d4af37; border-radius: 8px; padding: 20px; box-shadow: 0px 10px 25px rgba(0,0,0,0.5); box-sizing: border-box;">
             
-            <div style="background: radial-gradient(circle, #3a3025 0%, #1a1511 100%); border: 2px dashed #a09080; border-radius: 6px; padding: 15px; position: relative; margin-bottom: 20px; min-height: 160px;">
+            <div style="background: radial-gradient(circle, #3a3025 0%, #1a1511 100%); border: 2px dashed #a09080; border-radius: 6px; padding: 15px; position: relative; margin-bottom: 20px; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <div id="avatarMoodBubble" style="position: absolute; top: 10px; right: 10px; background-color: #d4af37; color: #1a1a1a; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase;">Ready!</div>
                 
-                <div id="avatarContainer" style="font-size: 65px; line-height: 1.1; margin-top: 15px; user-select: none; transition: transform 0.2s ease;">
-                    <div id="layerHair" style="margin-bottom: -35px; position: relative; z-index: 3;">🧑‍🦱</div>
-                    <div id="layerFace" style="margin-bottom: -15px; position: relative; z-index: 2;">🙂</div>
-                    <div id="layerOutfit" style="position: relative; z-index: 1;">👕</div>
+                <div id="avatarContainer" style="position: relative; width: 100px; height: 130px; margin-top: 10px; transition: transform 0.2s ease; transform-origin: center;">
+                    <div id="layerHair" style="position: absolute; top: 0px; left: 0; width: 100%; text-align: center; font-size: 55px; z-index: 3; line-height: 1;">🧑‍🦱</div>
+                    <div id="layerFace" style="position: absolute; top: 22px; left: 0; width: 100%; text-align: center; font-size: 48px; z-index: 2; line-height: 1;">😊</div>
+                    <div id="layerOutfit" style="position: absolute; top: 68px; left: 0; width: 100%; text-align: center; font-size: 55px; z-index: 1; line-height: 1;">👕</div>
                 </div>
                 <p style="font-size: 13px; color: #a09080; margin-top: 10px; margin-bottom: 0;">Time Odyssey Companion</p>
             </div>
 
             <h3 style="color: #d4af37; margin-top: 0; margin-bottom: 15px; letter-spacing: 1px; font-size: 16px; border-bottom: 1px solid #4a3c31; padding-bottom: 5px;">🧬 CHRONO-LAB STYLING BAY</h3>
             
-            <div style="margin-bottom: 12px; text-align: left;">
-                <label style="font-size: 12px; color: #a09080; display: block; margin-bottom: 4px;">CHOOSE HAIR / STYLE:</label>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="changeHair('🧑‍🦱')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Curly</button>
-                    <button onclick="changeHair('👱')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Blonde</button>
-                    <button onclick="changeHair('🧑‍🦰')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Redhead</button>
-                    <button onclick="changeHair('🎩')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Fedora</button>
+            <div style="margin-bottom: 15px; text-align: left;">
+                <label style="font-size: 12px; color: #a09080; display: block; margin-bottom: 6px;">CHOOSE HAIR / STYLE:</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button onclick="changeHair('🧑‍🦱')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Curly</button>
+                    <button onclick="changeHair('👱')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Blonde</button>
+                    <button onclick="changeHair('🧑‍🦰')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Redhead</button>
+                    <button onclick="changeHair('🎩')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Fedora</button>
+                    <button onclick="changeHair('🕺')" style="background-color: #3a3025; color: #fff; border: 1px solid #5a4a3a; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Afro 🕶️</button>
                 </div>
             </div>
 
@@ -85,7 +116,7 @@
                     <button onclick="changeOutfit('👕')" style="background-color: #4a3c31; color: #fff; border: 1px solid #d4af37; padding: 8px; border-radius: 4px; cursor: pointer; text-align: left;">
                         🧍 Standard Time Suit
                     </button>
-                    <button id="coatBtn" onclick="changeOutfit('🕵️‍♂️🧥')" disabled style="background-color: #332a22; color: #665544; border: 1px solid #44372c; padding: 8px; border-radius: 4px; cursor: not-allowed; text-align: left; transition: all 0.3s;">
+                    <button id="coatBtn" onclick="changeOutfit('🕵️‍♂️')|changeHair('🎩')" disabled style="background-color: #332a22; color: #665544; border: 1px solid #44372c; padding: 8px; border-radius: 4px; cursor: not-allowed; text-align: left; transition: all 0.3s;">
                         🔒 '40s Detective Trench Coat
                     </button>
                     <button id="jacketBtn" onclick="changeOutfit('🧥⚡')" disabled style="background-color: #332a22; color: #665544; border: 1px solid #44372c; padding: 8px; border-radius: 4px; cursor: not-allowed; text-align: left; transition: all 0.3s;">
@@ -93,6 +124,9 @@
                     </button>
                     <button id="vestBtn" onclick="changeOutfit('🎽🌸')" disabled style="background-color: #332a22; color: #665544; border: 1px solid #44372c; padding: 8px; border-radius: 4px; cursor: not-allowed; text-align: left; transition: all 0.3s;">
                         🔒 '60s Hippie Fringe Vest
+                    </button>
+                    <button id="jumpsuitBtn" onclick="changeOutfit('🪩🕺')" disabled style="background-color: #332a22; color: #665544; border: 1px solid #44372c; padding: 8px; border-radius: 4px; cursor: not-allowed; text-align: left; transition: all 0.3s;">
+                        🔒 '70s Disco Funk Jumpsuit
                     </button>
                 </div>
             </div>
