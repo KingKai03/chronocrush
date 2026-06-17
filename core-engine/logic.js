@@ -84,7 +84,7 @@ function getRandomPiece() {
 function triggerTimeTravelWarp(nextEraName) {
     document.body.classList.add("portal-active");
     canvas.className = "implode-active";
-    avatarContainer.className = "implode-active";
+    if (avatarContainer) avatarContainer.className = "implode-active";
 
     setTimeout(() => {
         currentEra = nextEraName;
@@ -93,13 +93,13 @@ function triggerTimeTravelWarp(nextEraName) {
         setAvatarMood("happy");
         
         canvas.className = "explode-active";
-        avatarContainer.className = "explode-active";
+        if (avatarContainer) avatarContainer.className = "explode-active";
     }, 500);
 
     setTimeout(() => {
         document.body.classList.remove("portal-active");
         canvas.className = "";
-        avatarContainer.className = "breathing"; 
+        if (avatarContainer) avatarContainer.className = "breathing"; 
     }, 1000);
 }
 
@@ -126,9 +126,9 @@ function updateUI() {
     if (targetText) targetText.innerText = eraConfigs[currentEra].target;
     if (currentEraText) currentEraText.innerText = eraConfigs[currentEra].title;
     
-    canvas.style.borderColor = eraConfigs[currentEra].borderColor;
+    if (canvas) canvas.style.borderColor = eraConfigs[currentEra].borderColor;
 
-    // Inventory Reward Switchboard Rendering
+    // Fixed Switchboard Rendering (Added absolute quotes around hex values)
     const processBtn = (btn, unlockedFlag, bgStyle) => {
         if (!btn) return;
         if (unlockedFlag) {
@@ -139,7 +139,7 @@ function updateUI() {
             btn.style.cursor = "pointer";
         } else {
             btn.disabled = true;
-            btn.style.backgroundColor = #332a22;
+            btn.style.backgroundColor = "#332a22"; // Fixed missing quotes syntax crash
             btn.style.color = "#665544";
             btn.style.borderColor = "#44372c";
             btn.style.cursor = "not-allowed";
@@ -152,17 +152,19 @@ function updateUI() {
     processBtn(jumpsuitBtn, unlockedInventory.jumpsuit, "#701b34");
 }
 
-// FIXED HIGH-PERFORMANCE RENDERING MATRIX DETONATOR (Prevents ghosting artifact)
+// HIGH-PERFORMANCE RENDERING MATRIX 
 function drawGrid() {
-    // 1. Force context-level solid background painting to prevent transparent layout bleeding
+    if (!ctx || !canvas) return;
+    
+    // Paint background loop inside canvas context directly to stop flickering
     ctx.fillStyle = eraConfigs[currentEra].boardBg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            const xPos = c * TILE_SIZE; const yPos = r * TILE_SIZE;
+            const xPos = c * TILE_SIZE; 
+            const yPos = r * TILE_SIZE;
             
-            // Highlight selected active elements
             if (firstSelectedTile && firstSelectedTile.row === r && firstSelectedTile.col === c) {
                 ctx.fillStyle = "rgba(255,255,255,0.18)";
                 ctx.fillRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
@@ -172,7 +174,7 @@ function drawGrid() {
             ctx.lineWidth = 1; 
             ctx.strokeRect(xPos, yPos, TILE_SIZE, TILE_SIZE);
             
-            if (grid[r][c] !== "") {
+            if (grid[r] && grid[r][c] !== "") {
                 ctx.font = `${TILE_SIZE * 0.45}px serif`;
                 ctx.textAlign = "center"; 
                 ctx.textBaseline = "middle";
@@ -182,17 +184,19 @@ function drawGrid() {
     }
 }
 
-// Global Multi-Device Touch/Mouse Processing Input Handler
-canvas.addEventListener("mousedown", handleInputEvent);
-canvas.addEventListener("touchstart", function(e) {
-    if(e.touches.length > 0) {
-        e.preventDefault();
-        handleInputEvent(e.touches[0]);
-    }
-}, {passive: false});
+// Global Touch/Mouse Input Router
+if (canvas) {
+    canvas.addEventListener("mousedown", handleInputEvent);
+    canvas.addEventListener("touchstart", function(e) {
+        if(e.touches.length > 0) {
+            e.preventDefault();
+            handleInputEvent(e.touches[0]);
+        }
+    }, {passive: false});
+}
 
 function handleInputEvent(eventSource) {
-    if (!gameActive) return;
+    if (!gameActive || !canvas) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = eventSource.clientX - rect.left;
     const clickY = eventSource.clientY - rect.top;
@@ -236,14 +240,14 @@ function checkMatches() {
     let matchPositions = [];
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS - 2; c++) {
-            if (grid[r][c] !== "" && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) {
+            if (grid[r] && grid[r][c] !== "" && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) {
                 matchPositions.push({r: r, c: c}, {r: r, c: c+1}, {r: r, c: c+2});
             }
         }
     }
     for (let r = 0; r < ROWS - 2; r++) {
         for (let c = 0; c < COLS; c++) {
-            if (grid[r][c] !== "" && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) {
+            if (grid[r] && grid[r+1] && grid[r+2] && grid[r][c] !== "" && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) {
                 matchPositions.push({r: r, c: c}, {r: r+1, c: c}, {r: r+2, c: c});
             }
         }
@@ -258,7 +262,6 @@ function clearAndRefill(awardPoints) {
         for (let m of matches) { if (!unique.some(u => u.r === m.r && u.c === m.c)) unique.push(m); }
         score += unique.length * 50;
         
-        // Match Celebration Hop Trigger
         if (avatarContainer) {
             avatarContainer.classList.remove("breathing");
             avatarContainer.classList.add("jump-active");
@@ -268,18 +271,18 @@ function clearAndRefill(awardPoints) {
             }, 450);
         }
     }
-    for (let m of matches) grid[m.r][m.c] = "";
+    for (let m of matches) if (grid[m.r]) grid[m.r][m.c] = "";
     for (let c = 0; c < COLS; c++) {
         for (let r = ROWS - 1; r >= 0; r--) {
-            if (grid[r][c] === "") {
+            if (grid[r] && grid[r][c] === "") {
                 for (let l = r - 1; l >= 0; l--) {
-                    if (grid[l][c] !== "") { grid[r][c] = grid[l][c]; grid[l][c] = ""; break; }
+                    if (grid[l] && grid[l][c] !== "") { grid[r][c] = grid[l][c]; grid[l][c] = ""; break; }
                 }
             }
         }
     }
     for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) { if (grid[r][c] === "") grid[r][c] = getRandomPiece(); }
+        for (let c = 0; c < COLS; c++) { if (grid[r] && grid[r][c] === "") grid[r][c] = getRandomPiece(); }
     }
     if (checkMatches().length > 0) clearAndRefill(awardPoints);
 }
@@ -299,7 +302,7 @@ function checkGameStatus() {
     }
 }
 
-// Styling Bay State Overrides
+// Customization Connectors
 window.changeIdentity = function(genderType, colorValue) {
     if(lblBase) lblBase.innerText = genderType;
     if(layerBody) layerBody.style.backgroundColor = colorValue;
