@@ -9,7 +9,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
 body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow: hidden; }
 
-/* View Management - Fixed for dynamic switching */
+/* View Management */
 .full-screen-view { 
   display: none; 
   position: fixed; 
@@ -51,19 +51,8 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
   display: flex; align-items: center; justify-content: space-between; 
   padding: 0 16px; z-index: 25; 
 }
-.status-indicator-pill { background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 12px; font-weight: bold; }
-.header-settings-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; }
-
 .map-scroll-viewport { flex: 1; overflow-y: auto; padding: 30px 15px; z-index: 5; }
 .zig-zag-map { display: flex; flex-direction: column-reverse; gap: 30px; max-width: 400px; margin: 0 auto; }
-
-.app-footer-navigation { 
-  height: 60px; background: var(--panel-bg); 
-  border-top: 2px solid var(--border-color); 
-  display: flex; align-items: center; justify-content: space-around; 
-  z-index: 25;
-}
-.footer-tab-btn { background: #2d3940; border: 1px solid var(--border-color); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
 
 /* Utilities */
 #portalFlash { 
