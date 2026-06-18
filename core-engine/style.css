@@ -1,289 +1,32 @@
-:root {
-  --gold: #d4af37;
-  --sky-grey: #5c6b73;
-  --dark-sky: #2b3a42;
-  --panel-bg: #1e272c;
-  --border-color: #475861;
-  --text-color: #eef1f2;
-  --bright-white: #ffffff;
-}
-
-* { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
-  font-family: 'Courier New', Courier, monospace; 
-}
-
-body {
-  background-color: var(--sky-grey);
-  color: var(--text-color);
-  min-height: 100vh;
-  overflow: hidden;
-}
-
-.full-screen-view {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  display: none;
-  flex-direction: column;
-  z-index: 10;
-  background-color: var(--sky-grey);
-}
-.full-screen-view.active {
-  display: flex;
-}
-
-/* MOVING CLOUDS SKY GREY THEME LAYER */
+/* UPDATED MOVING CLOUDS SKY GREY THEME LAYER (NO EXTERNAL URL DEPENDENCY) */
 .clouds-background-layer {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.25;
-  background: url('https://www.transparenttextures.com/patterns/clouds.png') repeat;
-  animation: moveClouds 60s linear infinite;
+  opacity: 0.4; /* Slightly bumped up contrast so they pop against the sky-grey */
+  
+  /* Pure CSS Procedural Vintage Cloud Layer using multiple radial gradients */
+  background: 
+    radial-gradient(circle at 20% 30%, #ffffff 0%, rgba(255,255,255,0) 12%),
+    radial-gradient(circle at 30% 25%, #ffffff 0%, rgba(255,255,255,0) 16%),
+    radial-gradient(circle at 40% 33%, #ffffff 0%, rgba(255,255,255,0) 14%),
+    radial-gradient(circle at 75% 60%, #ffffff 0%, rgba(255,255,255,0) 18%),
+    radial-gradient(circle at 85% 55%, #ffffff 0%, rgba(255,255,255,0) 15%),
+    radial-gradient(circle at 15% 75%, #ffffff 0%, rgba(255,255,255,0) 13%);
+  background-size: 200% 200%;
+  animation: moveClouds 40s linear infinite;
 }
+
 @keyframes moveClouds {
-  from { background-position: 0 0; }
-  to { background-position: 1000px 500px; }
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
 }
-
-/* BOOT LOADING SYSTEM VISUALS */
-#loadingScreen {
-  background: var(--dark-sky);
-  align-items: center;
-  justify-content: center;
-}
-.loader-content { text-align: center; }
-.spinning-record {
-  font-size: 5rem;
-  display: inline-block;
-  animation: spinDisk 2s linear infinite;
-  margin-bottom: 20px;
-}
-@keyframes spinDisk {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.loading-text { color: var(--gold); letter-spacing: 6px; }
-
-/* WELCOME & ENTRY PANELS */
-#authScreen, #welcomeScreen {
-  background: radial-gradient(circle, var(--sky-grey) 0%, var(--dark-sky) 100%);
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.auth-card, .welcome-card {
-  background: var(--panel-bg);
-  border: 3px solid var(--border-color);
-  border-radius: 16px;
-  padding: 40px 24px;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-}
-.game-brand-title {
-  color: var(--gold);
-  font-size: 2.5rem;
-  letter-spacing: 4px;
-  margin-bottom: 6px;
-}
-.game-brand-tagline { font-size: 1rem; color: #9cb1bc; margin-bottom: 30px; }
-.static-record { font-size: 4.5rem; margin: 24px 0; animation: spinDisk 12s linear infinite; }
-
-/* GLOBAL CONTROL UTILITIES */
-.btn { width: 100%; padding: 16px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; border: none; }
-.btn-primary { background: var(--gold); color: #000; }
-.btn-play-huge {
-  background: var(--gold); color: #000; font-size: 1.6rem;
-  font-weight: 900; letter-spacing: 2px; padding: 18px;
-  box-shadow: 0 0 15px var(--gold); border-radius: 8px; cursor: pointer;
-}
-.btn-play-huge:hover { transform: scale(1.05); }
-
-/* BAR HEADER STATUS ARRAYS */
-.app-status-bar {
-  height: 70px;
-  background: var(--panel-bg);
-  border-bottom: 3px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 12px;
-  z-index: 20;
-}
-.header-settings-btn { margin-left: auto; }
-.icon-btn {
-  background: var(--sky-grey); border: 2px solid var(--border-color);
-  color: white; width: 44px; height: 44px; border-radius: 50%;
-  font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-.status-indicator-pill {
-  background: var(--dark-sky); border: 2px solid var(--border-color);
-  padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: bold;
-}
-.lives-pill { border-color: #c94c4c; color: #ff8e8e; }
-.gold-pill { border-color: var(--gold); color: var(--gold); }
-
-/* THE RUNWAY TIMELINE FLOW MAP GRID */
-.map-scroll-viewport {
-  flex: 1;
-  overflow-y: auto;
-  padding: 40px 20px;
-  z-index: 2;
-  position: relative;
-}
-.zig-zag-map {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 36px;
-  max-width: 400px;
-  margin: 0 auto;
-}
-.map-row { display: flex; width: 100%; }
-.map-row.left  { justify-content: flex-start; }
-.map-row.mid   { justify-content: center; }
-.map-row.right { justify-content: flex-end; }
-
-/* ERA HEADER LABELS ON MAP */
-.era-header-banner {
-  width: 100%;
-  text-align: center;
-  background: #11171a;
-  border: 2px solid var(--gold);
-  color: var(--gold);
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  margin: 20px 0 10px 0;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-.level-node { display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; background: none; border: none; }
-.node-circle {
-  width: 60px; height: 60px; border-radius: 50%;
-  background: #11171a; border: 3px solid var(--border-color);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: bold; font-size: 1.2rem; color: var(--bright-white);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-.level-node.unlocked .node-circle { border-color: var(--gold); background: #3a311c; }
-.level-node.active .node-circle {
-  border-color: var(--bright-white); background: var(--gold); color: #000 !important;
-  box-shadow: 0 0 20px var(--gold); transform: scale(1.1);
-}
-.level-node:disabled { opacity: 0.4; cursor: not-allowed; }
-.node-records { font-size: 0.8rem; color: #b2c4ce; margin-top: 6px; font-weight: bold; letter-spacing: 1px; }
-
-.level-node.active::before {
-  content: '▼'; position: absolute; top: -26px; left: 50%; transform: translateX(-50%);
-  color: var(--gold); font-size: 1.2rem; text-shadow: 0 0 8px var(--gold);
-  animation: floatArrow 1.2s ease-in-out infinite alternate;
-}
-@keyframes floatArrow {
-  0% { transform: translateX(-50%) translateY(0); }
-  100% { transform: translateX(-50%) translateY(-6px); }
-}
-
-/* APP NAVIGATION STRIP FOOTER */
-.app-footer-navigation {
-  height: 70px;
-  background: var(--panel-bg);
-  border-top: 3px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 12px;
-  z-index: 20;
-}
-.footer-tab-btn {
-  flex: 1; max-width: 160px; padding: 12px;
-  background: var(--sky-grey); border: 2px solid var(--border-color);
-  color: white; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
-}
-.footer-tab-btn:hover { background: var(--border-color); }
-
-/* SUBPAGES SPECIFICS (SHOP & FRIENDS INTERACTIVE TILES) */
-.generic-subpage { background-color: var(--sky-grey); }
-.subpage-header {
-  height: 70px; background: var(--panel-bg);
-  border-bottom: 3px solid var(--border-color);
-  display: flex; align-items: center; padding: 0 16px; gap: 20px;
-}
-.subpage-header h2 { color: var(--gold); font-size: 1.4rem; letter-spacing: 2px; }
-.btn-back { background: none; border: none; color: var(--gold); font-size: 1rem; font-weight: bold; cursor: pointer; }
-.subpage-body { flex: 1; padding: 24px; overflow-y: auto; z-index: 5; }
-.subpage-body.center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; }
-
-.section-desc { font-size: 1rem; max-width: 320px; line-height: 1.6; color: #eef1f2; margin-bottom: 10px; }
-.social-action-btn { width: 100%; max-width: 340px; padding: 18px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 0.95rem; cursor: pointer; margin: 8px 0; }
-.social-action-btn.fb-blue { background: #3b5998; }
-.social-action-btn.link-green { background: #2d6a4f; border: 1px solid #40916c; }
-
-.shop-item-card {
-  background: var(--panel-bg); border: 2px solid var(--border-color);
-  border-radius: 12px; padding: 16px; margin-bottom: 16px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
-.item-details h3 { font-size: 1rem; color: var(--bright-white); margin-bottom: 4px; }
-.item-details p { font-size: 0.8rem; color: #9cb1bc; line-height: 1.4; }
-.buy-btn { background: var(--gold); color: #000; font-weight: bold; border: none; border-radius: 6px; padding: 12px 20px; cursor: pointer; font-size: 1rem; }
-
-/* INTERACTIVE MATCH ENGINE DESIGN CONSOLE */
-#gamePlayScreen { background: #0c1114; }
-.gameplay-header { height: 60px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; justify-content: space-between; }
-.current-era-title { font-weight: bold; letter-spacing: 1px; color: var(--bright-white); }
-.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 16px; }
-.gameplay-stats-panel { display: flex; width: 100%; max-width: 336px; gap: 8px; }
-.mini-stat-card { flex: 1; background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 8px; padding: 8px; text-align: center; }
-.mini-stat-card p { font-size: 0.7rem; color: #7f97a4; margin-bottom: 2px; }
-.mini-stat-card span { font-size: 1.2rem; font-weight: bold; color: var(--gold); }
-.canvas-board-wrapper { background: #11171a; border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; }
-canvas { display: block; background: #1a2429; cursor: pointer; width: 320px; height: 320px; }
-
-/* MODAL WINDOW POPUPS & VINYL PLATES */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(12, 17, 20, 0.85); z-index: 100;
-  display: none; align-items: center; justify-content: center; padding: 20px;
-}
-.modal-overlay.visible { display: flex; }
-.modal-window { background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 16px; padding: 28px; width: 100%; max-width: 340px; text-align: center; }
-.modal-divider { border: none; height: 2px; background: var(--border-color); margin: 18px 0; }
-
-/* LEVEL START POPUP OVERLAY */
-.prelevel-window { border-color: var(--gold); }
-.spinning-vinyl-icon { font-size: 4rem; margin-bottom: 12px; animation: spinDisk 4s linear infinite; display: inline-block; }
-.modal-action-row { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.modal-btn { padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; }
-.modal-btn.play-btn { background: var(--gold); color: #000; }
-.modal-btn.back-btn { background: var(--sky-grey); color: #fff; border: 1px solid var(--border-color); }
-.modal-btn.full-w { width: 100%; }
-
-/* SUCCESS MODAL POPUP */
-.success-window { border-color: var(--gold); animation: popScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-@keyframes popScale { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-.congrats-text { color: var(--gold); font-size: 1.5rem; letter-spacing: 2px; margin-bottom: 4px; }
-.status-msg-text { font-size: 1.1rem; color: #fff; font-weight: bold; margin-bottom: 18px; letter-spacing: 1px; }
-.success-records-row { display: flex; justify-content: center; gap: 14px; font-size: 2.8rem; margin-bottom: 24px; min-height: 55px; }
-
-/* TOGGLES SETTINGS INTERFACES */
-.preferences-window h2 { color: var(--gold); letter-spacing: 2px; }
-.toggle-control-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2a373e; }
-.toggle-control-item span { font-weight: bold; font-size: 0.95rem; }
-.setting-toggle-btn { padding: 6px 16px; border: none; font-weight: bold; border-radius: 4px; cursor: pointer; width: 70px; background: #c94c4c; color: white; }
-.setting-toggle-btn.active { background: #2d6a4f; }
-.menu-action-btn { width: 100%; padding: 14px; margin: 6px 0; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-.menu-action-btn.help-btn { background: #4a6fa5; color: white; }
-.menu-action-btn.destructive { background: #3a2222; color: #ff6b6b; }
-.menu-action-btn.dismiss { background: var(--sky-grey); color: white; margin-top: 14px; }
-
-#portalFlash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bright-white); opacity: 0; pointer-events: none; z-index: 200; }
-#portalFlash.active { animation: flashAnim 0.4s ease-out; }
-@keyframes flashAnim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
