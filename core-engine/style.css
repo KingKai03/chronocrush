@@ -12,9 +12,24 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
 .full-screen-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 10; background: var(--bg-color); }
 .full-screen-view.active { display: flex; }
 
-/* RESTORED: Beautiful ambient grey cloud radial background blend from your screenshots */
+/* FIXED: The cloud gradient now breathes and moves smoothly across the viewport */
 #homePage {
-  background: radial-gradient(circle at center, #9da8ad 0%, #5c6970 70%, #3e484c 100%);
+  background: radial-gradient(circle at 30% 20%, #9da8ad 0%, #5c6970 60%, #3e484c 100%);
+  background-size: 160% 160%;
+  animation: driftClouds 20s ease-in-out infinite alternate;
+}
+
+/* Elegant, slow looping animation to make the grey cloud backdrop move */
+@keyframes driftClouds {
+  0% {
+    background-position: 0% 10%;
+  }
+  50% {
+    background-position: 100% 80%;
+  }
+  100% {
+    background-position: 20% 40%;
+  }
 }
 
 .app-status-bar, .gameplay-header { height: 60px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 25; }
