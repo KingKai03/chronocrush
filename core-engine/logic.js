@@ -6,7 +6,6 @@ const gameState = {
   audioCtx: null, musicInterval: null, currentTrackEra: null, matchExplosions: []
 };
 
-// Continuous Sax/Violin instrumental tuning parameters (Long attack/decay times for smooth wind notes)
 const eraTimeline = [
   { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 95, melody: [196, 220, 246, 293], wave: "triangle" },
   { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 105, melody: [220, 261, 329, 392], wave: "triangle" },
@@ -63,7 +62,6 @@ function startEraMusic(eraName) {
     osc.type = era.wave;
     osc.frequency.setValueAtTime(era.melody[step % era.melody.length], gameState.audioCtx.currentTime);
     
-    // Smooth legato volume slope mimicking a soft violin or saxophone attack/decay
     gain.gain.setValueAtTime(0.01, gameState.audioCtx.currentTime);
     gain.gain.linearRampToValueAtTime(0.07, gameState.audioCtx.currentTime + 0.1);
     gain.gain.exponentialRampToValueAtTime(0.001, gameState.audioCtx.currentTime + noteLen - 0.05);
@@ -86,8 +84,8 @@ function stopEraMusic() {
 }
 
 function triggerVibration(pattern) {
-  if (gameState.preferences.vibe && (window.navigator && window.navigator.vibrate)) {
-    window.navigator.vibrate(pattern);
+  if (gameState.preferences.vibe && navigator.vibrate) {
+    navigator.vibrate(pattern);
   }
 }
 
@@ -174,7 +172,6 @@ function updateAndDrawBoard() {
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, 320, 320);
   
-  // Render clear backgrounds grid cells on active visible board context
   for (let r=0; r<6; r++) {
     for (let c=0; c<6; c++) {
       const x = c * 53.3;
@@ -189,6 +186,8 @@ function updateAndDrawBoard() {
       }
       
       if (gameState.grid[r] && gameState.grid[r][c]) {
+        // LOCK FILL STYLE COLOR VALUE RIGHT BEFORE WRITING ELEMENT TEXT DATA
+        ctx.fillStyle = "#ffffff";
         ctx.font = "28px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -319,7 +318,6 @@ function win() {
 
 function exitToHome() { gameState.isGameActive = false; loadHomepage(); }
 function transitionToMap() { initAudio(); triggerFlashAnimation(); loadHomepage(); }
-// Trigger auth bypass sequence cleanly
 function handleAuth() { initAudio(); triggerFlashAnimation(); switchView("welcomeScreen"); }
 function triggerFlashAnimation() { const f = document.getElementById("portalFlash"); f.classList.add('active'); setTimeout(()=>f.classList.remove('active'), 300); }
 function openSettingsModal() { toggleModal('settingsModal', true); }
