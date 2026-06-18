@@ -1,1 +1,78 @@
-<link rel="stylesheet" href="core-engine/style.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHRONOCRUSH - The Era Odyssey</title>
+  <link rel="stylesheet" href="core-engine/style.css">
+</head>
+<body>
+
+  <div id="authScreen" class="screen-overlay visible">
+    <div class="auth-box">
+      <h1>CHRONOCRUSH</h1>
+      <p>Select your entry into the timeline</p>
+      <button class="menu-btn" onclick="loginUser('guest')">Play as Guest</button>
+      <button class="menu-btn" onclick="loginUser('saved')">Load Saved Profile</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <header>
+      <h1>CHRONOCRUSH</h1>
+      <p class="subtitle">The Era Odyssey</p>
+    </header>
+
+    <main class="game-layout">
+      <section class="panel grid-panel">
+        <div class="panel-header">
+          <span class="panel-title">⏳ TIME GRID</span>
+          <span id="eraBadge" class="era-badge">1940s Noir</span>
+        </div>
+        
+        <div class="stats-bar">
+          <div class="stat-box"><p>MOVES</p><span id="movesText">20</span></div>
+          <div class="stat-box"><p>TARGET</p><span id="targetText">500</span></div>
+          <div class="stat-box"><p>SCORE</p><span id="scoreText">0</span></div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="gameCanvas"></canvas>
+        </div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="panel-header">
+          <span class="panel-title">🗺️ TIMELINE OVERVIEW</span>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-avatar">💿</div>
+          <div class="profile-info">
+            <h3 id="profileName">Loading User...</h3>
+            <p>Total Records: <span id="totalRecordsText">0</span>/210</p>
+          </div>
+        </div>
+
+        <div class="map-scroll-container">
+          <div id="campaignMap" class="zig-zag-map"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="overlayScreen" class="screen-overlay">
+    <div class="modal-box">
+      <h2 id="overlayTitle">Level Cleared!</h2>
+      <div id="recordsAwardContainer" class="records-display"></div>
+      <p id="overlayBody">You recovered the historical artifacts flawlessly.</p>
+      <div id="modalControls" class="modal-buttons">
+        </div>
+    </div>
+  </div>
+
+  <div id="portalFlash"></div>
+
+  <script src="core-engine/logic.js"></script>
+</body>
+</html>
