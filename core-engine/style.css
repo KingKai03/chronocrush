@@ -1,7 +1,7 @@
 :root {
   --gold: #d4af37;
   --panel-bg: #11171a;
-  --bg-color: #1e272c;
+  --bg-color: #5c6970; /* Restored original grey base */
   --border-color: #475861;
   --text-color: #eef1f2;
 }
@@ -11,6 +11,11 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
 
 .full-screen-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 10; background: var(--bg-color); }
 .full-screen-view.active { display: flex; }
+
+/* RESTORED: Beautiful ambient grey cloud radial background blend from your screenshots */
+#homePage {
+  background: radial-gradient(circle at center, #9da8ad 0%, #5c6970 70%, #3e484c 100%);
+}
 
 .app-status-bar, .gameplay-header { height: 60px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 25; }
 .header-left-status { display: flex; gap: 15px; }
@@ -28,29 +33,27 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
 .map-row.left { justify-content: flex-start; }
 .map-row.mid { justify-content: center; }
 .map-row.right { justify-content: flex-end; }
-.era-header-banner { background: var(--panel-bg); border: 1px solid var(--gold); color: var(--gold); padding: 8px; border-radius: 6px; font-weight: bold; text-align: center; width: 100%; margin: 15px 0; }
+.era-header-banner { background: var(--panel-bg); border: 1px solid var(--gold); color: var(--gold); padding: 8px; border-radius: 6px; font-weight: bold; text-align: center; width: 100%; margin: 15px 0; letter-spacing: 2px; }
 
 .level-node { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: none; border: none; }
-.node-circle { width: 55px; height: 55px; border-radius: 50%; background: var(--panel-bg); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+.node-circle { width: 55px; height: 55px; border-radius: 50%; background: var(--panel-bg); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
 .level-node.unlocked .node-circle { border-color: var(--gold); }
 .level-node.active .node-circle { border-color: white; background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); }
+.node-records { font-size: 0.75rem; margin-top: 4px; }
 
-.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; padding: 10px; }
+.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; padding: 10px; background: radial-gradient(circle at center, #2c3539 0%, #1a2123 100%); }
 .canvas-board-wrapper { background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 canvas { display: block; background: #161d21; width: 320px; height: 320px; }
 
-/* Modal overlays */
+/* Modal configurations */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; overflow: hidden; }
 .modal-overlay.visible { display: flex; }
 
-/* Background Canvas for Fireworks */
 #fireworksCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 101; }
 
-/* The Vinyl Record Shell Container Layout */
 .record-modal-disc { width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 12px, #0b0b0b 25px, #222 35px, #111 60px, #222 90px, #050505 130px, #151515 100%); border: 8px solid #2a2a2a; box-shadow: 0 12px 36px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; position: relative; z-index: 105; animation: recordSlideIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards; }
 .record-modal-disc.gold-disc { background: radial-gradient(circle, #e5c158 2px, #866413 5px, #b89727 20px, #917216 45px, #cca325 75px, #a38014 110px, #614b09 100%); border: 8px solid #ffd700; box-shadow: 0 0 40px rgba(212,175,55,0.4), 0 12px 36px rgba(0,0,0,0.9); }
 
-/* Center Record Sticker Paper */
 .record-center-label { width: 165px; height: 165px; border-radius: 50%; background: #ffffff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; border: 4px dashed rgba(0,0,0,0.15); box-shadow: inset 0 0 15px rgba(0,0,0,0.2); position: relative; }
 .gold-disc .record-center-label { background: #111416; color: #fff; border: 4px dashed rgba(212,175,55,0.4); }
 
@@ -58,7 +61,6 @@ canvas { display: block; background: #161d21; width: 320px; height: 320px; }
 .record-center-label h2.congrats-text { font-size: 0.78rem; color: var(--gold); margin-bottom: 2px; line-height: 1.1; }
 .sub-pass-text { font-size: 0.55rem; font-weight: bold; opacity: 0.7; letter-spacing: 0.5px; margin-bottom: 5px; text-transform: uppercase; }
 
-/* Compact Button System on the Center Sticker Label */
 .record-btn-stack { display: flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 4px; }
 .record-action-btn { width: 100%; padding: 5px 2px; border-radius: 40px; border: none; font-size: 0.68rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: transform 0.1s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 .record-action-btn:active { transform: scale(0.95); }
@@ -75,7 +77,6 @@ canvas { display: block; background: #161d21; width: 320px; height: 320px; }
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* Settings elements */
 .modal-window { background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; position: relative; z-index: 105; }
 .modal-close-x { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ff5c5c; font-size: 1.4rem; cursor: pointer; }
 .toggle-control-item { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
