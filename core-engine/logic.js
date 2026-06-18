@@ -6,7 +6,12 @@ const gameState = {
   audioCtx: null, musicInterval: null, currentTrackEra: null, matchExplosions: []
 };
 
-// All waveforms set to 'sine' for maximum smoothness and a warm, relaxing texture
+// Global container arrays and request handles for the canvas fireworks engine
+let fxCanvas = null;
+let fxCtx = null;
+let fxParticles = [];
+let fxAnimationId = null;
+
 const eraTimeline = [
   { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 80, melody: [196, 220, 246, 220], wave: "sine" },
   { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 85, melody: [220, 261, 329, 261], wave: "sine" },
@@ -30,9 +35,21 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleCanvasClick(e.touches[0]); });
   }
   
+  // Cache and setup full window viewport hooks for the fireworks layout
+  fxCanvas = document.getElementById("fireworksCanvas");
+  if (fxCanvas) fxCtx = fxCanvas.getContext("2d");
+  window.addEventListener("resize", resizeFireworksCanvas);
+  
   setInterval(updateAndDrawBoard, 30);
   switchView("welcomeScreen");
 });
+
+function resizeFireworksCanvas() {
+  if (fxCanvas) {
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+  }
+}
 
 function initAudio() { 
   if (!gameState.audioCtx) {
@@ -64,11 +81,9 @@ function startEraMusic(eraName) {
     osc.type = era.wave;
     osc.frequency.setValueAtTime(era.melody[step % era.melody.length], gameState.audioCtx.currentTime);
     
-    // Low-pass filter to smooth out all high frequencies and create a warm tone
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(350, gameState.audioCtx.currentTime);
     
-    // Soft, relaxing swell attack and a low max volume ceiling
     gain.gain.setValueAtTime(0.0001, gameState.audioCtx.currentTime);
     gain.gain.linearRampToValueAtTime(0.012, gameState.audioCtx.currentTime + 0.4); 
     gain.gain.exponentialRampToValueAtTime(0.0001, gameState.audioCtx.currentTime + noteLen);
@@ -144,12 +159,43 @@ function loadHomepage() {
 
 function toggleModal(id, open) {
   const m = document.getElementById(id);
-  if (open) m.classList.add('visible'); else m.classList.remove('visible');
+  if (open) {
+    m.classList.add('visible');
+    if (id === 'levelSuccessModal') {
+      resizeFireworksCanvas();
+      spawnFireworksBurst();
+      runFireworksLoop();
+    }
+  } else {
+    m.classList.remove('visible');
+    if (id === 'levelSuccessModal') {
+      cancelAnimationFrame(fxAnimationId);
+      fxParticles = [];
+    }
+  }
 }
 
 function confirmAndStartLevel() {
   toggleModal('levelReadyModal', false);
-  const lvl = gameState.levelPendingStart;
+  startLevelLogic(gameState.levelPendingStart);
+}
+
+function retryCurrentLevel() {
+  toggleModal('levelSuccessModal', false);
+  startLevelLogic(gameState.currentLevel);
+}
+
+function advanceToNextLevel() {
+  toggleModal('levelSuccessModal', false);
+  let next = gameState.currentLevel + 1;
+  if (next <= gameState.totalLevels && next <= gameState.highestUnlockedLevel) {
+    startLevelLogic(next);
+  } else {
+    loadHomepage();
+  }
+}
+
+function startLevelLogic(lvl) {
   gameState.currentLevel = lvl;
   gameState.isGameActive = true;
   gameState.score = 0;
@@ -214,6 +260,68 @@ function updateAndDrawBoard() {
     p.alpha -= 0.04;
     if (p.alpha <= 0) gameState.matchExplosions.splice(i, 1);
   }
+}
+
+/* Light Particle Fireworks Engine */
+function spawnFireworksBurst() {
+  const colors = ['#ffd700', '#ff5e62', '#ff9966', '#00f2fe', '#4facfe', '#b19ffb'];
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  
+  // Spawn 2 clean, performance-friendly directional ring bursts
+  for (let b = 0; b < 2; b++) {
+    const originX = centerX + (Math.random() * 200 - 100);
+    const originY = centerY - (Math.random() * 120);
+    const particlesCount = 35;
+    
+    for (let i = 0; i < particlesCount; i++) {
+      const angle = (Math.PI * 2 / particlesCount) * i + Math.random() * 0.4;
+      const speed = 2 + Math.random() * 5;
+      fxParticles.push({
+        x: originX,
+        y: originY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+        decay: 0.015 + Math.random() * 0.015
+      });
+    }
+  }
+}
+
+function runFireworksLoop() {
+  if (!fxCtx) return;
+  fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+  
+  for (let i = fxParticles.length - 1; i >= 0; i--) {
+    let p = fxParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.04; // Gentle gravity effect
+    p.alpha -= p.decay;
+    
+    if (p.alpha <= 0) {
+      fxParticles.splice(i, 1);
+      continue;
+    }
+    
+    fxCtx.save();
+    fxCtx.globalAlpha = p.alpha;
+    fxCtx.fillStyle = p.color;
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    fxCtx.fill();
+    fxCtx.restore();
+  }
+  
+  // Occasionally spawn a tiny trailing rocket burst if modal remains open
+  if (Math.random() < 0.015 && fxParticles.length < 40) {
+    spawnFireworksBurst();
+  }
+  
+  fxAnimationId = requestAnimationFrame(runFireworksLoop);
 }
 
 function handleCanvasClick(e) {
@@ -303,11 +411,12 @@ function checkMatches() {
   if (gameState.score >= gameState.targetScore) {
     setTimeout(win, 400);
   } else if (gameState.moves <= 0) {
-    setTimeout(() => { alert("Out of moves!"); exitToHome(); }, 500);
+    setTimeout(() => { alert("Out of moves!"); gameState.isGameActive = false; loadHomepage(); }, 500);
   }
 }
 
 function win() {
+  gameState.isGameActive = false;
   triggerVibration([100, 40, 100, 40, 300]);
   let stars = gameState.score > gameState.targetScore * 1.4 ? 3 : (gameState.score > gameState.targetScore * 1.1 ? 2 : 1);
   gameState.levelRecords[gameState.currentLevel] = stars;
@@ -319,8 +428,8 @@ function win() {
   }
   
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
+  switchView("homePage"); // Clear gameplay screen from background view
   toggleModal('levelSuccessModal', true);
-  exitToHome();
 }
 
 function exitToHome() { gameState.isGameActive = false; loadHomepage(); }
