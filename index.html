@@ -6,50 +6,17 @@
   <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
-<body onclick="initAudio()">
-
-  <div id="loadingScreen" class="full-screen-view active">
-    <div class="loader-content">
-      <div class="spinning-record">💿</div>
-      <h2 class="loading-text">LOADING...</h2>
-    </div>
-  </div>
-
-  <div id="authScreen" class="full-screen-view">
-    <div class="auth-card">
-      <h1 class="game-brand-title">CHRONOCRUSH</h1>
-      <p class="game-brand-tagline">The Era Odyssey</p>
-      <div class="auth-action-group">
-        <button class="btn btn-primary" onclick="handleAuth()">Play as Guest</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="welcomeScreen" class="full-screen-view">
-    <div class="welcome-card">
-      <h1 class="game-brand-title">CHRONOCRUSH</h1>
-      <div class="static-record">🎵</div>
-      <button class="btn btn-play-huge" onclick="transitionToMap()">PLAY!</button>
-    </div>
-  </div>
+<body>
 
   <div id="homePage" class="full-screen-view">
-    <div class="cloud-layer">
-      <div class="cloud">☁️</div><div class="cloud">☁️</div><div class="cloud">☁️</div><div class="cloud">☁️</div>
-    </div>
     <header class="app-status-bar">
-      <div class="header-left-status">
-        <div class="status-indicator-pill">❤️ <span id="livesCounter">5</span></div>
-        <div class="status-indicator-pill">🪙 <span id="profileGold">150</span></div>
-      </div>
-      <button class="header-settings-btn" onclick="openSettingsModal()">⚙️</button>
-    </header>
-    <main class="map-scroll-viewport"><div class="zig-zag-map" id="mapLayer"></div></main>
-    <footer class="app-footer-navigation">
-      <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
-      <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
-    </footer>
+      </header>
+    <main class="map-scroll-viewport">
+      <div class="zig-zag-map" id="mapLayer"></div>
+    </main>
   </div>
+
+  <div id="portalFlash"></div>
 
   <script src="core-engine/logic.js"></script>
 </body>
