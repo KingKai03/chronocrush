@@ -85,20 +85,30 @@
   </div>
 
   <div id="levelReadyModal" class="modal-overlay">
-    <div class="modal-window">
-      <h2 id="modalLevelTitle">LEVEL 1</h2>
-      <div class="modal-action-row">
-        <button class="modal-btn play-btn" onclick="confirmAndStartLevel()">PLAY</button>
-        <button class="modal-btn back-btn" onclick="toggleModal('levelReadyModal', false)">GO BACK</button>
+    <div class="record-modal-disc">
+      <div class="record-center-label">
+        <h2 id="modalLevelTitle">LEVEL 1</h2>
+        <div class="record-btn-stack">
+          <button class="record-action-btn btn-go" onclick="confirmAndStartLevel()">PLAY</button>
+          <button class="record-action-btn btn-stop" onclick="toggleModal('levelReadyModal', false)">BACK TO MAP</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="levelSuccessModal" class="modal-overlay">
-    <div class="modal-window">
-      <h2>LEVEL PASSED</h2>
-      <div id="modalRecordsDisplay"></div>
-      <button class="modal-btn play-btn" onclick="toggleModal('levelSuccessModal', false)">CONTINUE</button>
+    <canvas id="fireworksCanvas"></canvas>
+    <div class="record-modal-disc gold-disc">
+      <div class="record-center-label">
+        <h2 class="congrats-text">CONGRATULATIONS!</h2>
+        <p class="sub-pass-text">YOU PASSED THE LEVEL</p>
+        <div id="modalRecordsDisplay"></div>
+        <div class="record-btn-stack">
+          <button class="record-action-btn btn-go" onclick="advanceToNextLevel()">NEXT LEVEL</button>
+          <button class="record-action-btn btn-retry" onclick="retryCurrentLevel()">RETRY</button>
+          <button class="record-action-btn btn-stop" onclick="toggleModal('levelSuccessModal', false)">BACK TO MAP</button>
+        </div>
+      </div>
     </div>
   </div>
 
