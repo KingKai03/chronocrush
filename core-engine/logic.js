@@ -6,7 +6,7 @@ const gameState = {
   gold: 150,
   currentLevel: 1,
   highestUnlockedLevel: 1,
-  totalLevels: 6,
+  totalLevels: 70, // Total: 7 eras * 10 levels each
   isGameActive: false,
   levelPendingStart: null,
   
@@ -29,6 +29,17 @@ const gameState = {
   }
 };
 
+// Complete List of Eras (10 Levels each)
+const eraTimeline = [
+  { name: "1940s Noir", startLvl: 1, endLvl: 10 },
+  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20 },
+  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30 },
+  { name: "1970s Disco", startLvl: 31, endLvl: 40 },
+  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50 },
+  { name: "1990s Grunge", startLvl: 51, endLvl: 60 },
+  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70 }
+];
+
 const gameItems = [
   { id: 1, char: '📻' },
   { id: 2, char: '🎩' },
@@ -36,9 +47,14 @@ const gameItems = [
   { id: 4, char: '🎷' }
 ];
 
+// Helper to determine active era name based on level count
+function getEraNameForLevel(lvl) {
+  const era = eraTimeline.find(e => lvl >= e.startLvl && lvl <= e.endLvl);
+  return era ? era.name : "Time Paradox";
+}
+
 // INITIALIZATION SEQUENCER
 document.addEventListener("DOMContentLoaded", () => {
-  // 2.5 Second Loading Spin Execution
   setTimeout(() => {
     gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
     
@@ -62,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================================================
-// 2. RUNWAY NAVIGATION ROUTER HOOKS
+// 2. NAV ROUTER HOOKS
 // ==========================================================================
 function transitionToMap() {
   triggerFlashAnimation();
@@ -89,43 +105,52 @@ function renderMapPathway() {
 
   const alignments = ["mid", "left", "mid", "right", "mid", "left"];
 
-  for (let i = 1; i <= gameState.totalLevels; i++) {
-    const row = document.createElement("div");
-    const alignment = alignments[(i - 1) % alignments.length];
-    row.className = `map-row ${alignment}`;
+  // Loop through each Era to render group headers and 10 levels each
+  eraTimeline.forEach(era => {
+    // Generate Era Banner
+    const banner = document.createElement("div");
+    banner.className = "era-header-banner";
+    banner.innerText = era.name.toUpperCase();
+    mapLayer.appendChild(banner);
 
-    const button = document.createElement("button");
-    button.className = "level-node";
-    
-    if (i === gameState.highestUnlockedLevel) {
-      button.classList.add("active");
-    } else if (i < gameState.highestUnlockedLevel) {
-      button.classList.add("unlocked");
-    } else {
-      button.disabled = true;
-    }
+    // Generate individual nodes inside this specific era group
+    for (let i = era.startLvl; i <= era.endLvl; i++) {
+      const row = document.createElement("div");
+      const alignment = alignments[(i - 1) % alignments.length];
+      row.className = `map-row ${alignment}`;
 
-    button.onclick = () => launchLevelPrePopup(i);
-
-    // GOLD RECORD RECORD SYMBOLS DISPLAY UNDER NODE
-    let recordDisplayStr = "🔒";
-    if (i <= gameState.highestUnlockedLevel) {
-      const recordsEarned = gameState.levelRecords[i] || 0;
-      if (recordsEarned === 0) {
-        recordDisplayStr = "⚪ ⚪ ⚪"; 
+      const button = document.createElement("button");
+      button.className = "level-node";
+      
+      if (i === gameState.highestUnlockedLevel) {
+        button.classList.add("active");
+      } else if (i < gameState.highestUnlockedLevel) {
+        button.classList.add("unlocked");
       } else {
-        recordDisplayStr = "📀".repeat(recordsEarned); 
+        button.disabled = true;
       }
+
+      button.onclick = () => launchLevelPrePopup(i);
+
+      let recordDisplayStr = "🔒";
+      if (i <= gameState.highestUnlockedLevel) {
+        const recordsEarned = gameState.levelRecords[i] || 0;
+        if (recordsEarned === 0) {
+          recordDisplayStr = "⚪ ⚪ ⚪"; 
+        } else {
+          recordDisplayStr = "残留".replace("残留", "📀").repeat(recordsEarned); 
+        }
+      }
+
+      button.innerHTML = `
+        <div class="node-circle">${i}</div>
+        <div class="node-records">${recordDisplayStr}</div>
+      `;
+
+      row.appendChild(button);
+      mapLayer.appendChild(row);
     }
-
-    button.innerHTML = `
-      <div class="node-circle">${i}</div>
-      <div class="node-records">${recordDisplayStr}</div>
-    `;
-
-    row.appendChild(button);
-    mapLayer.appendChild(row);
-  }
+  });
 }
 
 // ==========================================================================
@@ -161,10 +186,10 @@ function confirmAndStartLevel() {
   gameState.isGameActive = true;
   gameState.score = 0;
   gameState.moves = 22;
-  gameState.targetScore = 400 + (targetLvl * 100);
+  gameState.targetScore = 400 + (targetLvl * 15); // Scales targets gradually up
   gameState.selectedTile = null;
   
-  document.getElementById("activeEraName").innerText = `Level ${targetLvl} - 1940s Noir`;
+  document.getElementById("activeEraName").innerText = `Level ${targetLvl} - ${getEraNameForLevel(targetLvl)}`;
   document.getElementById("movesDisplay").innerText = gameState.moves;
   document.getElementById("targetDisplay").innerText = gameState.targetScore;
   document.getElementById("scoreDisplay").innerText = gameState.score;
@@ -233,7 +258,6 @@ function handleCanvasClick(event) {
   const canvas = document.getElementById("gameCanvas");
   const rect = canvas.getBoundingClientRect();
   
-  // Directly mapping absolute coordinates relative to rendering frame container dimensions
   const clickX = event.clientX - rect.left;
   const clickY = event.clientY - rect.top;
 
@@ -350,7 +374,6 @@ function checkGameEndCondition() {
       finalRecords = 2; 
     }
 
-    // Spawn custom record animation results popup
     const recordsDisplay = document.getElementById("modalRecordsDisplay");
     recordsDisplay.innerHTML = "📀".repeat(finalRecords);
     toggleModal('levelSuccessModal', true);
@@ -425,6 +448,34 @@ function resetGameProgress() {
     localStorage.removeItem("chrono_level_records");
     toggleModal('settingsModal', false);
     loadHomepage();
+  }
+}
+
+// Handling absolute click bounding coordinates inside responsive container layout boxes
+function handleCanvasClick(event) {
+  if (!gameState.isGameActive || gameState.moves <= 0) return;
+
+  const canvas = document.getElementById("gameCanvas");
+  const rect = canvas.getBoundingClientRect();
+  
+  const clickX = ((event.clientX - rect.left) / rect.width) * canvas.width;
+  const clickY = ((event.clientY - rect.top) / rect.height) * canvas.height;
+
+  const tileSize = canvas.width / gameState.boardSize;
+  const c = Math.floor(clickX / tileSize);
+  const r = Math.floor(clickY / tileSize);
+
+  if (r >= 0 && r < gameState.boardSize && c >= 0 && c < gameState.boardSize) {
+    if (!gameState.selectedTile) {
+      gameState.selectedTile = { r, c };
+    } else {
+      const dist = Math.abs(gameState.selectedTile.r - r) + Math.abs(gameState.selectedTile.c - c);
+      if (dist === 1) {
+        swapTiles(gameState.selectedTile.r, gameState.selectedTile.c, r, c);
+      }
+      gameState.selectedTile = null;
+    }
+    drawMatch3Board();
   }
 }
 
