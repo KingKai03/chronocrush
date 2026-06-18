@@ -35,24 +35,14 @@
 
   <div id="homePage" class="full-screen-view">
     <div class="clouds-background-layer"></div>
-    
     <header class="app-status-bar">
-      <div class="status-indicator-pill lives-pill">
-        <span class="pill-icon">❤️</span>
-        <span id="livesCounter">5</span>
-      </div>
-      <div class="status-indicator-pill gold-pill">
-        <span class="pill-icon">🪙</span>
-        <span id="profileGold">150</span>
-      </div>
+      <div class="status-indicator-pill lives-pill"><span class="pill-icon">❤️</span><span id="livesCounter">5</span></div>
+      <div class="status-indicator-pill gold-pill"><span class="pill-icon">🪙</span><span id="profileGold">150</span></div>
       <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
-
     <main class="map-scroll-viewport">
-      <div class="zig-zag-map" id="mapLayer">
-        </div>
+      <div class="zig-zag-map" id="mapLayer"></div>
     </main>
-
     <footer class="app-footer-navigation">
       <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
       <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
@@ -60,62 +50,36 @@
   </div>
 
   <div id="shopPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header">
-      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
-      <h2>TIME SHOP</h2>
-    </header>
+    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>TIME SHOP</h2></header>
     <div class="subpage-body scrollable-content">
-      <div class="shop-item-card">
-        <div class="item-details"><h3>❤️ Infinite Lives (30 Mins)</h3><p>Never halt your time-travel cruise sequence.</p></div>
-        <button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button>
-      </div>
-      <div class="shop-item-card">
-        <div class="item-details"><h3>🔨 Timeline Hammer Booster</h3><p>Smash and clear any single item tile variant block.</p></div>
-        <button class="buy-btn" onclick="buyItem('hammer', 80)">🪙 80</button>
-      </div>
-      <div class="shop-item-card">
-        <div class="item-details"><h3>🔄 Extra Moves (+5 Pack)</h3><p>Add emergency sequence moves when close to failure.</p></div>
-        <button class="buy-btn" onclick="buyItem('moves', 40)">🪙 40</button>
-      </div>
+      <div class="shop-item-card"><div class="item-details"><h3>❤️ Extra Lives</h3><p>Top up your sequence attempts.</p></div><button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button></div>
+      <div class="shop-item-card"><div class="item-details"><h3>🔨 Hammer</h3><p>Clear any single tile.</p></div><button class="buy-btn" onclick="buyItem('hammer', 80)">🪙 80</button></div>
     </div>
   </div>
 
   <div id="friendsPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header">
-      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
-      <h2>ADD FRIENDS</h2>
-    </header>
+    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>ADD FRIENDS</h2></header>
     <div class="subpage-body center-content">
-      <p class="section-desc">Connect with other chrononauts across the timeline grid networks!</p>
-      <button class="social-action-btn fb-blue" onclick="alert('Syncing Facebook network parameters...')">🔵 Connect &amp; Invite Facebook Friends</button>
-      <button class="social-action-btn link-green" onclick="alert('Invite link saved to clipboard!')">🔗 Copy Shareable Invite Link</button>
+      <button class="social-action-btn fb-blue" onclick="alert('Syncing Facebook...')">🔵 Invite Facebook Friends</button>
+      <button class="social-action-btn link-green" onclick="alert('Link Copied!')">🔗 Copy Invite Link</button>
     </div>
   </div>
 
   <div id="gamePlayScreen" class="full-screen-view">
-    <header class="gameplay-header">
-      <button class="btn-back" onclick="exitToHome()">◀ Leave</button>
-      <div class="current-era-title" id="activeEraName">Level 1 - 1940s Noir</div>
-    </header>
-
+    <header class="gameplay-header"><button class="btn-back" onclick="exitToHome()">◀ Leave</button><div class="current-era-title" id="activeEraName">Level 1</div></header>
     <div class="gameplay-core-layout">
       <div class="gameplay-stats-panel">
         <div class="mini-stat-card"><p>MOVES</p><span id="movesDisplay">22</span></div>
         <div class="mini-stat-card"><p>TARGET</p><span id="targetDisplay">500</span></div>
         <div class="mini-stat-card"><p>SCORE</p><span id="scoreDisplay">0</span></div>
       </div>
-
-      <div class="canvas-board-wrapper">
-        <canvas id="gameCanvas" width="320" height="320"></canvas>
-      </div>
+      <div class="canvas-board-wrapper"><canvas id="gameCanvas" width="320" height="320"></canvas></div>
     </div>
   </div>
 
   <div id="levelReadyModal" class="modal-overlay">
     <div class="modal-window prelevel-window">
-      <div class="spinning-vinyl-icon">📀</div>
-      <h2 id="modalLevelTitle">LEVEL 1</h2>
-      <hr class="modal-divider">
+      <div class="spinning-vinyl-icon">📀</div><h2 id="modalLevelTitle">LEVEL 1</h2><hr class="modal-divider">
       <div class="modal-action-row">
         <button class="modal-btn play-btn" onclick="confirmAndStartLevel()">PLAY</button>
         <button class="modal-btn back-btn" onclick="toggleModal('levelReadyModal', false)">GO BACK</button>
@@ -125,41 +89,25 @@
 
   <div id="levelSuccessModal" class="modal-overlay">
     <div class="modal-window success-window">
-      <h2 class="congrats-text">CONGRATULATIONS!</h2>
-      <p class="status-msg-text">LEVEL PASSED</p>
-      <div class="success-records-row" id="modalRecordsDisplay">
-        </div>
+      <h2 class="congrats-text">CONGRATULATIONS!</h2><p class="status-msg-text">LEVEL PASSED</p>
+      <div class="success-records-row" id="modalRecordsDisplay"></div>
       <button class="modal-btn play-btn full-w" onclick="toggleModal('levelSuccessModal', false)">CONTINUE</button>
     </div>
   </div>
 
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-window preferences-window">
-      <h2>SETTINGS</h2>
-      <hr class="modal-divider">
-      
-      <div class="toggle-control-item">
-        <span>Sound Tracks</span>
-        <button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button>
-      </div>
-      <div class="toggle-control-item">
-        <span>Sound Effects</span>
-        <button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button>
-      </div>
-      <div class="toggle-control-item">
-        <span>Device Vibration</span>
-        <button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button>
-      </div>
-
-      <hr class="modal-divider">
-      <button class="menu-action-btn help-btn" onclick="openHelpPanel()">ACCOUNT &amp; HELP</button>
-      <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Milestones</button>
-      <button class="menu-action-btn dismiss" onclick="toggleModal('settingsModal', false)">Close Menu</button>
+      <h2>SETTINGS</h2><hr class="modal-divider">
+      <div class="toggle-control-item"><span>Music</span><button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button></div>
+      <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
+      <div class="toggle-control-item"><span>Vibe</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
+      <hr class="modal-divider"><button class="menu-action-btn help-btn" onclick="openHelpPanel()">ACCOUNT & HELP</button>
+      <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Game</button>
+      <button class="menu-action-btn dismiss" onclick="toggleModal('settingsModal', false)">Close</button>
     </div>
   </div>
 
   <div id="portalFlash"></div>
-
   <script src="core-engine/logic.js"></script>
 </body>
 </html>
