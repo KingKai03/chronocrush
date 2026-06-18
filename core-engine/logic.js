@@ -6,14 +6,15 @@ const gameState = {
   audioCtx: null, musicInterval: null, currentTrackEra: null, matchExplosions: []
 };
 
+// All waveforms set to 'sine' for maximum smoothness and a warm, relaxing texture
 const eraTimeline = [
-  { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 95, melody: [196, 220, 246, 293], wave: "triangle" },
-  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 105, melody: [220, 261, 329, 392], wave: "triangle" },
-  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, tempo: 90, melody: [293, 329, 392, 440], wave: "sine" },
-  { name: "1970s Disco", startLvl: 31, endLvl: 40, tempo: 110, melody: [220, 329, 293, 440], wave: "sine" },
-  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, tempo: 115, melody: [329, 392, 440, 523], wave: "triangle" },
-  { name: "1990s Grunge", startLvl: 51, endLvl: 60, tempo: 100, melody: [196, 220, 196, 174], wave: "triangle" },
-  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70, tempo: 120, melody: [261, 329, 392, 440], wave: "sine" }
+  { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 80, melody: [196, 220, 246, 220], wave: "sine" },
+  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 85, melody: [220, 261, 329, 261], wave: "sine" },
+  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, tempo: 80, melody: [293, 329, 392, 329], wave: "sine" },
+  { name: "1970s Disco", startLvl: 31, endLvl: 40, tempo: 90, melody: [220, 329, 293, 220], wave: "sine" },
+  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, tempo: 95, melody: [329, 392, 440, 392], wave: "sine" },
+  { name: "1990s Grunge", startLvl: 51, endLvl: 60, tempo: 80, melody: [196, 220, 196, 174], wave: "sine" },
+  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70, tempo: 95, melody: [261, 329, 392, 329], wave: "sine" }
 ];
 
 const gameItems = ['📻', '🎩', '✒️', '🎷'];
@@ -58,15 +59,22 @@ function startEraMusic(eraName) {
     
     const osc = gameState.audioCtx.createOscillator();
     const gain = gameState.audioCtx.createGain();
+    const filter = gameState.audioCtx.createBiquadFilter();
     
     osc.type = era.wave;
     osc.frequency.setValueAtTime(era.melody[step % era.melody.length], gameState.audioCtx.currentTime);
     
-    gain.gain.setValueAtTime(0.01, gameState.audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.07, gameState.audioCtx.currentTime + 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, gameState.audioCtx.currentTime + noteLen - 0.05);
+    // Low-pass filter to smooth out all high frequencies and create a warm tone
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(350, gameState.audioCtx.currentTime);
     
-    osc.connect(gain);
+    // Soft, relaxing swell attack and a low max volume ceiling
+    gain.gain.setValueAtTime(0.0001, gameState.audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.012, gameState.audioCtx.currentTime + 0.4); 
+    gain.gain.exponentialRampToValueAtTime(0.0001, gameState.audioCtx.currentTime + noteLen);
+    
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(gameState.audioCtx.destination);
     
     osc.start();
@@ -186,7 +194,6 @@ function updateAndDrawBoard() {
       }
       
       if (gameState.grid[r] && gameState.grid[r][c]) {
-        // LOCK FILL STYLE COLOR VALUE RIGHT BEFORE WRITING ELEMENT TEXT DATA
         ctx.fillStyle = "#ffffff";
         ctx.font = "28px Arial";
         ctx.textAlign = "center";
