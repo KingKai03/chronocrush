@@ -1,42 +1,89 @@
 :root {
-  --bg-color: #5c6970;
+  --gold: #d4af37;
   --panel-bg: #11171a;
+  --bg-color: #1e272c;
+  --border-color: #475861;
+  --text-color: #eef1f2;
 }
 
-/* Base resets */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-body { background-color: var(--bg-color); min-height: 100vh; overflow: hidden; }
+body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow: hidden; }
 
-/* The container holding the game view: THIS IS THE FIX */
-.full-screen-view { 
-  display: none !important; /* Force hidden by default */
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100vw; 
-  height: 100vh; 
-  z-index: 10; 
-}
-.full-screen-view.active { 
-  display: flex !important; 
-  flex-direction: column; 
+.full-screen-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 10; background: var(--bg-color); }
+.full-screen-view.active { display: flex; }
+
+.app-status-bar, .gameplay-header { height: 60px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 25; }
+.header-left-status { display: flex; gap: 15px; }
+.status-indicator-pill { background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 12px; font-weight: bold; }
+.header-settings-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; }
+
+.gameplay-stats-panel { display: flex; justify-content: space-around; background: rgba(0,0,0,0.3); padding: 10px 5px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+.mini-stat-card { display: flex; flex-direction: column; align-items: center; }
+.mini-stat-card .label { font-size: 0.75rem; color: #8a9da8; letter-spacing: 1px; }
+.mini-stat-card .val { font-size: 1.3rem; font-weight: bold; color: var(--gold); margin-top: 2px; }
+
+.map-scroll-viewport { flex: 1; overflow-y: auto; padding: 30px 15px; z-index: 5; }
+.zig-zag-map { display: flex; flex-direction: column-reverse; gap: 30px; max-width: 400px; margin: 0 auto; }
+.map-row { display: flex; width: 100%; }
+.map-row.left { justify-content: flex-start; }
+.map-row.mid { justify-content: center; }
+.map-row.right { justify-content: flex-end; }
+.era-header-banner { background: var(--panel-bg); border: 1px solid var(--gold); color: var(--gold); padding: 8px; border-radius: 6px; font-weight: bold; text-align: center; width: 100%; margin: 15px 0; }
+
+.level-node { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: none; border: none; }
+.node-circle { width: 55px; height: 55px; border-radius: 50%; background: var(--panel-bg); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+.level-node.unlocked .node-circle { border-color: var(--gold); }
+.level-node.active .node-circle { border-color: white; background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); }
+
+.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; padding: 10px; }
+.canvas-board-wrapper { background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+canvas { display: block; background: #161d21; width: 320px; height: 320px; }
+
+/* Modal overlays */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; overflow: hidden; }
+.modal-overlay.visible { display: flex; }
+
+/* Background Canvas for Fireworks */
+#fireworksCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 101; }
+
+/* The Vinyl Record Shell Container Layout */
+.record-modal-disc { width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 12px, #0b0b0b 25px, #222 35px, #111 60px, #222 90px, #050505 130px, #151515 100%); border: 8px solid #2a2a2a; box-shadow: 0 12px 36px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; position: relative; z-index: 105; animation: recordSlideIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards; }
+.record-modal-disc.gold-disc { background: radial-gradient(circle, #e5c158 2px, #866413 5px, #b89727 20px, #917216 45px, #cca325 75px, #a38014 110px, #614b09 100%); border: 8px solid #ffd700; box-shadow: 0 0 40px rgba(212,175,55,0.4), 0 12px 36px rgba(0,0,0,0.9); }
+
+/* Center Record Sticker Paper */
+.record-center-label { width: 165px; height: 165px; border-radius: 50%; background: #ffffff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; border: 4px dashed rgba(0,0,0,0.15); box-shadow: inset 0 0 15px rgba(0,0,0,0.2); position: relative; }
+.gold-disc .record-center-label { background: #111416; color: #fff; border: 4px dashed rgba(212,175,55,0.4); }
+
+.record-center-label h2 { font-size: 1.1rem; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase; }
+.record-center-label h2.congrats-text { font-size: 0.78rem; color: var(--gold); margin-bottom: 2px; line-height: 1.1; }
+.sub-pass-text { font-size: 0.55rem; font-weight: bold; opacity: 0.7; letter-spacing: 0.5px; margin-bottom: 5px; text-transform: uppercase; }
+
+/* Compact Button System on the Center Sticker Label */
+.record-btn-stack { display: flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 4px; }
+.record-action-btn { width: 100%; padding: 5px 2px; border-radius: 40px; border: none; font-size: 0.68rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: transform 0.1s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.record-action-btn:active { transform: scale(0.95); }
+
+.btn-go { background: #2d6a4f; color: white; }
+.btn-retry { background: #cca325; color: black; }
+.btn-stop { background: #a32a2a; color: white; }
+.gold-disc .btn-stop { background: #333; color: #bbb; }
+
+#modalRecordsDisplay { font-size: 0.9rem; margin: 1px 0; letter-spacing: 1px; }
+
+@keyframes recordSlideIn {
+  0% { transform: scale(0.4) rotate(-120deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* BACKGROUND: Clouds behind everything */
-.cloud-layer { 
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-  pointer-events: none; 
-  z-index: 1; 
-}
-
-/* FOREGROUND: Game content above clouds */
-.app-status-bar, .map-scroll-viewport { 
-  position: relative; 
-  z-index: 20; 
-}
-
-/* Animations */
-.cloud { position: absolute; font-size: 4rem; opacity: 0.35; animation: floatCloud linear infinite; }
-.cloud:nth-child(1) { top: 5%; animation-duration: 40s; left: -20%; }
-.cloud:nth-child(2) { top: 25%; animation-duration: 55s; left: -30%; }
-@keyframes floatCloud { 0% { transform: translateX(-10vw); } 100% { transform: translateX(110vw); } }
+/* Settings elements */
+.modal-window { background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; position: relative; z-index: 105; }
+.modal-close-x { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ff5c5c; font-size: 1.4rem; cursor: pointer; }
+.toggle-control-item { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
+.setting-toggle-btn { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; background: #c94c4c; color: white; width: 65px; cursor: pointer; }
+.setting-toggle-btn.active { background: #2d6a4f; }
+.menu-action-btn { width: 100%; padding: 10px; margin-top: 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+.menu-action-btn.destructive { background: #a32a2a; color: white; }
+.app-footer-navigation { height: 60px; background: var(--panel-bg); border-top: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-around; }
+.footer-tab-btn, .btn-back, .modal-btn { background: #2d3940; border: 1px solid var(--border-color); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+#portalFlash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 200; transition: opacity 0.4s ease; }
+#portalFlash.active { opacity: 0.8; }
