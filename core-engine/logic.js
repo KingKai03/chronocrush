@@ -1,86 +1,147 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  GAME ENGINE
+//  GAME STATE ARCHITECTURE (7 ERAS x 10 LEVELS = 70 LEVELS TOTAL)
 // ─────────────────────────────────────────────────────────────────────────────
-let canvas, ctx;
-
-const ROWS = 4, COLS = 4;
-let TILE_SIZE = 100;
+const ROWS = 8, COLS = 4;
+let TILE_SIZE = 75;
 let grid = [];
 let firstSel = null;
-let score = 0, movesLeft = 20, gameActive = true;
+let gameActive = false;
+
+let profileName = "TimeTraveler#0000";
+let currentLevel = 1;
+let unlockedLevel = 1; 
+let scoresDatabase = {}; // Format: { levelId: { score: X, records: Y } }
+
+let score = 0;
+let movesLeft = 20;
 let currentEra = '1940s';
-let eraIndex = 0;
 
-const inventory = { coat: false, jacket: false, vest: false, jumpsuit: false };
-
-const ERAS = ['1940s', '1950s', '1960s', '1970s'];
+const ERAS = ['1940s', '1950s', '1960s', '1970s', '1980s', '1990s', '2000s'];
 
 const ERA_CFG = {
-  '1940s': {
-    pieces: ['📻','✒️','🎩','🎷'],
-    target: 500,
-    boardBg: '#1a1410',
-    gridLine: '#3a2a18',
-    badge: '1940s Noir',
-    borderColor: '#5a3a20',
-  },
-  '1950s': {
-    pieces: ['🥤','🎸','🕶️','🚗'],
-    target: 750,
-    boardBg: '#101820',
-    gridLine: '#1c3050',
-    badge: '1950s Rock & Roll',
-    borderColor: '#2a5080',
-  },
-  '1960s': {
-    pieces: ['☮️','🌸','🚌','🎨'],
-    target: 1000,
-    boardBg: '#1a1028',
-    gridLine: '#3a2050',
-    badge: '1960s Peace & Love',
-    borderColor: '#6a3090',
-  },
-  '1970s': {
-    pieces: ['🪩','✨','🛼','🕺'],
-    target: 1250,
-    boardBg: '#200c10',
-    gridLine: '#501828',
-    badge: '1970s Disco Funk',
-    borderColor: '#901040',
-  },
+  '1940s': { pieces: ['📻','✒️','🎩','🎷'], baseTarget: 500,  inc: 60,  boardBg: '#1a1410', gridLine: '#3a2a18', badge: '1940s Noir', border: '#5a3a20' },
+  '1950s': { pieces: ['🥤','🎸','🕶️','🚗'], baseTarget: 1000, inc: 80,  boardBg: '#101820', gridLine: '#1c3050', badge: '1950s Rock', border: '#2a5080' },
+  '1960s': { pieces: ['☮️','🌸','🚌','🎨'], baseTarget: 1600, inc: 100, boardBg: '#1a1028', gridLine: '#3a2050', badge: '1960s Peace', border: '#6a3090' },
+  '1970s': { pieces: ['🪩','✨','🛼','🕺'], baseTarget: 2200, inc: 120, boardBg: '#200c10', gridLine: '#501828', badge: '1970s Disco', border: '#901040' },
+  '1980s': { pieces: ['🕹️','📼','🕶️','⚡'], baseTarget: 3000, inc: 150, boardBg: '#091a1e', gridLine: '#123d45', badge: '1980s Synth', border: '#1bb5cc' },
+  '1990s': { pieces: ['💾','🧃','🛹','🎤'], baseTarget: 4000, inc: 200, boardBg: '#1c1c1c', gridLine: '#383838', badge: '1990s Grunge', border: '#666666' },
+  '2000s': { pieces: ['📱','💿','🎧','🌐'], baseTarget: 5500, inc: 250, boardBg: '#0b132b', gridLine: '#1c2541', badge: '2000s Digital', border: '#48cae4' }
 };
 
-// DOM refs
-let scoreText, movesText, targetText, eraBadge, moodBubble, avatarSVG, portalFlash, overlayScreen, overlayTitle, overlayBody;
+// DOM Elements Linkage
+let canvas, ctx, scoreText, movesText, targetText, eraBadge, overlayScreen, overlayTitle, overlayBody, modalControls, recordsAwardContainer, campaignMap, profileNameTxt, totalRecordsText, portalFlash;
 
-// ── RESIZE ───────────────────────────────────────────────────────────────────
-function resizeGame() {
-  const w = window.innerWidth;
-  if (w <= 700) {
-    const avail = Math.min(w - 32, 380);
-    TILE_SIZE = Math.floor(avail / COLS);
+// ── AUTHENTICATION & AUTOMATED USER ENGINE ──────────────────────────────────
+window.loginUser = function(type) {
+  if (type === 'guest') {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    profileName = `TimeTraveler#${randomDigits}`;
+    unlockedLevel = 1;
+    scoresDatabase = {};
   } else {
-    TILE_SIZE = 100;
+    profileName = localStorage.getItem('cc_name') || "TimeTraveler#1940";
+    unlockedLevel = parseInt(localStorage.getItem('cc_level')) || 1;
+    try {
+      scoresDatabase = JSON.parse(localStorage.getItem('cc_scores')) || {};
+    } catch(e) { scoresDatabase = {}; }
   }
-  canvas.width  = TILE_SIZE * COLS;
-  canvas.height = TILE_SIZE * ROWS;
-  drawGrid();
+  
+  // Persist guest data or loaded state
+  saveStateToStorage();
+  
+  document.getElementById('authScreen').classList.remove('visible');
+  syncProfileData();
+  buildCampaignMap();
+  loadLevel(unlockedLevel);
+};
+
+function saveStateToStorage() {
+  localStorage.setItem('cc_name', profileName);
+  localStorage.setItem('cc_level', unlockedLevel);
+  localStorage.setItem('cc_scores', JSON.stringify(scoresDatabase));
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
-function initGrid(resetScore) {
-  if (resetScore !== false) score = 0;
-  movesLeft  = 20;
-  gameActive = true;
-  firstSel   = null;
-  updateUI();
-  setMood('ready');
+function syncProfileData() {
+  if (profileNameTxt) profileNameTxt.textContent = profileName;
+  let tally = 0;
+  Object.keys(scoresDatabase).forEach(k => { tally += (scoresDatabase[k].records || 0); });
+  if (totalRecordsText) totalRecordsText.textContent = tally;
+}
 
+// ── DYNAMIC LEVEL RESOLUTION MATH ──────────────────────────────────────────
+function getLevelTargets(lvl) {
+  const eraIndex = Math.min(6, Math.floor((lvl - 1) / 10));
+  const eraKey = ERAS[eraIndex];
+  const cfg = ERA_CFG[eraKey];
+  const relativeLvl = ((lvl - 1) % 10); // 0 to 9 inside era
+  
+  const target1 = cfg.baseTarget + (relativeLvl * cfg.inc);
+  const target2 = Math.floor(target1 * 1.4);
+  const target3 = Math.floor(target1 * 1.8);
+  return { eraKey, target1, target2, target3 };
+}
+
+// ── ZIG-ZAG MAP REGENERATION ─────────────────────────────────────────────────
+function buildCampaignMap() {
+  if (!campaignMap) return;
+  campaignMap.innerHTML = '';
+
+  for (let l = 1; l <= 70; l++) {
+    const rowWrap = document.createElement('div');
+    rowWrap.classList.add('map-row');
+    
+    // Alternating grid positions to yield a fluid vertical zig-zag track
+    const placement = l % 4;
+    if (placement === 1) rowWrap.classList.add('left');
+    else if (placement === 3) rowWrap.classList.add('right');
+    else rowWrap.classList.add('mid');
+
+    const btn = document.createElement('button');
+    btn.className = 'level-node';
+    if (l < unlockedLevel) btn.classList.add('unlocked');
+    if (l === currentLevel) btn.classList.add('active');
+    if (l > unlockedLevel) btn.disabled = true;
+
+    btn.onclick = () => { currentLevel = l; buildCampaignMap(); loadLevel(l); };
+
+    // Star replacement: Evaluate performance indicators
+    let recordsString = '🔘🔘🔘';
+    if (scoresDatabase[l] && scoresDatabase[l].records) {
+      const amt = scoresDatabase[l].records;
+      if (amt === 1) recordsString = '💿🔘🔘';
+      else if (amt === 2) recordsString = '💿💿🔘';
+      else if (amt === 3) recordsString = '📀📀📀';
+    }
+
+    btn.innerHTML = `
+      <div class="node-circle">${l}</div>
+      <div class="node-records">${btn.disabled ? '🔒' : recordsString}</div>
+    `;
+    
+    rowWrap.appendChild(btn);
+    campaignMap.appendChild(rowWrap);
+  }
+}
+
+// ── ENGINE INITIALIZATION AND RUNTIME ────────────────────────────────────────
+function loadLevel(lvl) {
+  const { eraKey, target1 } = getLevelTargets(lvl);
+  currentEra = eraKey;
+  score = 0;
+  movesLeft = 22 - Math.min(5, Math.floor(((lvl - 1) % 10) / 2)); // Dynamic difficulty step-down
+  firstSel = null;
+  gameActive = true;
+
+  if (eraBadge) eraBadge.textContent = ERA_CFG[currentEra].badge;
+  updateUI();
+
+  // Populate board arrays
   for (let r = 0; r < ROWS; r++) {
     grid[r] = [];
     for (let c = 0; c < COLS; c++) grid[r][c] = randomPiece();
   }
   while (findMatches().length > 0) resolveMatches(false);
+  
   resizeGame();
 }
 
@@ -89,71 +150,67 @@ function randomPiece() {
   return p[Math.floor(Math.random() * p.length)];
 }
 
-// ── DRAW ─────────────────────────────────────────────────────────────────────
+function resizeGame() {
+  if (!canvas) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  if (w <= 850) {
+    const availW = Math.min(w - 48, 340);
+    let calculatedTile = Math.floor(availW / COLS);
+    if (calculatedTile * ROWS > h * 0.55) {
+      calculatedTile = Math.floor((h * 0.55) / ROWS);
+    }
+    TILE_SIZE = calculatedTile;
+  } else {
+    TILE_SIZE = 58; // Balanced desktop rendering next to overview container
+  }
+
+  canvas.width = TILE_SIZE * COLS;
+  canvas.height = TILE_SIZE * ROWS;
+  drawGrid();
+}
+
+// ── RENDERING ───────────────────────────────────────────────────────────────
 function drawGrid() {
-  if (!ctx) return;
+  if (!ctx || !canvas) return;
   const cfg = ERA_CFG[currentEra];
 
   ctx.fillStyle = cfg.boardBg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // subtle vignette
-  const grad = ctx.createRadialGradient(
-    canvas.width/2, canvas.height/2, canvas.width*0.2,
-    canvas.width/2, canvas.height/2, canvas.width*0.75
-  );
-  grad.addColorStop(0, 'transparent');
-  grad.addColorStop(1, 'rgba(0,0,0,0.35)');
-  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const x = c * TILE_SIZE, y = r * TILE_SIZE;
 
-      // selected highlight
       if (firstSel && firstSel.r === r && firstSel.c === c) {
-        ctx.fillStyle = 'rgba(212,175,55,0.22)';
-        roundRect(ctx, x+2, y+2, TILE_SIZE-4, TILE_SIZE-4, 6);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(212,175,55,0.8)';
+        ctx.fillStyle = 'rgba(214,175,55,0.25)';
+        ctx.fillRect(x+2, y+2, TILE_SIZE-4, TILE_SIZE-4);
+        ctx.strokeStyle = varColor('--gold');
         ctx.lineWidth = 2;
-        roundRect(ctx, x+2, y+2, TILE_SIZE-4, TILE_SIZE-4, 6);
-        ctx.stroke();
+        ctx.strokeRect(x+2, y+2, TILE_SIZE-4, TILE_SIZE-4);
       } else {
         ctx.strokeStyle = cfg.gridLine;
         ctx.lineWidth = 1;
         ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
       }
 
-      // tile emoji
       if (grid[r] && grid[r][c]) {
-        ctx.font = `${Math.floor(TILE_SIZE * 0.44)}px serif`;
+        ctx.font = `${Math.floor(TILE_SIZE * 0.5)}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(grid[r][c], x + TILE_SIZE/2, y + TILE_SIZE/2);
       }
     }
   }
-
-  canvas.style.borderColor = cfg.borderColor;
+  canvas.style.borderColor = cfg.border;
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.lineTo(x+w-r, y);
-  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-  ctx.lineTo(x+w, y+h-r);
-  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  ctx.lineTo(x+r, y+h);
-  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-  ctx.lineTo(x, y+r);
-  ctx.quadraticCurveTo(x, y, x+r, y);
-  ctx.closePath();
+function varColor(variable) {
+  return getComputedStyle(document.body).getPropertyValue(variable).trim();
 }
 
-// ── INPUT ── (attached in boot() once canvas exists) ─────────────────────────
+// ── CORE GAME MECHANICS INTERACTION LOOP ─────────────────────────────────────
 function attachInputListeners() {
   canvas.addEventListener('mousedown', onInput);
   canvas.addEventListener('touchstart', function(e) {
@@ -162,7 +219,7 @@ function attachInputListeners() {
 }
 
 function onInput(e) {
-  if (!gameActive) return;
+  if (!gameActive || !canvas) return;
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width  / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -180,15 +237,15 @@ function selectTile(row, col) {
   const dr = Math.abs(row - firstSel.r);
   const dc = Math.abs(col - firstSel.c);
   if (dr + dc === 1) {
-    swapTiles(firstSel.r, firstSel.c, row, col);
+    const pR = firstSel.r, pC = firstSel.c;
+    swapTiles(pR, pC, row, col);
     if (findMatches().length > 0) {
       movesLeft--;
       resolveMatches(true);
       updateUI();
-      checkStatus();
+      checkEvaluationStatus();
     } else {
-      // revert
-      swapTiles(firstSel.r, firstSel.c, row, col);
+      swapTiles(pR, pC, row, col);
     }
   }
   firstSel = null;
@@ -196,26 +253,25 @@ function selectTile(row, col) {
 }
 
 function swapTiles(r1, c1, r2, c2) {
-  const tmp = grid[r1][c1];
-  grid[r1][c1] = grid[r2][c2];
-  grid[r2][c2] = tmp;
+  if (grid[r1] && grid[r2]) {
+    const tmp = grid[r1][c1];
+    grid[r1][c1] = grid[r2][c2];
+    grid[r2][c2] = tmp;
+  }
 }
 
-// ── MATCH LOGIC ───────────────────────────────────────────────────────────────
 function findMatches() {
   const hits = new Set();
-  // horizontal
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS-2; c++) {
-      if (grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) {
+      if (grid[r] && grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) {
         hits.add(`${r},${c}`); hits.add(`${r},${c+1}`); hits.add(`${r},${c+2}`);
       }
     }
   }
-  // vertical
   for (let r = 0; r < ROWS-2; r++) {
     for (let c = 0; c < COLS; c++) {
-      if (grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) {
+      if (grid[r] && grid[r+1] && grid[r+2] && grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) {
         hits.add(`${r},${c}`); hits.add(`${r+1},${c}`); hits.add(`${r+2},${c}`);
       }
     }
@@ -223,370 +279,145 @@ function findMatches() {
   return [...hits].map(k => { const [r,c] = k.split(','); return {r:+r,c:+c}; });
 }
 
-function resolveMatches(award) {
+function resolveMatches(awardPoints) {
   const matches = findMatches();
   if (!matches.length) return;
 
-  if (award) {
-    score += matches.length * 50;
-    triggerAvatarJump();
-  }
+  if (awardPoints) score += matches.length * 65;
 
-  for (const m of matches) grid[m.r][m.c] = '';
-
-  // gravity
+  for (const m of matches) { if (grid[m.r]) grid[m.r][m.c] = ''; }
   for (let c = 0; c < COLS; c++) {
     for (let r = ROWS-1; r >= 0; r--) {
-      if (grid[r][c] === '') {
+      if (grid[r] && grid[r][c] === '') {
         for (let l = r-1; l >= 0; l--) {
-          if (grid[l][c] !== '') { grid[r][c] = grid[l][c]; grid[l][c] = ''; break; }
+          if (grid[l] && grid[l][c] !== '') { grid[r][c] = grid[l][c]; grid[l][c] = ''; break; }
         }
       }
     }
   }
-  // refill top
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      if (grid[r][c] === '') grid[r][c] = randomPiece();
-
-  // cascade
-  if (findMatches().length > 0) resolveMatches(award);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r] && grid[r][c] === '') grid[r][c] = randomPiece();
+    }
+  }
+  if (findMatches().length > 0) resolveMatches(awardPoints);
 }
 
-// ── STATUS ───────────────────────────────────────────────────────────────────
-function checkStatus() {
-  const cfg = ERA_CFG[currentEra];
-  if (score >= cfg.target) {
+// ── EVAL ENGINE (WIN / LOSE OPTION POPUPS) ──────────────────────────────
+function checkEvaluationStatus() {
+  const { target1, target2, target3 } = getLevelTargets(currentLevel);
+
+  if (score >= target1) {
     gameActive = false;
-    setMood('happy');
-    setTimeout(() => advanceEra(), 700);
+    let recordsEarned = 1;
+    let recordIcons = '💿🔘🔘';
+    if (score >= target3) { recordsEarned = 3; recordIcons = '📀📀📀'; }
+    else if (score >= target2) { recordsEarned = 2; recordIcons = '💿💿🔘'; }
+
+    // Update state tracking
+    if (!scoresDatabase[currentLevel] || scoresDatabase[currentLevel].records < recordsEarned) {
+      scoresDatabase[currentLevel] = { score: score, records: recordsEarned };
+    }
+    
+    let originalEraIndex = Math.floor((currentLevel - 1) / 10);
+    if (currentLevel === unlockedLevel && unlockedLevel < 70) {
+      unlockedLevel++;
+    }
+    let newEraIndex = Math.floor((unlockedLevel - 1) / 10);
+
+    saveStateToStorage();
+    syncProfileData();
+
+    // Trigger visual warp if crossing historical borders
+    if (newEraIndex > originalEraIndex && portalFlash) {
+      portalFlash.classList.add('active');
+      setTimeout(() => portalFlash.classList.remove('active'), 600);
+    }
+
+    setTimeout(() => showEndModal(true, recordIcons), 500);
   } else if (movesLeft <= 0) {
     gameActive = false;
-    setMood('sad');
-    setTimeout(() => {
-      overlayTitle.textContent = 'Timeline Collapsed!';
-      overlayBody.textContent  = 'The timeline unraveled. The ' + currentEra + ' era slipped away. Regroup and try again.';
-      overlayScreen.classList.add('visible');
-    }, 500);
+    setTimeout(() => showEndModal(false, '🔘🔘🔘'), 500);
   }
 }
 
-function dismissOverlay() {
-  overlayScreen.classList.remove('visible');
-  score = 0;
-  initGrid(false);
-}
+function showEndModal(isWin, recordIcons) {
+  if (!overlayScreen) return;
+  recordsAwardContainer.textContent = recordIcons;
 
-function advanceEra() {
-  // unlock outfit for current era
-  if (currentEra === '1940s') { inventory.coat = true; }
-  else if (currentEra === '1950s') { inventory.jacket = true; }
-  else if (currentEra === '1960s') { inventory.vest = true; }
-  else if (currentEra === '1970s') { inventory.jumpsuit = true; }
+  if (isWin) {
+    overlayTitle.textContent = `Level ${currentLevel} Complete!`;
+    overlayBody.textContent = `Excellent work! You scored ${score} points and secured alternative chronological data.`;
+    
+    let nextBtnHtml = currentLevel < 70 
+      ? `<button class="menu-btn" onclick="triggerModalAction('next')">Next Level</button>`
+      : `<button class="menu-btn" disabled>Saga Grand Finale Complete!</button>`;
 
-  eraIndex = (eraIndex + 1) % ERAS.length;
-  const nextEra = ERAS[eraIndex];
-
-  // Flash portal
-  portalFlash.classList.remove('active');
-  void portalFlash.offsetWidth;
-  portalFlash.classList.add('active');
-
-  // Warp avatar
-  avatarSVG.className = '';
-  void avatarSVG.offsetWidth;
-  avatarSVG.className = 'warping';
-  setTimeout(() => { avatarSVG.className = 'breathing'; }, 600);
-
-  currentEra = nextEra;
-  updateInventoryUI();
-  initGrid(false); // keep score reset for new era
-  score = 0;
-  updateUI();
-}
-
-// ── UI UPDATE ────────────────────────────────────────────────────────────────
-function updateUI() {
-  scoreText.textContent  = score;
-  movesText.textContent  = movesLeft;
-  targetText.textContent = ERA_CFG[currentEra].target;
-  eraBadge.textContent   = ERA_CFG[currentEra].badge;
-
-  // era pips
-  ERAS.forEach((e, i) => {
-    const pip = document.getElementById('pip' + i);
-    if (!pip) return;
-    pip.classList.remove('done', 'active');
-    if (i < eraIndex) pip.classList.add('done');
-    else if (i === eraIndex) pip.classList.add('active');
-  });
-}
-
-function updateInventoryUI() {
-  const unlock = (id, lockId) => {
-    const btn = document.getElementById(id);
-    const lck = document.getElementById(lockId);
-    if (btn) { btn.disabled = false; }
-    if (lck) { lck.textContent = '✨'; }
-  };
-  if (inventory.coat)     unlock('btn_coat',     'lock_coat');
-  if (inventory.jacket)   unlock('btn_jacket',   'lock_jacket');
-  if (inventory.vest)     unlock('btn_vest',      'lock_vest');
-  if (inventory.jumpsuit) unlock('btn_jumpsuit', 'lock_jumpsuit');
-}
-
-// ── AVATAR MOOD ───────────────────────────────────────────────────────────────
-function setMood(mood) {
-  const mouth = document.getElementById('mouthPath');
-  if (mood === 'ready') {
-    moodBubble.textContent = 'READY';
-    moodBubble.style.background = '#d4af37';
-    moodBubble.style.color = '#0e0c09';
-    if (mouth) mouth.setAttribute('d', 'M63,90 Q70,95 77,90');
-  } else if (mood === 'happy') {
-    moodBubble.textContent = 'GROOVY! ✨';
-    moodBubble.style.background = '#27ae60';
-    moodBubble.style.color = '#fff';
-    if (mouth) mouth.setAttribute('d', 'M61,88 Q70,97 79,88');
-  } else if (mood === 'sad') {
-    moodBubble.textContent = 'OH NO!';
-    moodBubble.style.background = '#c0392b';
-    moodBubble.style.color = '#fff';
-    if (mouth) mouth.setAttribute('d', 'M63,93 Q70,87 77,93');
-  }
-}
-
-function triggerAvatarJump() {
-  avatarSVG.classList.remove('jumping', 'breathing');
-  void avatarSVG.offsetWidth;
-  avatarSVG.className = 'jumping';
-  setTimeout(() => {
-    if (gameActive) avatarSVG.className = 'breathing';
-  }, 550);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  AVATAR CUSTOMIZATION
-// ─────────────────────────────────────────────────────────────────────────────
-let avatarState = {
-  identity: 'neutral',
-  skin: '#c8a882',
-  hair: 'default',
-  outfit: 'base',
-};
-
-const SKIN_PARTS = ['faceBase','svgNeck','handL','handR'];
-
-function setSkinColor(color) {
-  SKIN_PARTS.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute('fill', color);
-  });
-  // ears (no id, so grab by index in head group)
-  document.querySelectorAll('#svgHead ellipse').forEach((el, i) => {
-    if (i === 1 || i === 2) el.setAttribute('fill', color); // ear L, ear R
-  });
-}
-
-const HAIR_DEFS = {
-  default: { color: '#2a1a0a', style: 'medium' },
-  blonde:  { color: '#d4a830', style: 'medium' },
-  red:     { color: '#8b2500', style: 'medium' },
-  afro:    { color: '#1a0a00', style: 'afro'   },
-  bun:     { color: '#2a1a0a', style: 'bun'    },
-  bald:    { color: null,      style: 'bald'   },
-};
-
-function applyHair(hairKey) {
-  const def = HAIR_DEFS[hairKey] || HAIR_DEFS.default;
-  const group = document.getElementById('svgHair');
-  group.innerHTML = '';
-
-  if (def.style === 'bald') return;
-
-  if (def.style === 'afro') {
-    const c = def.color;
-    group.innerHTML = `
-      <circle cx="70" cy="46" r="36" fill="${c}" opacity="0.95"/>
-      <ellipse cx="46" cy="60" rx="14" ry="20" fill="${c}"/>
-      <ellipse cx="94" cy="60" rx="14" ry="20" fill="${c}"/>
-    `;
-  } else if (def.style === 'bun') {
-    const c = def.color;
-    group.innerHTML = `
-      <ellipse cx="70" cy="52" rx="28" ry="16" fill="${c}"/>
-      <rect x="42" y="48" width="8" height="20" rx="4" fill="${c}"/>
-      <rect x="90" y="48" width="8" height="20" rx="4" fill="${c}"/>
-      <circle cx="70" cy="36" r="14" fill="${c}"/>
+    modalControls.innerHTML = `
+      ${nextBtnHtml}
+      <button class="menu-btn" onclick="triggerModalAction('retry')">Replay Level</button>
+      <button class="menu-btn" onclick="triggerModalAction('map')">Back to Map</button>
     `;
   } else {
-    // medium
-    const c = def.color;
-    group.innerHTML = `
-      <ellipse cx="70" cy="52" rx="30" ry="22" fill="${c}"/>
-      <rect x="40" y="48" width="9" height="26" rx="4" fill="${c}"/>
-      <rect x="91" y="48" width="9" height="26" rx="4" fill="${c}"/>
+    overlayTitle.textContent = `Timeline Desynchronized`;
+    overlayBody.textContent = `You ran out of structural moves before hitting the localized threshold.`;
+    modalControls.innerHTML = `
+      <button class="menu-btn" onclick="triggerModalAction('retry')">Retry Level</button>
+      <button class="menu-btn" onclick="triggerModalAction('map')">Back to Map</button>
     `;
   }
+  overlayScreen.classList.add('visible');
 }
 
-// outfit overlay SVG snippets
-const OUTFIT_DEFS = {
-  base: { shirt: '#4a5568', pants: '#3a4a5c', shoes: '#1a1a1a', overlay: '' },
-  coat: {
-    shirt: '#2c2416',
-    pants: '#1e1a12',
-    shoes: '#111',
-    overlay: `
-      <!-- Trench coat lapels -->
-      <polygon points="55,108 42,160 58,168 70,130 82,168 98,160 85,108 70,120" fill="#4a3820" opacity="0.95"/>
-      <line x1="70" y1="120" x2="70" y2="168" stroke="#3a2a14" stroke-width="1.5"/>
-      <!-- Belt -->
-      <rect x="38" y="148" width="64" height="7" rx="3" fill="#2a1e0a"/>
-      <rect x="64" y="147" width="12" height="9" rx="2" fill="#c8a840"/>
-      <!-- Collar flips -->
-      <polygon points="58,108 50,128 62,120" fill="#3a2814"/>
-      <polygon points="82,108 90,128 78,120" fill="#3a2814"/>
-    `,
-  },
-  jacket: {
-    shirt: '#1a1a1a',
-    pants: '#1a1a2a',
-    shoes: '#0a0a0a',
-    overlay: `
-      <!-- Leather jacket -->
-      <rect x="38" y="108" width="64" height="68" rx="10" fill="#1a1a1a" opacity="0.85"/>
-      <!-- Lapels -->
-      <polygon points="58,108 48,140 62,136 70,116 78,136 92,140 82,108" fill="#111"/>
-      <!-- Zipper -->
-      <line x1="70" y1="116" x2="70" y2="172" stroke="#888" stroke-width="2"/>
-      <!-- Pockets -->
-      <rect x="42" y="148" width="18" height="14" rx="3" fill="#0d0d0d" stroke="#333" stroke-width="1"/>
-      <rect x="80" y="148" width="18" height="14" rx="3" fill="#0d0d0d" stroke="#333" stroke-width="1"/>
-      <!-- Arm stripes -->
-      <rect x="18" y="118" width="22" height="5" rx="2" fill="#e74c3c"/>
-      <rect x="100" y="118" width="22" height="5" rx="2" fill="#e74c3c"/>
-    `,
-  },
-  vest: {
-    shirt: '#e8d4f0',
-    pants: '#4a3060',
-    shoes: '#2a1a40',
-    overlay: `
-      <!-- Fringe vest -->
-      <rect x="40" y="108" width="60" height="64" rx="8" fill="rgba(180,120,200,0.3)"/>
-      <!-- Fringe strips -->
-      ${Array.from({length:10},(_,i)=>`<rect x="${40+i*6}" y="168" width="3" height="${12+i%3*4}" rx="1" fill="#a060c0" opacity="0.7"/>`).join('')}
-      <!-- Peace patches -->
-      <circle cx="56" cy="130" r="9" fill="none" stroke="#e040c0" stroke-width="2"/>
-      <line x1="56" y1="121" x2="56" y2="139" stroke="#e040c0" stroke-width="1.5"/>
-      <line x1="50" y1="133" x2="62" y2="133" stroke="#e040c0" stroke-width="1.5"/>
-      <!-- Psychedelic center -->
-      <circle cx="70" cy="135" r="8" fill="rgba(255,200,0,0.4)" stroke="#ffc000" stroke-width="1"/>
-      <circle cx="70" cy="135" r="4" fill="rgba(255,100,200,0.6)"/>
-    `,
-  },
-  jumpsuit: {
-    shirt: '#1a1a3a',
-    pants: '#1a1a3a',
-    shoes: '#1a0020',
-    overlay: `
-      <!-- Disco jumpsuit -->
-      <rect x="35" y="106" width="70" height="128" rx="12" fill="#1a0a3a" opacity="0.9"/>
-      <!-- Wide collar -->
-      <polygon points="52,108 70,130 88,108 80,108 70,122 60,108" fill="#2a1a5a"/>
-      <!-- Sequin shimmer dots -->
-      <circle cx="42" cy="120" r="2" fill="#ffd700" opacity="0.9"/><circle cx="58" cy="125" r="1.5" fill="#ff69b4" opacity="0.8"/><circle cx="74" cy="118" r="2" fill="#00ffff" opacity="0.7"/><circle cx="90" cy="122" r="1" fill="#ffffff" opacity="0.9"/><circle cx="48" cy="134" r="1.5" fill="#ffd700" opacity="0.7"/><circle cx="64" cy="140" r="2" fill="#ff69b4" opacity="0.8"/><circle cx="80" cy="132" r="1" fill="#00ffff" opacity="0.9"/><circle cx="95" cy="138" r="2" fill="#ffffff" opacity="0.7"/><circle cx="44" cy="152" r="2" fill="#ffd700" opacity="0.8"/><circle cx="60" cy="158" r="1" fill="#ff69b4" opacity="0.9"/><circle cx="76" cy="148" r="2" fill="#00ffff" opacity="0.7"/><circle cx="92" cy="154" r="1.5" fill="#ffffff" opacity="0.8"/><circle cx="50" cy="166" r="1" fill="#ffd700" opacity="0.9"/><circle cx="68" cy="172" r="2" fill="#ff69b4" opacity="0.7"/><circle cx="84" cy="162" r="1.5" fill="#00ffff" opacity="0.8"/><circle cx="55" cy="180" r="2" fill="#ffffff" opacity="0.9"/><circle cx="71" cy="188" r="1" fill="#ffd700" opacity="0.8"/><circle cx="87" cy="176" r="2" fill="#ff69b4" opacity="0.7"/><circle cx="43" cy="194" r="1.5" fill="#00ffff" opacity="0.9"/><circle cx="97" cy="186" r="1" fill="#ffffff" opacity="0.8"/>
-      <!-- Bell bottoms flare -->
-      <polygon points="44,196 28,250 56,250 56,196" fill="#1a0a3a"/>
-      <polygon points="96,196 112,250 84,250 84,196" fill="#1a0a3a"/>
-      <!-- Platform shoes -->
-      <rect x="26" y="244" width="32" height="12" rx="4" fill="#4a0a6a"/>
-      <rect x="82" y="244" width="32" height="12" rx="4" fill="#4a0a6a"/>
-    `,
-  },
+window.triggerModalAction = function(type) {
+  overlayScreen.classList.remove('visible');
+  if (type === 'next') {
+    currentLevel++;
+    buildCampaignMap();
+    loadLevel(currentLevel);
+  } else if (type === 'retry') {
+    loadLevel(currentLevel);
+  } else if (type === 'map') {
+    buildCampaignMap();
+    // Leave grid empty and frozen until a map selection is made
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0,0, canvas.width, canvas.height);
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#aaa";
+    ctx.textAlign = "center";
+    ctx.fillText("Select a Level from Map", canvas.width/2, canvas.height/2);
+  }
 };
 
-function applyOutfit(outfitKey) {
-  const def = OUTFIT_DEFS[outfitKey] || OUTFIT_DEFS.base;
-
-  document.getElementById('shirtBody').setAttribute('fill', def.shirt);
-  document.getElementById('armL').setAttribute('fill', def.shirt);
-  document.getElementById('armR').setAttribute('fill', def.shirt);
-  document.getElementById('shirtCollar').setAttribute('fill', adjustHex(def.shirt, 20));
-
-  document.getElementById('legL').setAttribute('fill', def.pants);
-  document.getElementById('legR').setAttribute('fill', def.pants);
-  document.getElementById('shoeL').setAttribute('fill', def.shoes);
-  document.getElementById('shoeR').setAttribute('fill', def.shoes);
-
-  document.getElementById('svgOutfitOverlay').innerHTML = def.overlay;
+function updateUI() {
+  const { target1 } = getLevelTargets(currentLevel);
+  if (scoreText) scoreText.textContent = score;
+  if (movesText) movesText.textContent = movesLeft;
+  if (targetText) targetText.textContent = target1;
 }
 
-function adjustHex(hex, amount) {
-  // lighten a hex color slightly for collar
-  try {
-    const num = parseInt(hex.replace('#',''), 16);
-    const r = Math.min(255, ((num >> 16) & 0xff) + amount);
-    const g = Math.min(255, ((num >>  8) & 0xff) + amount);
-    const b = Math.min(255, ((num      ) & 0xff) + amount);
-    return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-  } catch(e) { return hex; }
-}
-
-// Public handlers called by buttons
-window.setIdentity = function(type, btn) {
-  avatarState.identity = type;
-  document.querySelectorAll('#identityBtns .chip-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-};
-
-window.setSkin = function(color, btn) {
-  avatarState.skin = color;
-  document.querySelectorAll('#skinBtns .chip-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  setSkinColor(color);
-};
-
-window.setHair = function(key, btn) {
-  avatarState.hair = key;
-  document.querySelectorAll('#hairBtns .chip-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  applyHair(key);
-};
-
-window.setOutfit = function(key) {
-  avatarState.outfit = key;
-  document.querySelectorAll('.outfit-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('btn_' + key);
-  if (btn) btn.classList.add('active');
-  applyOutfit(key);
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  BOOT — wait for DOM then initialise
-// ─────────────────────────────────────────────────────────────────────────────
+// ── BOOT SYSTEM ──────────────────────────────────────────────────────────────
 function boot() {
-  canvas      = document.getElementById('gameCanvas');
-  ctx         = canvas.getContext('2d');
-  scoreText   = document.getElementById('scoreText');
-  movesText   = document.getElementById('movesText');
-  targetText  = document.getElementById('targetText');
-  eraBadge    = document.getElementById('eraBadge');
-  moodBubble  = document.getElementById('moodBubble');
-  avatarSVG   = document.getElementById('avatarSVG');
-  portalFlash = document.getElementById('portalFlash');
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+  scoreText = document.getElementById('scoreText');
+  movesText = document.getElementById('movesText');
+  targetText = document.getElementById('targetText');
+  eraBadge = document.getElementById('eraBadge');
   overlayScreen = document.getElementById('overlayScreen');
-  overlayTitle  = document.getElementById('overlayTitle');
-  overlayBody   = document.getElementById('overlayBody');
+  overlayTitle = document.getElementById('overlayTitle');
+  overlayBody = document.getElementById('overlayBody');
+  modalControls = document.getElementById('modalControls');
+  recordsAwardContainer = document.getElementById('recordsAwardContainer');
+  campaignMap = document.getElementById('campaignMap');
+  profileNameTxt = document.getElementById('profileName');
+  totalRecordsText = document.getElementById('totalRecordsText');
+  portalFlash = document.getElementById('portalFlash');
+
   attachInputListeners();
   window.addEventListener('resize', resizeGame);
-  applyOutfit('base');
-  initGrid();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot);
-} else {
-  boot();
-}
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', boot); } 
+else { boot(); }
