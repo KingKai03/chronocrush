@@ -39,29 +39,51 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
 .canvas-board-wrapper { background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 canvas { display: block; background: #161d21; width: 320px; height: 320px; }
 
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 100; display: none; align-items: center; justify-content: center; }
+/* Modal overlays */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; overflow: hidden; }
 .modal-overlay.visible { display: flex; }
-.modal-window { background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; position: relative; }
-.modal-close-x { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ff5c5c; font-size: 1.4rem; cursor: pointer; }
 
+/* Background Canvas for Fireworks */
+#fireworksCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 101; }
+
+/* The Vinyl Record Shell Container Layout */
+.record-modal-disc { width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 12px, #0b0b0b 25px, #222 35px, #111 60px, #222 90px, #050505 130px, #151515 100%); border: 8px solid #2a2a2a; box-shadow: 0 12px 36px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; position: relative; z-index: 105; animation: recordSlideIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards; }
+.record-modal-disc.gold-disc { background: radial-gradient(circle, #e5c158 2px, #866413 5px, #b89727 20px, #917216 45px, #cca325 75px, #a38014 110px, #614b09 100%); border: 8px solid #ffd700; box-shadow: 0 0 40px rgba(212,175,55,0.4), 0 12px 36px rgba(0,0,0,0.9); }
+
+/* Center Record Sticker Paper */
+.record-center-label { width: 165px; height: 165px; border-radius: 50%; background: #ffffff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; border: 4px dashed rgba(0,0,0,0.15); box-shadow: inset 0 0 15px rgba(0,0,0,0.2); position: relative; }
+.gold-disc .record-center-label { background: #111416; color: #fff; border: 4px dashed rgba(212,175,55,0.4); }
+
+.record-center-label h2 { font-size: 1.1rem; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase; }
+.record-center-label h2.congrats-text { font-size: 0.78rem; color: var(--gold); margin-bottom: 2px; line-height: 1.1; }
+.sub-pass-text { font-size: 0.55rem; font-weight: bold; opacity: 0.7; letter-spacing: 0.5px; margin-bottom: 5px; text-transform: uppercase; }
+
+/* Compact Button System on the Center Sticker Label */
+.record-btn-stack { display: flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 4px; }
+.record-action-btn { width: 100%; padding: 5px 2px; border-radius: 40px; border: none; font-size: 0.68rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: transform 0.1s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.record-action-btn:active { transform: scale(0.95); }
+
+.btn-go { background: #2d6a4f; color: white; }
+.btn-retry { background: #cca325; color: black; }
+.btn-stop { background: #a32a2a; color: white; }
+.gold-disc .btn-stop { background: #333; color: #bbb; }
+
+#modalRecordsDisplay { font-size: 0.9rem; margin: 1px 0; letter-spacing: 1px; }
+
+@keyframes recordSlideIn {
+  0% { transform: scale(0.4) rotate(-120deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Settings elements */
+.modal-window { background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; position: relative; z-index: 105; }
+.modal-close-x { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ff5c5c; font-size: 1.4rem; cursor: pointer; }
 .toggle-control-item { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
 .setting-toggle-btn { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; background: #c94c4c; color: white; width: 65px; cursor: pointer; }
 .setting-toggle-btn.active { background: #2d6a4f; }
 .menu-action-btn { width: 100%; padding: 10px; margin-top: 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
 .menu-action-btn.destructive { background: #a32a2a; color: white; }
-
 .app-footer-navigation { height: 60px; background: var(--panel-bg); border-top: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-around; }
 .footer-tab-btn, .btn-back, .modal-btn { background: #2d3940; border: 1px solid var(--border-color); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-
 #portalFlash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 200; transition: opacity 0.4s ease; }
 #portalFlash.active { opacity: 0.8; }
-
-.board-flash { animation: screenShakeFlash 0.3s ease-out; }
-@keyframes screenShakeFlash {
-  0% { transform: translate(2px, 1px) rotate(0deg); background-color: #3a4b54; }
-  20% { transform: translate(-1px, -2px) rotate(-1deg); }
-  40% { transform: translate(-3px, 0px) rotate(1deg); }
-  60% { transform: translate(0px, 2px) rotate(0deg); }
-  80% { transform: translate(1px, -1px) rotate(1deg); }
-  100% { transform: translate(0px, 0px) rotate(0deg); background-color: #1a2429; }
-}
