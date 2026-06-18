@@ -35,14 +35,19 @@
 
   <div id="homePage" class="full-screen-view">
     <div class="clouds-background-layer"></div>
+    
     <header class="app-status-bar">
-      <div class="status-indicator-pill lives-pill"><span class="pill-icon">❤️</span><span id="livesCounter">5</span></div>
-      <div class="status-indicator-pill gold-pill"><span class="pill-icon">🪙</span><span id="profileGold">150</span></div>
+      <div class="header-left-status">
+        <div class="status-indicator-pill lives-pill"><span class="pill-icon">❤️</span><span id="livesCounter">5</span></div>
+        <div class="status-indicator-pill gold-pill"><span class="pill-icon">🪙</span><span id="profileGold">150</span></div>
+      </div>
       <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
+
     <main class="map-scroll-viewport">
       <div class="zig-zag-map" id="mapLayer"></div>
     </main>
+
     <footer class="app-footer-navigation">
       <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
       <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
@@ -97,13 +102,14 @@
 
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-window preferences-window">
+      <button class="modal-close-x" onclick="toggleModal('settingsModal', false)">✕</button>
       <h2>SETTINGS</h2><hr class="modal-divider">
       <div class="toggle-control-item"><span>Music</span><button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button></div>
       <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
-      <div class="toggle-control-item"><span>Vibe</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
-      <hr class="modal-divider"><button class="menu-action-btn help-btn" onclick="openHelpPanel()">ACCOUNT & HELP</button>
+      <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
+      <hr class="modal-divider">
+      <button class="menu-action-btn help-btn" onclick="openHelpPanel()">ACCOUNT & HELP</button>
       <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Game</button>
-      <button class="menu-action-btn dismiss" onclick="toggleModal('settingsModal', false)">Close</button>
     </div>
   </div>
 
