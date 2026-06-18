@@ -96,33 +96,19 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
 .profile-info h3 { color: var(--gold); font-size: 1.1rem; }
 .profile-info p { font-size: 0.85rem; color: #b5a492; }
 
-/* RETRO MAP OVERVIEW CONTAINER */
+/* FIXED MAP CONTAINER WITH BACKGROUND RESTORED */
 .map-scroll-container { 
   height: 485px; 
   overflow-y: auto; 
   border-radius: 8px; 
   padding: 24px 12px; 
   border: 1px solid var(--border-color); 
-  background: #0e0c09;
-  position: relative;
-}
-
-/* FIXED: Changed from fixed to absolute positioning to contain it properly */
-.map-scroll-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(rgba(14, 12, 9, 0.6), rgba(14, 12, 9, 0.7)), 
-              url('https://images.unsplash.com/photo-1542224566-6e85f2e6772f?q=80&w=600&auto=format&fit=crop');
+  /* Combined dark tint overlay and wide retro corner street photo directly onto container */
+  background: linear-gradient(rgba(14, 12, 9, 0.75), rgba(14, 12, 9, 0.82)), 
+              url('https://images.unsplash.com/photo-1542224566-6e85f2e6772f?q=80&w=600&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center;
-  filter: grayscale(100%) contrast(120%);
-  opacity: 0.45;
-  pointer-events: none;
-  z-index: 1;
+  background-attachment: local;
 }
 
 .zig-zag-map { 
@@ -131,10 +117,9 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
   gap: 18px; 
   position: relative; 
   width: 100%; 
-  z-index: 2;
 }
 
-.map-row { display: flex; width: 100%; padding: 0 10%; position: relative; z-index: 2; }
+.map-row { display: flex; width: 100%; padding: 0 10%; }
 .map-row.left  { justify-content: flex-start; }
 .map-row.mid   { justify-content: center; }
 .map-row.right { justify-content: flex-end; }
@@ -150,11 +135,12 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
   color: inherit;
 }
 
+/* FIXED LOCKED LEVELS: Crisp white text forced over dark background */
 .node-circle {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #1f1a14;
+  background: #110e0b;
   border: 2px solid #443629;
   display: flex;
   align-items: center;
@@ -163,12 +149,26 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
   font-size: 0.95rem;
   box-shadow: 0 4px 8px rgba(0,0,0,0.8);
   transition: all 0.2s ease;
-  color: #ffffff; /* FIXED: Keeps locked and standard level text crisp white over the street art */
+  color: #ffffff !important; /* Forced bright white */
+  filter: grayscale(100%);
 }
 
-/* HIGH VISIBILITY STATE RETAINED */
-.level-node.unlocked .node-circle { border-color: var(--gold); background: #3c301d; color: #ffffff; }
-.level-node.active .node-circle { border-color: #ffffff; background: var(--gold); color: #000000; box-shadow: 0 0 14px var(--gold); transform: scale(1.1); }
+.level-node.unlocked .node-circle { 
+  border-color: var(--gold); 
+  background: #3c301d; 
+  color: #ffffff !important; 
+  filter: none;
+}
+
+.level-node.active .node-circle { 
+  border-color: #ffffff; 
+  background: var(--gold); 
+  color: #000000 !important; /* Kept dark for visibility contrast on active gold node */
+  box-shadow: 0 0 14px var(--gold); 
+  transform: scale(1.1); 
+  filter: none;
+}
+
 .level-node:disabled { cursor: not-allowed; opacity: 0.5; }
 .node-records { font-size: 0.65rem; margin-top: 4px; letter-spacing: 1px; min-height: 12px; color: #b5a492; }
 
@@ -183,7 +183,6 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
   font-size: 1.1rem;
   text-shadow: 0 0 8px var(--gold);
   animation: floatArrow 1.2s ease-in-out infinite alternate;
-  z-index: 3;
 }
 
 @keyframes floatArrow {
