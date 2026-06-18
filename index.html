@@ -8,11 +8,17 @@
 </head>
 <body>
 
-  <div id="authScreen" class="full-screen-view active">
+  <div id="loadingScreen" class="full-screen-view active">
+    <div class="loader-content">
+      <div class="spinning-record">💿</div>
+      <h2 class="loading-text">LOADING...</h2>
+    </div>
+  </div>
+
+  <div id="authScreen" class="full-screen-view">
     <div class="auth-card">
       <h1 class="game-brand-title">CHRONOCRUSH</h1>
       <p class="game-brand-tagline">The Era Odyssey</p>
-      
       <div class="auth-action-group">
         <button class="btn btn-primary" onclick="handleAuth('email')">Sign In with Email</button>
         <button class="btn btn-secondary" onclick="handleAuth('guest')">Play as Guest</button>
@@ -20,9 +26,18 @@
     </div>
   </div>
 
+  <div id="welcomeScreen" class="full-screen-view">
+    <div class="welcome-card">
+      <h1 class="game-brand-title">CHRONOCRUSH</h1>
+      <div class="static-record">🎵</div>
+      <button class="btn btn-play-huge" onclick="transitionToMap()">PLAY!</button>
+    </div>
+  </div>
+
   <div id="homePage" class="full-screen-view">
     <header class="app-status-bar">
-      <button class="icon-btn" id="settingsBtn" onclick="toggleSettings(true)">⚙️</button>
+      <button class="icon-btn" onclick="toggleModal('settingsModal', true)">⚙️</button>
+      <button class="icon-btn" onclick="toggleModal('shopModal', true)">🛒</button>
       
       <div class="status-indicator-pill lives-pill">
         <span class="pill-icon">❤️</span>
@@ -39,6 +54,11 @@
       <div class="zig-zag-map" id="mapLayer">
         </div>
     </main>
+
+    <footer class="app-footer-navigation">
+      <button class="footer-tab-btn" onclick="toggleModal('friendsModal', true)">👥 Add Friends</button>
+      <button class="footer-tab-btn" onclick="toggleModal('awardsModal', true)">🏆 Awards</button>
+    </footer>
   </div>
 
   <div id="gamePlayScreen" class="full-screen-view">
@@ -49,23 +69,24 @@
 
     <div class="gameplay-core-layout">
       <div class="gameplay-stats-panel">
-        <div class="mini-stat-card">
-          <p>MOVES</p>
-          <span id="movesDisplay">22</span>
-        </div>
-        <div class="mini-stat-card">
-          <p>TARGET</p>
-          <span id="targetDisplay">500</span>
-        </div>
-        <div class="mini-stat-card">
-          <p>SCORE</p>
-          <span id="scoreDisplay">0</span>
-        </div>
+        <div class="mini-stat-card"><p>MOVES</p><span id="movesDisplay">22</span></div>
+        <div class="mini-stat-card"><p>TARGET</p><span id="targetDisplay">500</span></div>
+        <div class="mini-stat-card"><p>SCORE</p><span id="scoreDisplay">0</span></div>
       </div>
 
       <div class="canvas-board-wrapper">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
       </div>
+    </div>
+  </div>
+
+  <div id="levelReadyModal" class="modal-overlay">
+    <div class="modal-window">
+      <h2 id="modalLevelTitle">LEVEL 1</h2>
+      <hr class="modal-divider">
+      <p class="modal-instruction-text">Match the same vintage period items together in lines of 3 or more to achieve high scores and earn up to 3 Gold Records!</p>
+      <button class="btn btn-primary" onclick="confirmAndStartLevel()">PLAY</button>
+      <button class="menu-action-btn close" onclick="toggleModal('levelReadyModal', false)">Cancel</button>
     </div>
   </div>
 
@@ -75,7 +96,36 @@
       <hr class="modal-divider">
       <button class="menu-action-btn" onclick="resetGameProgress()">Reset Progress</button>
       <button class="menu-action-btn" onclick="handleSignOut()">Sign Out</button>
-      <button class="menu-action-btn close" onclick="toggleSettings(false)">Close Menu</button>
+      <button class="menu-action-btn close" onclick="toggleModal('settingsModal', false)">Close Menu</button>
+    </div>
+  </div>
+
+  <div id="shopModal" class="modal-overlay">
+    <div class="modal-window">
+      <h2>TIME SHOP</h2>
+      <hr class="modal-divider">
+      <p style="color: #8a7a68; margin-bottom: 20px;">Premium Era Bundles coming soon!</p>
+      <button class="menu-action-btn close" onclick="toggleModal('shopModal', false)">Back</button>
+    </div>
+  </div>
+
+  <div id="friendsModal" class="modal-overlay">
+    <div class="modal-window">
+      <h2>ADD FRIENDS</h2>
+      <hr class="modal-divider">
+      <p style="font-size: 0.9rem; margin-bottom: 20px;">Connect your profile to invite your crew!</p>
+      <button class="menu-action-btn" style="background: #2d4473;" onclick="alert('Connecting to Facebook...')">🔵 Invite via Facebook</button>
+      <button class="menu-action-btn" style="background: #254d32;" onclick="alert('Generating Invite Link...')">🟢 Share Invite Link</button>
+      <button class="menu-action-btn close" onclick="toggleModal('friendsModal', false)" style="margin-top: 12px;">Close</button>
+    </div>
+  </div>
+
+  <div id="awardsModal" class="modal-overlay">
+    <div class="modal-window">
+      <h2>AWARDS</h2>
+      <hr class="modal-divider">
+      <div class="coming-soon-badge">AWARDS COMING SOON</div>
+      <button class="menu-action-btn close" onclick="toggleModal('awardsModal', false)">Awesome</button>
     </div>
   </div>
 
