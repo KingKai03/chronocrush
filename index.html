@@ -3,70 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CHRONOCRUSH - The Era Odyssey</title>
+  <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
 <body>
 
-  <div id="authScreen" class="screen-overlay visible">
-    <div class="auth-box">
-      <h1>CHRONOCRUSH</h1>
-      <p>Select your entry into the timeline</p>
-      <button class="menu-btn" onclick="loginUser('guest')">Play as Guest</button>
-      <button class="menu-btn" onclick="loginUser('saved')">Load Saved Profile</button>
+  <div id="authScreen" class="full-screen-view active">
+    <div class="auth-card">
+      <h1 class="game-brand-title">CHRONOCRUSH</h1>
+      <p class="game-brand-tagline">The Era Odyssey</p>
+      
+      <div class="auth-action-group">
+        <button class="btn btn-primary" onclick="handleAuth('email')">Sign In with Email</button>
+        <button class="btn btn-secondary" onclick="handleAuth('guest')">Play as Guest</button>
+      </div>
     </div>
   </div>
 
-  <div class="app-container">
-    <header class="app-header">
-      <h1>CHRONOCRUSH</h1>
-      <p class="subtitle">The Era Odyssey</p>
+  <div id="homePage" class="full-screen-view">
+    <header class="app-status-bar">
+      <button class="icon-btn" id="settingsBtn" onclick="toggleSettings(true)">⚙️</button>
+      
+      <div class="status-indicator-pill lives-pill">
+        <span class="pill-icon">❤️</span>
+        <span id="livesCounter">5</span>
+      </div>
+      
+      <div class="status-indicator-pill gold-pill">
+        <span class="pill-icon">🪙</span>
+        <span id="profileGold">150</span>
+      </div>
     </header>
 
-    <div class="game-layout">
-      <section class="panel grid-panel">
-        <div class="panel-header">
-          <span class="panel-title">⏳ TIME GRID</span>
-          <span id="eraBadge" class="era-badge">1940s Noir</span>
+    <main class="map-scroll-viewport">
+      <div class="zig-zag-map" id="mapLayer">
         </div>
-        
-        <div class="stats-bar">
-          <div class="stat-box"><p>MOVES</p><span id="movesText">20</span></div>
-          <div class="stat-box"><p>TARGET</p><span id="targetText">500</span></div>
-          <div class="stat-box"><p>SCORE</p><span id="scoreText">0</span></div>
-        </div>
+    </main>
+  </div>
 
-        <div class="canvas-container">
-          <canvas id="gameCanvas"></canvas>
-        </div>
-      </section>
+  <div id="gamePlayScreen" class="full-screen-view">
+    <header class="gameplay-header">
+      <button class="btn-back" onclick="exitToHome()">◀ Leave</button>
+      <div class="current-era-title" id="activeEraName">1940s Noir</div>
+    </header>
 
-      <section class="panel map-panel">
-        <div class="panel-header">
-          <span class="panel-title">🗺️ TIMELINE OVERVIEW</span>
+    <div class="gameplay-core-layout">
+      <div class="gameplay-stats-panel">
+        <div class="mini-stat-card">
+          <p>MOVES</p>
+          <span id="movesDisplay">22</span>
         </div>
+        <div class="mini-stat-card">
+          <p>TARGET</p>
+          <span id="targetDisplay">500</span>
+        </div>
+        <div class="mini-stat-card">
+          <p>SCORE</p>
+          <span id="scoreDisplay">0</span>
+        </div>
+      </div>
 
-        <div class="profile-card">
-          <div class="profile-avatar">💿</div>
-          <div class="profile-info">
-            <h3 id="profileName">Loading User...</h3>
-            <p>Total Records: <span id="totalRecordsText">0</span>/210</p>
-          </div>
-        </div>
-
-        <div class="map-scroll-container">
-          <div id="campaignMap" class="zig-zag-map"></div>
-        </div>
-      </section>
+      <div class="canvas-board-wrapper">
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+      </div>
     </div>
   </div>
 
-  <div id="overlayScreen" class="screen-overlay">
-    <div class="modal-box">
-      <h2 id="overlayTitle">Level Cleared!</h2>
-      <div id="recordsAwardContainer" class="records-display"></div>
-      <p id="overlayBody">You recovered the historical artifacts flawlessly.</p>
-      <div id="modalControls" class="modal-buttons"></div>
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-window">
+      <h2>SETTINGS</h2>
+      <hr class="modal-divider">
+      <button class="menu-action-btn" onclick="resetGameProgress()">Reset Progress</button>
+      <button class="menu-action-btn" onclick="handleSignOut()">Sign Out</button>
+      <button class="menu-action-btn close" onclick="toggleSettings(false)">Close Menu</button>
     </div>
   </div>
 
