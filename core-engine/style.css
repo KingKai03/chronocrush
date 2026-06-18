@@ -35,6 +35,22 @@ body {
   display: flex;
 }
 
+/* MOVING CLOUDS SKY GREY THEME LAYER */
+.clouds-background-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.25;
+  background: url('https://www.transparenttextures.com/patterns/clouds.png') repeat;
+  animation: moveClouds 60s linear infinite;
+}
+@keyframes moveClouds {
+  from { background-position: 0 0; }
+  to { background-position: 1000px 500px; }
+}
+
 /* BOOT LOADING SYSTEM VISUALS */
 #loadingScreen {
   background: var(--dark-sky);
@@ -54,7 +70,7 @@ body {
 }
 .loading-text { color: var(--gold); letter-spacing: 6px; }
 
-/* RECKONING INTROS WELCOME & ENTRY PANELS */
+/* WELCOME & ENTRY PANELS */
 #authScreen, #welcomeScreen {
   background: radial-gradient(circle, var(--sky-grey) 0%, var(--dark-sky) 100%);
   align-items: center;
@@ -90,7 +106,7 @@ body {
 }
 .btn-play-huge:hover { transform: scale(1.05); }
 
-/* ROADMAP PROFILE HUB HEADER STATUS ARRAY */
+/* BAR HEADER STATUS ARRAYS */
 .app-status-bar {
   height: 70px;
   background: var(--panel-bg);
@@ -119,7 +135,8 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 40px 20px;
-  background-color: var(--sky-grey);
+  z-index: 2;
+  position: relative;
 }
 .zig-zag-map {
   display: flex;
@@ -132,6 +149,21 @@ body {
 .map-row.left  { justify-content: flex-start; }
 .map-row.mid   { justify-content: center; }
 .map-row.right { justify-content: flex-end; }
+
+/* ERA HEADER LABELS ON MAP */
+.era-header-banner {
+  width: 100%;
+  text-align: center;
+  background: #11171a;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 20px 0 10px 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
 
 .level-node { display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; background: none; border: none; }
 .node-circle {
@@ -149,7 +181,17 @@ body {
 .level-node:disabled { opacity: 0.4; cursor: not-allowed; }
 .node-records { font-size: 0.8rem; color: #b2c4ce; margin-top: 6px; font-weight: bold; letter-spacing: 1px; }
 
-/* MAIN BASE CONTROL STRIP BOTTOM BAR FOOTER */
+.level-node.active::before {
+  content: '▼'; position: absolute; top: -26px; left: 50%; transform: translateX(-50%);
+  color: var(--gold); font-size: 1.2rem; text-shadow: 0 0 8px var(--gold);
+  animation: floatArrow 1.2s ease-in-out infinite alternate;
+}
+@keyframes floatArrow {
+  0% { transform: translateX(-50%) translateY(0); }
+  100% { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* APP NAVIGATION STRIP FOOTER */
 .app-footer-navigation {
   height: 70px;
   background: var(--panel-bg);
@@ -176,7 +218,7 @@ body {
 }
 .subpage-header h2 { color: var(--gold); font-size: 1.4rem; letter-spacing: 2px; }
 .btn-back { background: none; border: none; color: var(--gold); font-size: 1rem; font-weight: bold; cursor: pointer; }
-.subpage-body { flex: 1; padding: 24px; overflow-y: auto; }
+.subpage-body { flex: 1; padding: 24px; overflow-y: auto; z-index: 5; }
 .subpage-body.center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; }
 
 .section-desc { font-size: 1rem; max-width: 320px; line-height: 1.6; color: #eef1f2; margin-bottom: 10px; }
@@ -207,7 +249,7 @@ canvas { display: block; background: #1a2429; cursor: pointer; width: 320px; hei
 
 /* MODAL WINDOW POPUPS & VINYL PLATES */
 .modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vw; height: 100vh;
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(12, 17, 20, 0.85); z-index: 100;
   display: none; align-items: center; justify-content: center; padding: 20px;
 }
