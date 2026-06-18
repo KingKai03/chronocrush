@@ -1,73 +1,213 @@
-:root {
-  --gold: #d4af37;
-  --sky-grey: #5c6b73;
-  --dark-sky: #2b3a42;
-  --panel-bg: #1e272c;
-  --border-color: #475861;
-  --text-color: #eef1f2;
-  --bright-white: #ffffff;
+const gameState = {
+  lives: 5, gold: 150, currentLevel: 1, highestUnlockedLevel: 1, totalLevels: 70,
+  isGameActive: false, levelPendingStart: null, levelRecords: {}, boardSize: 6, grid: [],
+  score: 0, targetScore: 500, moves: 22, selectedTile: null,
+  preferences: { sound: true, sfx: true, vibe: true },
+  audioCtx: null, musicInterval: null, currentTrackEra: null
+};
+
+const eraTimeline = [
+  { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 110, melody: [55, 65, 58, 62], wave: "sine" },
+  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 145, melody: [110, 138, 165, 138], wave: "triangle" },
+  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, tempo: 90, melody: [146, 165, 196, 220], wave: "sine" },
+  { name: "1970s Disco", startLvl: 31, endLvl: 40, tempo: 125, melody: [82, 164, 98, 196], wave: "triangle" },
+  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, tempo: 128, melody: [110, 220, 165, 330], wave: "sawtooth" },
+  { name: "1990s Grunge", startLvl: 51, endLvl: 60, tempo: 105, melody: [73, 87, 73, 82], wave: "sawtooth" },
+  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70, tempo: 132, melody: [261, 392, 329, 440], wave: "sine" }
+];
+
+const gameItems = ['📻', '🎩', '✒️', '🎷'];
+
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
+    gameState.levelRecords = JSON.parse(localStorage.getItem("chrono_level_records")) || {};
+    gameState.preferences = JSON.parse(localStorage.getItem("chrono_preferences")) || {sound:true, sfx:true, vibe:true};
+    switchView("welcomeScreen");
+  }, 1500);
+  const canvas = document.getElementById("gameCanvas");
+  if (canvas) canvas.addEventListener("mousedown", handleCanvasClick);
+});
+
+function initAudio() { 
+  if (!gameState.audioCtx) {
+    gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (gameState.audioCtx && gameState.audioCtx.state === 'suspended') {
+    gameState.audioCtx.resume();
+  }
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
-body { background-color: var(--sky-grey); color: var(--text-color); min-height: 100vh; overflow: hidden; }
-
-.full-screen-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 10; background-color: var(--sky-grey); }
-.full-screen-view.active { display: flex; }
-
-/* Pure CSS Moving Clouds Background Overlay */
-.clouds-background-layer {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; opacity: 0.4;
-  background: 
-    radial-gradient(circle at 20% 30%, #ffffff 0%, rgba(255,255,255,0) 12%),
-    radial-gradient(circle at 75% 60%, #ffffff 0%, rgba(255,255,255,0) 18%),
-    radial-gradient(circle at 15% 75%, #ffffff 0%, rgba(255,255,255,0) 13%);
-  background-size: 200% 200%; animation: moveClouds 40s linear infinite;
+function startEraMusic(eraName) {
+  initAudio(); if (!gameState.preferences.sound || gameState.currentTrackEra === eraName) return;
+  stopEraMusic(); gameState.currentTrackEra = eraName;
+  const era = eraTimeline.find(e => e.name === eraName);
+  let step = 0; const noteLen = 60 / era.tempo;
+  gameState.musicInterval = setInterval(() => {
+    if (!gameState.preferences.sound || gameState.audioCtx.state === 'suspended') return;
+    const osc = gameState.audioCtx.createOscillator();
+    const gain = gameState.audioCtx.createGain();
+    osc.type = era.wave;
+    osc.frequency.setValueAtTime(era.melody[step % era.melody.length], gameState.audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.04, gameState.audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, gameState.audioCtx.currentTime + noteLen - 0.05);
+    osc.connect(gain); gain.connect(gameState.audioCtx.destination);
+    osc.start(); osc.stop(gameState.audioCtx.currentTime + noteLen);
+    step++;
+  }, noteLen * 1000);
 }
-@keyframes moveClouds { 0% { background-position: 0% 0%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 0%; } }
 
-/* App Status Header Layout & Absolute Right Side Alignment */
-.app-status-bar { position: relative; height: 70px; background: var(--panel-bg); border-bottom: 3px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 20; }
-.header-left-status { display: flex; gap: 10px; align-items: center; }
-.status-indicator-pill { background: rgba(0,0,0,0.4); border: 2px solid var(--border-color); padding: 6px 14px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+function stopEraMusic() { if (gameState.musicInterval) { clearInterval(gameState.musicInterval); gameState.musicInterval = null; } gameState.currentTrackEra = null; }
 
-/* Absolute Positioning of Settings Cog in Top Right Corner */
-.header-settings-btn { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-color); }
+/* Clear Audible Synth SFX & Physical Haptic Feedback Loop Injection */
+function playSfx(freq, type="sine") { 
+  initAudio();
+  if (!gameState.preferences.sfx || !gameState.audioCtx) return; 
+  const osc = gameState.audioCtx.createOscillator(); 
+  const gain = gameState.audioCtx.createGain(); 
+  osc.type = type; 
+  osc.frequency.setValueAtTime(freq, gameState.audioCtx.currentTime); 
+  gain.gain.setValueAtTime(0.15, gameState.audioCtx.currentTime); 
+  gain.gain.exponentialRampToValueAtTime(0.001, gameState.audioCtx.currentTime + 0.15); 
+  osc.connect(gain); 
+  gain.connect(gameState.audioCtx.destination); 
+  osc.start(); 
+  osc.stop(gameState.audioCtx.currentTime + 0.15); 
+}
 
-/* Navigation Footer */
-.app-footer-navigation { height: 70px; background: var(--panel-bg); border-top: 3px solid var(--border-color); display: flex; align-items: center; justify-content: space-around; z-index: 20; }
-.footer-tab-btn { background: var(--sky-grey); border: 2px solid var(--border-color); color: white; border-radius: 8px; padding: 12px; font-weight: bold; width: 45%; cursor: pointer; }
+function triggerVibration(duration = 40) {
+  if (gameState.preferences.vibe && navigator.vibrate) {
+    navigator.vibrate(duration);
+  }
+}
 
-/* Grid Mapping Over Clouds Overlay */
-.map-scroll-viewport { flex: 1; overflow-y: auto; padding: 40px 20px; position: relative; z-index: 5; }
-.zig-zag-map { display: flex; flex-direction: column-reverse; gap: 40px; max-width: 400px; margin: 0 auto; }
-.map-row { display: flex; width: 100%; }
-.map-row.left { justify-content: flex-start; }
-.map-row.mid { justify-content: center; }
-.map-row.right { justify-content: flex-end; }
-.era-header-banner { background: #11171a; border: 2px solid var(--gold); color: var(--gold); padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; margin: 20px 0; }
+function switchView(id) { document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 
-.level-node { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: none; border: none; }
-.node-circle { width: 60px; height: 60px; border-radius: 50%; background: #11171a; border: 3px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: white; }
-.level-node.unlocked .node-circle { border-color: var(--gold); background: #3a311c; }
-.level-node.active .node-circle { border-color: white; background: var(--gold); color: black !important; box-shadow: 0 0 20px var(--gold); transform: scale(1.1); }
-.node-records { font-size: 0.8rem; color: #b2c4ce; margin-top: 6px; font-weight: bold; }
+function loadHomepage() {
+  switchView("homePage");
+  document.getElementById("livesCounter").innerText = gameState.lives;
+  document.getElementById("profileGold").innerText = gameState.gold;
+  const mapLayer = document.getElementById("mapLayer");
+  mapLayer.innerHTML = "";
+  const align = ["mid", "left", "mid", "right"];
+  
+  eraTimeline.forEach(era => {
+    const banner = document.createElement("div"); banner.className = "era-header-banner"; banner.innerText = era.name.toUpperCase(); mapLayer.appendChild(banner);
+    for (let i = era.startLvl; i <= era.endLvl; i++) {
+      const row = document.createElement("div"); row.className = `map-row ${align[i % 4]}`;
+      const btn = document.createElement("button"); btn.className = `level-node ${i==gameState.highestUnlockedLevel?'active':(i<gameState.highestUnlockedLevel?'unlocked':'')}`;
+      if (i > gameState.highestUnlockedLevel) btn.disabled = true;
+      btn.onclick = () => { gameState.levelPendingStart = i; document.getElementById("modalLevelTitle").innerText = `LEVEL ${i}`; toggleModal('levelReadyModal', true); };
+      const recs = gameState.levelRecords[i] ? "📀".repeat(gameState.levelRecords[i]) : (i<=gameState.highestUnlockedLevel?"⚪⚪⚪":"🔒");
+      btn.innerHTML = `<div class="node-circle">${i}</div><div class="node-records">${recs}</div>`;
+      row.appendChild(btn); mapLayer.appendChild(row);
+    }
+  });
+  const currentEra = eraTimeline.find(e => gameState.highestUnlockedLevel >= e.startLvl && gameState.highestUnlockedLevel <= e.endLvl);
+  startEraMusic(currentEra.name);
+}
 
-/* Modal Modifiers & The Close Button Frame */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; }
-.modal-overlay.visible { display: flex; }
-.modal-window { position: relative; background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 16px; padding: 40px 30px 30px 30px; text-align: center; width: 90%; max-width: 340px; }
+function toggleModal(id, open) { 
+  const m = document.getElementById(id); 
+  if (open) m.classList.add('visible'); 
+  else m.classList.remove('visible'); 
+}
 
-/* The Dedicated "✕" Close Button Layout */
-.modal-close-x { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #ff5c5c; font-size: 1.6rem; font-weight: bold; cursor: pointer; transition: color 0.2s ease; }
-.modal-close-x:hover { color: #ff2a2a; }
+function confirmAndStartLevel() {
+  toggleModal('levelReadyModal', false);
+  const lvl = gameState.levelPendingStart; gameState.currentLevel = lvl; gameState.isGameActive = true; gameState.score = 0; gameState.moves = 22; gameState.targetScore = 400 + (lvl * 20);
+  document.getElementById("activeEraName").innerText = `Level ${lvl}`;
+  document.getElementById("movesDisplay").innerText = 22; document.getElementById("targetDisplay").innerText = gameState.targetScore; document.getElementById("scoreDisplay").innerText = 0;
+  switchView("gamePlayScreen");
+  const era = eraTimeline.find(e => lvl >= e.startLvl && lvl <= e.endLvl);
+  startEraMusic(era.name);
+  generateBoard(); drawBoard();
+}
 
-.toggle-control-item { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; font-size: 1.1rem; }
-.setting-toggle-btn { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; background: #c94c4c; color: white; width: 70px; cursor: pointer; }
-.setting-toggle-btn.active { background: #2d6a4f; }
-.menu-action-btn { display: block; width: 100%; padding: 12px; margin-top: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
-.menu-action-btn.destructive { background: #a32a2a; color: white; }
-.modal-divider { border: 0; height: 1px; background: var(--border-color); margin: 15px 0; }
+function generateBoard() {
+  for (let r=0; r<6; r++) { gameState.grid[r]=[]; for (let c=0; c<6; c++) { gameState.grid[r][c] = gameItems[Math.floor(Math.random()*4)]; } }
+}
 
-/* Canvas Mechanics */
-.canvas-board-wrapper { background: #11171a; border: 3px solid var(--border-color); border-radius: 12px; padding: 10px; margin: 0 auto; }
-canvas { display: block; background: #1a2429; width: 320px; height: 320px; cursor: pointer; }
+function drawBoard() {
+  const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,320,320);
+  for (let r=0; r<6; r++) { for (let c=0; c<6; c++) {
+    const x = c*53.3; const y = r*53.3; ctx.strokeStyle = "#475861"; ctx.strokeRect(x,y,53.3,53.3);
+    if (gameState.selectedTile?.r == r && gameState.selectedTile?.c == c) { ctx.fillStyle = "rgba(212,175,55,0.3)"; ctx.fillRect(x,y,53.3,53.3); }
+    ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(gameState.grid[r][c], x+26.6, y+26.6);
+  }}
+}
+
+function handleCanvasClick(e) {
+  if (!gameState.isGameActive) return;
+  initAudio();
+  const rect = e.target.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+  const c = Math.floor(x/53.3); const r = Math.floor(y/53.3);
+  
+  if (!gameState.selectedTile) { 
+    gameState.selectedTile = {r,c}; 
+    playSfx(480, "sine"); 
+    triggerVibration(25);
+  } else {
+    const dist = Math.abs(gameState.selectedTile.r - r) + Math.abs(gameState.selectedTile.c - c);
+    if (dist == 1) { 
+      swap(gameState.selectedTile.r, gameState.selectedTile.c, r, c); 
+    } else {
+      gameState.selectedTile = {r,c}; // Re-select alternate tile
+      playSfx(480, "sine");
+      triggerVibration(25);
+    }
+  }
+  drawBoard();
+}
+
+function swap(r1,c1,r2,c2) {
+  let tmp = gameState.grid[r1][c1]; gameState.grid[r1][c1] = gameState.grid[r2][c2]; gameState.grid[r2][c2] = tmp;
+  gameState.moves--; document.getElementById("movesDisplay").innerText = gameState.moves;
+  playSfx(620, "triangle");
+  triggerVibration(50);
+  checkMatches();
+}
+
+function checkMatches() {
+  let found = false;
+  for (let r=0; r<6; r++) { for (let c=0; c<4; c++) {
+    if (gameState.grid[r][c] == gameState.grid[r][c+1] && gameState.grid[r][c] == gameState.grid[r][c+2]) {
+      gameState.score += 60; found = true;
+    }
+  }}
+  if (found) {
+    playSfx(880, "sawtooth");
+    triggerVibration(80);
+  }
+  document.getElementById("scoreDisplay").innerText = gameState.score;
+  if (gameState.score >= gameState.targetScore) { win(); }
+  else if (gameState.moves <= 0) { alert("Out of moves!"); exitToHome(); }
+}
+
+function win() {
+  let stars = gameState.score > gameState.targetScore*1.5 ? 3 : (gameState.score > gameState.targetScore*1.2 ? 2 : 1);
+  gameState.levelRecords[gameState.currentLevel] = stars;
+  localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
+  if (gameState.currentLevel == gameState.highestUnlockedLevel) { gameState.highestUnlockedLevel++; localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel); }
+  document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
+  toggleModal('levelSuccessModal', true);
+  exitToHome();
+}
+
+function exitToHome() { gameState.isGameActive = false; loadHomepage(); }
+function transitionToMap() { triggerFlashAnimation(); loadHomepage(); }
+function handleAuth() { triggerFlashAnimation(); switchView("welcomeScreen"); }
+function triggerFlashAnimation() { const f = document.getElementById("portalFlash"); f.classList.add('active'); setTimeout(()=>f.classList.remove('active'), 400); }
+function openSettingsModal() { toggleModal('settingsModal', true); }
+function openHelpPanel() { alert("Match 3 items to earn Gold Records!"); }
+
+function togglePreference(p) { 
+  gameState.preferences[p] = !gameState.preferences[p]; 
+  localStorage.setItem("chrono_preferences", JSON.stringify(gameState.preferences)); 
+  const btn = document.getElementById(`toggle${p.charAt(0).toUpperCase() + p.slice(1)}Btn`);
+  if (gameState.preferences[p]) btn.classList.add('active'); else btn.classList.remove('active');
+  btn.innerText = gameState.preferences[p] ? "ON" : "OFF";
+  if(p === 'sound') { if(!gameState.preferences.sound) stopEraMusic(); else loadHomepage(); }
+}
+
+function resetGameProgress() { localStorage.clear(); location.reload(); }
