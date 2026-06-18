@@ -35,102 +35,22 @@
 
   <div id="homePage" class="full-screen-view">
     <div class="cloud-layer">
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
+      <div class="cloud">☁️</div><div class="cloud">☁️</div><div class="cloud">☁️</div><div class="cloud">☁️</div>
     </div>
-    
     <header class="app-status-bar">
       <div class="header-left-status">
-        <div class="status-indicator-pill lives-pill">❤️ <span id="livesCounter">5</span></div>
-        <div class="status-indicator-pill gold-pill">🪙 <span id="profileGold">150</span></div>
+        <div class="status-indicator-pill">❤️ <span id="livesCounter">5</span></div>
+        <div class="status-indicator-pill">🪙 <span id="profileGold">150</span></div>
       </div>
-      <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
+      <button class="header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
-
-    <main class="map-scroll-viewport">
-      <div class="zig-zag-map" id="mapLayer"></div>
-    </main>
-
+    <main class="map-scroll-viewport"><div class="zig-zag-map" id="mapLayer"></div></main>
     <footer class="app-footer-navigation">
       <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
       <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
     </footer>
   </div>
 
-  <div id="shopPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>TIME SHOP</h2></header>
-    <div class="subpage-body scrollable-content">
-      <div class="shop-item-card"><h3>❤️ Extra Lives</h3><button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button></div>
-    </div>
-  </div>
-
-  <div id="friendsPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>ADD FRIENDS</h2></header>
-    <div class="subpage-body center-content">
-      <button class="social-action-btn link-green" onclick="alert('Link Copied!')">🔗 Copy Invite Link</button>
-    </div>
-  </div>
-
-  <div id="gamePlayScreen" class="full-screen-view">
-    <header class="gameplay-header">
-      <button class="btn-back" onclick="exitToHome()">◀ Leave</button>
-      <div class="current-era-title" id="activeEraName">Level 1</div>
-    </header>
-    
-    <div class="gameplay-core-layout">
-      <div class="gameplay-stats-panel">
-        <div class="mini-stat-card"><span class="label">MOVES</span><span id="movesDisplay" class="val">22</span></div>
-        <div class="mini-stat-card"><span class="label">TARGET</span><span id="targetDisplay" class="val">500</span></div>
-        <div class="mini-stat-card"><span class="label">SCORE</span><span id="scoreDisplay" class="val">0</span></div>
-      </div>
-      <div class="canvas-board-wrapper">
-        <canvas id="gameCanvas" width="320" height="320"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div id="levelReadyModal" class="modal-overlay">
-    <div class="record-modal-disc">
-      <div class="record-center-label">
-        <h2 id="modalLevelTitle">LEVEL 1</h2>
-        <div class="record-btn-stack">
-          <button class="record-action-btn btn-go" onclick="confirmAndStartLevel()">PLAY</button>
-          <button class="record-action-btn btn-stop" onclick="toggleModal('levelReadyModal', false)">BACK TO MAP</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="levelSuccessModal" class="modal-overlay">
-    <canvas id="fireworksCanvas"></canvas>
-    <div class="record-modal-disc gold-disc">
-      <div class="record-center-label">
-        <h2 class="congrats-text">CONGRATULATIONS!</h2>
-        <p class="sub-pass-text">YOU PASSED THE LEVEL</p>
-        <div id="modalRecordsDisplay"></div>
-        <div class="record-btn-stack">
-          <button class="record-action-btn btn-go" onclick="advanceToNextLevel()">NEXT LEVEL</button>
-          <button class="record-action-btn btn-retry" onclick="retryCurrentLevel()">RETRY</button>
-          <button class="record-action-btn btn-stop" onclick="toggleModal('levelSuccessModal', false)">BACK TO MAP</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="settingsModal" class="modal-overlay">
-    <div class="modal-window">
-      <button class="modal-close-x" onclick="toggleModal('settingsModal', false)">✕</button>
-      <h2>SETTINGS</h2>
-      <div class="toggle-control-item"><span>Music</span><button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button></div>
-      <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
-      <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
-      <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Progress</button>
-    </div>
-  </div>
-
-  <div id="portalFlash"></div>
   <script src="core-engine/logic.js"></script>
 </body>
 </html>
