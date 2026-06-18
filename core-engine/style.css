@@ -60,6 +60,28 @@ body {
   100% { background-position: 0% 0%; }
 }
 
+/* ☎️ RETRO BACKGROUND DECORATIONS (ANTI-BORING HOMEPAGE GRID) */
+.map-scroll-viewport::before {
+  content: "📟       ☎️       🎙️\n\n     📺       📻       📼\n\n🪙       ☎️       🎵";
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  right: 5%;
+  white-space: pre-line;
+  font-size: 2.5rem;
+  line-height: 4.5rem;
+  opacity: 0.18;
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+  animation: floatDecorations 8s ease-in-out infinite alternate;
+}
+
+@keyframes floatDecorations {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-15px) rotate(1deg); }
+}
+
 /* BOOT LOADING SYSTEM VISUALS */
 #loadingScreen {
   background: var(--dark-sky);
@@ -150,9 +172,11 @@ body {
 .zig-zag-map {
   display: flex;
   flex-direction: column-reverse;
-  gap: 36px;
+  gap: 48px;
   max-width: 400px;
   margin: 0 auto;
+  position: relative;
+  z-index: 5;
 }
 .map-row { display: flex; width: 100%; }
 .map-row.left  { justify-content: flex-start; }
@@ -176,16 +200,17 @@ body {
 
 .level-node { display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; background: none; border: none; }
 .node-circle {
-  width: 60px; height: 60px; border-radius: 50%;
+  width: 65px; height: 65px; border-radius: 50%;
   background: #11171a; border: 3px solid var(--border-color);
   display: flex; align-items: center; justify-content: center;
-  font-weight: bold; font-size: 1.2rem; color: var(--bright-white);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  font-weight: bold; font-size: 1.3rem; color: var(--bright-white);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  transition: all 0.2s ease-in-out;
 }
 .level-node.unlocked .node-circle { border-color: var(--gold); background: #3a311c; }
 .level-node.active .node-circle {
   border-color: var(--bright-white); background: var(--gold); color: #000 !important;
-  box-shadow: 0 0 20px var(--gold); transform: scale(1.1);
+  box-shadow: 0 0 25px var(--gold); transform: scale(1.15);
 }
 .level-node:disabled { opacity: 0.4; cursor: not-allowed; }
 .node-records { font-size: 0.8rem; color: #b2c4ce; margin-top: 6px; font-weight: bold; letter-spacing: 1px; }
