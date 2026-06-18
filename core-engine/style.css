@@ -103,12 +103,12 @@ canvas { border: 3px solid #5a3a20; border-radius: 6px; background: #1a1410; cur
   border-radius: 8px; 
   padding: 24px 12px; 
   border: 1px solid var(--border-color); 
-  /* FIXED: High-contrast 1940s grayscale street setting with vintage automotive assets */
-  background: linear-gradient(rgba(14, 12, 9, 0.65), rgba(14, 12, 9, 0.75)), 
-              url('https://images.unsplash.com/photo-1549417229-aa67d3263c09?q=80&w=600&auto=format&fit=crop'); 
+  /* FIXED: Distant corner perspective of an old-school street with period cars and faraway traffic */
+  background: linear-gradient(rgba(14, 12, 9, 0.55), rgba(14, 12, 9, 0.65)), 
+              url('https://images.unsplash.com/photo-1608976476101-831e5f8fdf48?q=80&w=600&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center;
-  filter: grayscale(100%) contrast(115%);
+  filter: grayscale(100%) contrast(120%);
 }
 .zig-zag-map { display: flex; flex-direction: column-reverse; gap: 18px; position: relative; width: 100%; }
 
