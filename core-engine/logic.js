@@ -3,7 +3,7 @@ const gameState = {
   isGameActive: false, levelPendingStart: null, levelRecords: {}, boardSize: 6, grid: [],
   score: 0, targetScore: 500, moves: 22, selectedTile: null,
   preferences: { sound: true, sfx: true, vibe: true },
-  audioCtx: null, musicInterval: null, currentTrackEra: null
+  audioCtx: null, musicInterval: null, currentTrackEra: null, matchExplosions: []
 };
 
 const eraTimeline = [
@@ -27,17 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }, 1500);
   const canvas = document.getElementById("gameCanvas");
   if (canvas) canvas.addEventListener("mousedown", handleCanvasClick);
+  
+  // Animation render loop for graphical impact triggers
+  setInterval(updateAndDrawBoard, 40);
 });
 
 function initAudio() { 
-  if (!gameState.audioCtx) {
-    gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (gameState.audioCtx && gameState.audioCtx.state === 'suspended') {
-    gameState.audioCtx.resume();
-  }
+  if (!gameState.audioCtx) gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (gameState.audioCtx && gameState.audioCtx.state === 'suspended') gameState.audioCtx.resume();
 }
 
+/* Background Instrumental Loop - Plays Through Map AND Level Gameplay UI Screens */
 function startEraMusic(eraName) {
   initAudio(); if (!gameState.preferences.sound || gameState.currentTrackEra === eraName) return;
   stopEraMusic(); gameState.currentTrackEra = eraName;
@@ -59,25 +59,10 @@ function startEraMusic(eraName) {
 
 function stopEraMusic() { if (gameState.musicInterval) { clearInterval(gameState.musicInterval); gameState.musicInterval = null; } gameState.currentTrackEra = null; }
 
-/* Clear Audible Synth SFX & Physical Haptic Feedback Loop Injection */
-function playSfx(freq, type="sine") { 
-  initAudio();
-  if (!gameState.preferences.sfx || !gameState.audioCtx) return; 
-  const osc = gameState.audioCtx.createOscillator(); 
-  const gain = gameState.audioCtx.createGain(); 
-  osc.type = type; 
-  osc.frequency.setValueAtTime(freq, gameState.audioCtx.currentTime); 
-  gain.gain.setValueAtTime(0.15, gameState.audioCtx.currentTime); 
-  gain.gain.exponentialRampToValueAtTime(0.001, gameState.audioCtx.currentTime + 0.15); 
-  osc.connect(gain); 
-  gain.connect(gameState.audioCtx.destination); 
-  osc.start(); 
-  osc.stop(gameState.audioCtx.currentTime + 0.15); 
-}
-
-function triggerVibration(duration = 40) {
+/* Multi-Tier Physical Vibration Controls - NO AUDIO INJECTED HERE */
+function triggerVibration(sequence) {
   if (gameState.preferences.vibe && navigator.vibrate) {
-    navigator.vibrate(duration);
+    navigator.vibrate(sequence);
   }
 }
 
@@ -103,14 +88,14 @@ function loadHomepage() {
       row.appendChild(btn); mapLayer.appendChild(row);
     }
   });
+  
   const currentEra = eraTimeline.find(e => gameState.highestUnlockedLevel >= e.startLvl && gameState.highestUnlockedLevel <= e.endLvl);
-  startEraMusic(currentEra.name);
+  if (currentEra) startEraMusic(currentEra.name);
 }
 
 function toggleModal(id, open) { 
   const m = document.getElementById(id); 
-  if (open) m.classList.add('visible'); 
-  else m.classList.remove('visible'); 
+  if (open) m.classList.add('visible'); else m.classList.remove('visible'); 
 }
 
 function confirmAndStartLevel() {
@@ -119,72 +104,104 @@ function confirmAndStartLevel() {
   document.getElementById("activeEraName").innerText = `Level ${lvl}`;
   document.getElementById("movesDisplay").innerText = 22; document.getElementById("targetDisplay").innerText = gameState.targetScore; document.getElementById("scoreDisplay").innerText = 0;
   switchView("gamePlayScreen");
+  
+  // Continuously preserve instrumental loops inside the active playboard scene
   const era = eraTimeline.find(e => lvl >= e.startLvl && lvl <= e.endLvl);
-  startEraMusic(era.name);
-  generateBoard(); drawBoard();
+  if (era) startEraMusic(era.name);
+  
+  generateBoard();
 }
 
 function generateBoard() {
   for (let r=0; r<6; r++) { gameState.grid[r]=[]; for (let c=0; c<6; c++) { gameState.grid[r][c] = gameItems[Math.floor(Math.random()*4)]; } }
 }
 
-function drawBoard() {
-  const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,320,320);
+function updateAndDrawBoard() {
+  const canvas = document.getElementById("gameCanvas"); if (!canvas) return;
+  const ctx = canvas.getContext("2d"); ctx.clearRect(0,0,320,320);
+  
   for (let r=0; r<6; r++) { for (let c=0; c<6; c++) {
     const x = c*53.3; const y = r*53.3; ctx.strokeStyle = "#475861"; ctx.strokeRect(x,y,53.3,53.3);
-    if (gameState.selectedTile?.r == r && gameState.selectedTile?.c == c) { ctx.fillStyle = "rgba(212,175,55,0.3)"; ctx.fillRect(x,y,53.3,53.3); }
-    ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(gameState.grid[r][c], x+26.6, y+26.6);
+    if (gameState.selectedTile?.r == r && gameState.selectedTile?.c == c) { ctx.fillStyle = "rgba(212,175,55,0.25)"; ctx.fillRect(x,y,53.3,53.3); }
+    if (gameState.grid[r] && gameState.grid[r][c]) {
+      ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(gameState.grid[r][c], x+26.6, y+26.6);
+    }
   }}
+  
+  // Graphical explosion particles drawn directly when matches clear
+  for (let i = gameState.matchExplosions.length - 1; i >= 0; i--) {
+    let p = gameState.matchExplosions[i]; ctx.fillStyle = `rgba(212,175,55,${p.alpha})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    p.y += p.vy; p.size *= 0.92; p.alpha -= 0.05;
+    if (p.alpha <= 0) gameState.matchExplosions.splice(i, 1);
+  }
 }
 
 function handleCanvasClick(e) {
-  if (!gameState.isGameActive) return;
-  initAudio();
+  if (!gameState.isGameActive) return; initAudio();
   const rect = e.target.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top;
   const c = Math.floor(x/53.3); const r = Math.floor(y/53.3);
   
   if (!gameState.selectedTile) { 
     gameState.selectedTile = {r,c}; 
-    playSfx(480, "sine"); 
-    triggerVibration(25);
+    triggerVibration(20); // Quick tap feel (No individual sound block added)
   } else {
     const dist = Math.abs(gameState.selectedTile.r - r) + Math.abs(gameState.selectedTile.c - c);
     if (dist == 1) { 
       swap(gameState.selectedTile.r, gameState.selectedTile.c, r, c); 
     } else {
-      gameState.selectedTile = {r,c}; // Re-select alternate tile
-      playSfx(480, "sine");
-      triggerVibration(25);
+      gameState.selectedTile = {r,c}; 
+      triggerVibration(20);
     }
   }
-  drawBoard();
 }
 
 function swap(r1,c1,r2,c2) {
   let tmp = gameState.grid[r1][c1]; gameState.grid[r1][c1] = gameState.grid[r2][c2]; gameState.grid[r2][c2] = tmp;
   gameState.moves--; document.getElementById("movesDisplay").innerText = gameState.moves;
-  playSfx(620, "triangle");
-  triggerVibration(50);
+  
+  triggerVibration(45); // Distinct dual-shift touch feedback
   checkMatches();
+  gameState.selectedTile = null;
 }
 
 function checkMatches() {
   let found = false;
+  let matchRows = [], matchCols = [];
+  
   for (let r=0; r<6; r++) { for (let c=0; c<4; c++) {
-    if (gameState.grid[r][c] == gameState.grid[r][c+1] && gameState.grid[r][c] == gameState.grid[r][c+2]) {
-      gameState.score += 60; found = true;
+    if (gameState.grid[r][c] && gameState.grid[r][c] == gameState.grid[r][c+1] && gameState.grid[r][c] == gameState.grid[r][c+2]) {
+      matchRows.push({r, c: c}); matchRows.push({r, c: c+1}); matchRows.push({r, c: c+2}); found = true;
     }
   }}
+  
   if (found) {
-    playSfx(880, "sawtooth");
-    triggerVibration(80);
+    gameState.score += 120; document.getElementById("scoreDisplay").innerText = gameState.score;
+    
+    // Physical vibration sequence + visual flash effect block
+    triggerVibration([80, 50, 80]); 
+    const wrapper = document.querySelector(".canvas-board-wrapper");
+    wrapper.classList.add("board-flash"); setTimeout(() => wrapper.classList.remove("board-flash"), 300);
+    
+    // Spawn graphical particles inside board coordinates
+    matchRows.forEach(pos => {
+      for(let k=0; k<5; k++) {
+        gameState.matchExplosions.push({ x: (pos.c * 53.3) + 26, y: (pos.r * 53.3) + 26, size: 8, alpha: 1, vy: -1 - Math.random()*2 });
+      }
+      gameState.grid[pos.r][pos.c] = gameItems[Math.floor(Math.random()*4)]; // Replenish slot
+    });
   }
-  document.getElementById("scoreDisplay").innerText = gameState.score;
-  if (gameState.score >= gameState.targetScore) { win(); }
-  else if (gameState.moves <= 0) { alert("Out of moves!"); exitToHome(); }
+  
+  if (gameState.score >= gameState.targetScore) { 
+    setTimeout(win, 350); 
+  } else if (gameState.moves <= 0) { 
+    alert("Out of moves!"); exitToHome(); 
+  }
 }
 
 function win() {
+  // Heavy rhythm victory vibration sequence [vibrate, pause, vibrate...]
+  triggerVibration([100, 50, 100, 50, 250]);
   let stars = gameState.score > gameState.targetScore*1.5 ? 3 : (gameState.score > gameState.targetScore*1.2 ? 2 : 1);
   gameState.levelRecords[gameState.currentLevel] = stars;
   localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
