@@ -6,20 +6,27 @@ const gameState = {
   audioCtx: null, musicInterval: null, currentTrackEra: null, matchExplosions: []
 };
 
-// Global container arrays and request handles for the canvas fireworks engine
 let fxCanvas = null;
 let fxCtx = null;
 let fxParticles = [];
 let fxAnimationId = null;
 
+// New Relaxing Instrumental Coffee House Chords system (No repetitive piercing bleeps)
+// Contains smooth jazz chord extensions (maj7, min9) playing at a laid-back lounge speed
+const coffeeHouseProgressions = [
+  { name: "Smooth Morning", chords: [[130.81, 164.81, 196.00, 246.94], [146.83, 174.61, 220.00, 261.63]] }, // Cmaj7 -> Dm7
+  { name: "Cafe Sunset", chords: [[146.83, 174.61, 220.00, 261.63], [116.54, 146.83, 174.61, 220.00]] }, // Dm7 -> Bbmaj7
+  { name: "Jazz Lounge", chords: [[164.81, 196.00, 246.94, 293.66], [146.83, 174.61, 220.00, 261.63]] }  // Em7 -> Dm7
+];
+
 const eraTimeline = [
-  { name: "1940s Noir", startLvl: 1, endLvl: 10, tempo: 80, melody: [196, 220, 246, 220], wave: "sine" },
-  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20, tempo: 85, melody: [220, 261, 329, 261], wave: "sine" },
-  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, tempo: 80, melody: [293, 329, 392, 329], wave: "sine" },
-  { name: "1970s Disco", startLvl: 31, endLvl: 40, tempo: 90, melody: [220, 329, 293, 220], wave: "sine" },
-  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, tempo: 95, melody: [329, 392, 440, 392], wave: "sine" },
-  { name: "1990s Grunge", startLvl: 51, endLvl: 60, tempo: 80, melody: [196, 220, 196, 174], wave: "sine" },
-  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70, tempo: 95, melody: [261, 329, 392, 329], wave: "sine" }
+  { name: "1940s Noir", startLvl: 1, endLvl: 10 },
+  { name: "1950s Rockabilly", startLvl: 11, endLvl: 20 },
+  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30 },
+  { name: "1970s Disco", startLvl: 31, endLvl: 40 },
+  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50 },
+  { name: "1990s Grunge", startLvl: 51, endLvl: 60 },
+  { name: "2000s Y2K Pop", startLvl: 61, endLvl: 70 }
 ];
 
 const gameItems = ['📻', '🎩', '✒️', '🎷'];
@@ -35,7 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleCanvasClick(e.touches[0]); });
   }
   
-  // Cache and setup full window viewport hooks for the fireworks layout
   fxCanvas = document.getElementById("fireworksCanvas");
   if (fxCanvas) fxCtx = fxCanvas.getContext("2d");
   window.addEventListener("resize", resizeFireworksCanvas);
@@ -60,6 +66,7 @@ function initAudio() {
   }
 }
 
+// Custom Instrumental Coffee House Music Generator
 function startEraMusic(eraName) {
   initAudio();
   if (!gameState.preferences.sound) return;
@@ -67,35 +74,46 @@ function startEraMusic(eraName) {
   
   stopEraMusic();
   gameState.currentTrackEra = eraName;
-  const era = eraTimeline.find(e => e.name === eraName);
-  let step = 0; 
-  const noteLen = 60 / era.tempo;
+  
+  // Choose a lounge progression based on level range seamlessly
+  const eraIndex = eraTimeline.findIndex(e => e.name === eraName) % coffeeHouseProgressions.length;
+  const progression = coffeeHouseProgressions[eraIndex];
+  let chordStep = 0;
+  const progressionIntervalTime = 3200; // Slow, long-drawn coffee shop tempo
   
   gameState.musicInterval = setInterval(() => {
     if (!gameState.preferences.sound || !gameState.audioCtx || gameState.audioCtx.state === 'suspended') return;
     
-    const osc = gameState.audioCtx.createOscillator();
-    const gain = gameState.audioCtx.createGain();
-    const filter = gameState.audioCtx.createBiquadFilter();
+    const currentChord = progression.chords[chordStep % progression.chords.length];
+    const now = gameState.audioCtx.currentTime;
     
-    osc.type = era.wave;
-    osc.frequency.setValueAtTime(era.melody[step % era.melody.length], gameState.audioCtx.currentTime);
+    // Play warm instrumentals using staggered sine oscillators to blend smoothly
+    currentChord.forEach((freq, idx) => {
+      const osc = gameState.audioCtx.createOscillator();
+      const gain = gameState.audioCtx.createGain();
+      const filter = gameState.audioCtx.createBiquadFilter();
+      
+      osc.type = "sine"; 
+      osc.frequency.setValueAtTime(freq, now);
+      
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(260, now); // Soft low-pass to eliminate crisp edges
+      
+      // Luxurious long lounge fade-in and slow acoustic tail fade-out
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.010, now + 0.6 + (idx * 0.1)); // Soft roll-in strum
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.0);
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(gameState.audioCtx.destination);
+      
+      osc.start(now);
+      osc.stop(now + 3.1);
+    });
     
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(350, gameState.audioCtx.currentTime);
-    
-    gain.gain.setValueAtTime(0.0001, gameState.audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.012, gameState.audioCtx.currentTime + 0.4); 
-    gain.gain.exponentialRampToValueAtTime(0.0001, gameState.audioCtx.currentTime + noteLen);
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(gameState.audioCtx.destination);
-    
-    osc.start();
-    osc.stop(gameState.audioCtx.currentTime + noteLen);
-    step++;
-  }, noteLen * 1000);
+    chordStep++;
+  }, progressionIntervalTime);
 }
 
 function stopEraMusic() {
@@ -180,6 +198,7 @@ function confirmAndStartLevel() {
   startLevelLogic(gameState.levelPendingStart);
 }
 
+// RESTORED FIXES FOR RETRY & ADVANCE ACTION INTERFACES
 function retryCurrentLevel() {
   toggleModal('levelSuccessModal', false);
   startLevelLogic(gameState.currentLevel);
@@ -262,13 +281,11 @@ function updateAndDrawBoard() {
   }
 }
 
-/* Light Particle Fireworks Engine */
 function spawnFireworksBurst() {
   const colors = ['#ffd700', '#ff5e62', '#ff9966', '#00f2fe', '#4facfe', '#b19ffb'];
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight / 2;
   
-  // Spawn 2 clean, performance-friendly directional ring bursts
   for (let b = 0; b < 2; b++) {
     const originX = centerX + (Math.random() * 200 - 100);
     const originY = centerY - (Math.random() * 120);
@@ -276,7 +293,7 @@ function spawnFireworksBurst() {
     
     for (let i = 0; i < particlesCount; i++) {
       const angle = (Math.PI * 2 / particlesCount) * i + Math.random() * 0.4;
-      const speed = 2 + Math.random() * 5;
+      const speed = 2 + Math.random() * 4;
       fxParticles.push({
         x: originX,
         y: originY,
@@ -299,7 +316,7 @@ function runFireworksLoop() {
     let p = fxParticles[i];
     p.x += p.vx;
     p.y += p.vy;
-    p.vy += 0.04; // Gentle gravity effect
+    p.vy += 0.04; 
     p.alpha -= p.decay;
     
     if (p.alpha <= 0) {
@@ -316,7 +333,6 @@ function runFireworksLoop() {
     fxCtx.restore();
   }
   
-  // Occasionally spawn a tiny trailing rocket burst if modal remains open
   if (Math.random() < 0.015 && fxParticles.length < 40) {
     spawnFireworksBurst();
   }
@@ -428,7 +444,7 @@ function win() {
   }
   
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
-  switchView("homePage"); // Clear gameplay screen from background view
+  switchView("homePage"); 
   toggleModal('levelSuccessModal', true);
 }
 
