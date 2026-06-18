@@ -9,9 +9,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
 body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow: hidden; }
 
-/* View Management */
+/* View Management: Mandatory to prevent stacking/blank screens */
 .full-screen-view { 
-  display: none; 
+  display: none !important; 
   position: fixed; 
   top: 0; 
   left: 0; 
@@ -21,7 +21,9 @@ body { background-color: var(--bg-color); color: var(--text-color); min-height: 
   flex-direction: column; 
   z-index: 10;
 }
-.full-screen-view.active { display: flex !important; }
+.full-screen-view.active { 
+  display: flex !important; 
+}
 
 /* Atmosphere: Floating Cloud Layer */
 #homePage { position: relative; overflow: hidden; }
