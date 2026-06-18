@@ -1,5 +1,5 @@
 // ==========================================================================
-// 1. GAME DATA & STATE CONFIGURATION
+// 1. STATE SYSTEM MANAGEMENT CONFIGURATION
 // ==========================================================================
 const gameState = {
   currentUser: null,
@@ -9,34 +9,46 @@ const gameState = {
   highestUnlockedLevel: 1,
   totalLevels: 6,
   isGameActive: false,
+  levelPendingStart: null,
   
-  // Match-3 Core Engine Variables
-  boardSize: 6,      // 6x6 grid
-  grid: [],          // Holds item data matrix
+  // Track individual earned Gold Records per level
+  levelRecords: {}, 
+
+  // Match-3 Core Grid Matrix Variables
+  boardSize: 6,
+  grid: [],
   score: 0,
   targetScore: 500,
   moves: 22,
   selectedTile: null
 };
 
-// Vintage 1940s Era Theme Icons
 const gameItems = [
-  { id: 1, char: '📻' }, // Radio
-  { id: 2, char: '🎩' }, // Top Hat
-  { id: 3, char: '✒️' },  // Pen
-  { id: 4, char: '🎷' }  // Saxophone
+  { id: 1, char: '📻' },
+  { id: 2, char: '🎩' },
+  { id: 3, char: '✒️' },
+  { id: 4, char: '🎷' }
 ];
 
-// INITIALIZATION ROUTINE ON DOM LOAD
+// INITIALIZATION BOOT STRAP
 document.addEventListener("DOMContentLoaded", () => {
-  const savedUser = localStorage.getItem("chrono_user");
-  if (savedUser) {
-    gameState.currentUser = savedUser;
-    gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
-    loadHomepage();
-  }
+  // 2.5 Second Spinning Record Loading Sequencer
+  setTimeout(() => {
+    const savedUser = localStorage.getItem("chrono_user");
+    if (savedUser) {
+      gameState.currentUser = savedUser;
+      gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
+      
+      const savedRecords = localStorage.getItem("chrono_level_records");
+      if (savedRecords) {
+        gameState.levelRecords = JSON.parse(savedRecords);
+      }
+      switchView("welcomeScreen");
+    } else {
+      switchView("authScreen");
+    }
+  }, 2500); 
   
-  // Attach Canvas Click Listener
   const canvas = document.getElementById("gameCanvas");
   if (canvas) {
     canvas.addEventListener("mousedown", handleCanvasClick);
@@ -44,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================================================
-// 2. VIEW & AUTHENTICATION SYSTEMS FLOW
+// 2. INTERACTION NAVIGATION HANDLERS
 // ==========================================================================
 function handleAuth(method) {
   if (method === 'email') {
@@ -57,6 +69,11 @@ function handleAuth(method) {
   
   localStorage.setItem("chrono_user", gameState.currentUser);
   triggerFlashAnimation();
+  switchView("welcomeScreen");
+}
+
+function transitionToMap() {
+  triggerFlashAnimation();
   loadHomepage();
 }
 
@@ -64,7 +81,8 @@ function handleSignOut() {
   localStorage.clear();
   gameState.currentUser = null;
   gameState.highestUnlockedLevel = 1;
-  toggleSettings(false);
+  gameState.levelRecords = {};
+  toggleModal('settingsModal', false);
   switchView("authScreen");
 }
 
@@ -104,11 +122,22 @@ function renderMapPathway() {
       button.disabled = true;
     }
 
-    button.onclick = () => launchLevelArena(i);
+    button.onclick = () => launchLevelPrePopup(i);
+
+    // GOLD RECORD GENERATOR 
+    let recordDisplayStr = "🔒";
+    if (i <= gameState.highestUnlockedLevel) {
+      const recordsEarned = gameState.levelRecords[i] || 0;
+      if (recordsEarned === 0) {
+        recordDisplayStr = "⚪ ⚪ ⚪"; 
+      } else {
+        recordDisplayStr = "残留".replace("残留", "📀").repeat(recordsEarned); 
+      }
+    }
 
     button.innerHTML = `
       <div class="node-circle">${i}</div>
-      <div class="node-records">${i <= gameState.highestUnlockedLevel ? "⭐⭐⭐" : "🔒"}</div>
+      <div class="node-records">${recordDisplayStr}</div>
     `;
 
     row.appendChild(button);
@@ -117,22 +146,42 @@ function renderMapPathway() {
 }
 
 // ==========================================================================
-// 3. MATCH-3 INTERACTIVE ENGINE CORE
+// 3. POPUP MODALS LOGIC OVERLAYS
 // ==========================================================================
-function launchLevelArena(levelNumber) {
+function toggleModal(modalId, shouldOpen) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  if (shouldOpen) {
+    modal.classList.add("visible");
+  } else {
+    modal.classList.remove("visible");
+  }
+}
+
+function launchLevelPrePopup(levelNumber) {
   if (gameState.lives <= 0) {
-    alert("Out of lives! Wait for a refill or use coins.");
+    alert("Out of lives! Wait or buy more using coins.");
     return;
   }
+  gameState.levelPendingStart = levelNumber;
+  document.getElementById("modalLevelTitle").innerText = `LEVEL ${levelNumber}`;
+  toggleModal('levelReadyModal', true);
+}
+
+function confirmAndStartLevel() {
+  const targetLvl = gameState.levelPendingStart;
+  toggleModal('levelReadyModal', false);
   
-  gameState.currentLevel = levelNumber;
+  if (!targetLvl) return;
+  
+  gameState.currentLevel = targetLvl;
   gameState.isGameActive = true;
   gameState.score = 0;
   gameState.moves = 22;
-  gameState.targetScore = 400 + (levelNumber * 100);
+  gameState.targetScore = 400 + (targetLvl * 100);
   gameState.selectedTile = null;
   
-  document.getElementById("activeEraName").innerText = `Level ${levelNumber} - 1940s Noir`;
+  document.getElementById("activeEraName").innerText = `Level ${targetLvl} - 1940s Noir`;
   document.getElementById("movesDisplay").innerText = gameState.moves;
   document.getElementById("targetDisplay").innerText = gameState.targetScore;
   document.getElementById("scoreDisplay").innerText = gameState.score;
@@ -142,12 +191,14 @@ function launchLevelArena(levelNumber) {
   drawMatch3Board();
 }
 
+// ==========================================================================
+// 4. INTERACTIVE MATCH-3 GAME RECKONING ENGINE
+// ==========================================================================
 function generateRandomBoard() {
   gameState.grid = [];
   for (let r = 0; r < gameState.boardSize; r++) {
     gameState.grid[r] = [];
     for (let c = 0; c < gameState.boardSize; c++) {
-      // Prevent automatic matches at initial setup spawn
       let validItems = [...gameItems];
       if (c >= 2 && gameState.grid[r][c-1] === gameState.grid[r][c-2]) {
         validItems = validItems.filter(item => item.char !== gameState.grid[r][c-1]);
@@ -167,27 +218,23 @@ function drawMatch3Board() {
   const ctx = canvas.getContext("2d");
   const tileSize = canvas.width / gameState.boardSize;
 
-  ctx.fillStyle = "#16120e";
+  ctx.fillStyle = "#1a2429";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Render Grid Lines and Items
   for (let r = 0; r < gameState.boardSize; r++) {
     for (let c = 0; c < gameState.boardSize; c++) {
       const x = c * tileSize;
       const y = r * tileSize;
 
-      // Draw Background Tile Border lines
-      ctx.strokeStyle = "#3a2e22";
+      ctx.strokeStyle = "#3d4f59";
       ctx.lineWidth = 1;
       ctx.strokeRect(x, y, tileSize, tileSize);
 
-      // Highlight selected tile box frame
       if (gameState.selectedTile && gameState.selectedTile.r === r && gameState.selectedTile.c === c) {
-        ctx.fillStyle = "rgba(212, 175, 55, 0.35)";
+        ctx.fillStyle = "rgba(212, 175, 55, 0.3)";
         ctx.fillRect(x, y, tileSize, tileSize);
       }
 
-      // Draw Era Icons Center Text
       ctx.font = `${tileSize * 0.55}px Arial`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -215,7 +262,6 @@ function handleCanvasClick(event) {
     if (!gameState.selectedTile) {
       gameState.selectedTile = { r, c };
     } else {
-      // Check if adjacent tile
       const dist = Math.abs(gameState.selectedTile.r - r) + Math.abs(gameState.selectedTile.c - c);
       if (dist === 1) {
         swapTiles(gameState.selectedTile.r, gameState.selectedTile.c, r, c);
@@ -227,16 +273,13 @@ function handleCanvasClick(event) {
 }
 
 function swapTiles(r1, c1, r2, c2) {
-  // Execute basic swap matrix swap
   let temp = gameState.grid[r1][c1];
   gameState.grid[r1][c1] = gameState.grid[r2][c2];
   gameState.grid[r2][c2] = temp;
 
-  // Evaluate if swap results in match combinations
   let hasMatches = checkAndClearMatches();
 
   if (!hasMatches) {
-    // Revert invalid turn swap
     let tempRevert = gameState.grid[r1][c1];
     gameState.grid[r1][c1] = gameState.grid[r2][c2];
     gameState.grid[r2][c2] = tempRevert;
@@ -252,7 +295,6 @@ function checkAndClearMatches() {
   let matchGrid = Array(gameState.boardSize).fill(null).map(() => Array(gameState.boardSize).fill(false));
   let matchFound = false;
 
-  // Horizontal match check loops
   for (let r = 0; r < gameState.boardSize; r++) {
     for (let c = 0; c < gameState.boardSize - 2; c++) {
       let matchVal = gameState.grid[r][c];
@@ -263,7 +305,6 @@ function checkAndClearMatches() {
     }
   }
 
-  // Vertical match check loops
   for (let c = 0; c < gameState.boardSize; c++) {
     for (let r = 0; r < gameState.boardSize - 2; r++) {
       let matchVal = gameState.grid[r][c];
@@ -274,7 +315,6 @@ function checkAndClearMatches() {
     }
   }
 
-  // Count matches and allocate points
   if (matchFound) {
     let tilesCleared = 0;
     for (let r = 0; r < gameState.boardSize; r++) {
@@ -293,7 +333,6 @@ function checkAndClearMatches() {
 }
 
 function processBoardGravity() {
-  // Let pieces drop down into null structural spots
   for (let c = 0; c < gameState.boardSize; c++) {
     let emptyRow = gameState.boardSize - 1;
     for (let r = gameState.boardSize - 1; r >= 0; r--) {
@@ -303,14 +342,12 @@ function processBoardGravity() {
         emptyRow--;
       }
     }
-    // Refill top column vacancies with fresh tokens
     for (let r = emptyRow; r >= 0; r--) {
       const randomChoice = gameItems[Math.floor(Math.random() * gameItems.length)];
       gameState.grid[r][c] = randomChoice.char;
     }
   }
   
-  // Cascade secondary matches recursively if they form after refilling
   drawMatch3Board();
   setTimeout(() => {
     if (checkAndClearMatches()) {
@@ -321,48 +358,54 @@ function processBoardGravity() {
 
 function checkGameEndCondition() {
   if (gameState.score >= gameState.targetScore) {
-    alert("Level Complete! Timeline Node Restored!");
+    // Dynamic Gold Record Allocation Logic
+    let finalRecords = 1;
+    const performanceRatio = gameState.score / gameState.targetScore;
+    
+    if (performanceRatio >= 1.5) {
+      finalRecords = 3; 
+    } else if (performanceRatio >= 1.2) {
+      finalRecords = 2; 
+    }
+
+    alert(`Level Complete!\nScore: ${gameState.score}\nYou earned ${finalRecords} Gold Record(s)! 📀`);
+    
+    const currentStoredRecords = gameState.levelRecords[gameState.currentLevel] || 0;
+    if (finalRecords > currentStoredRecords) {
+      gameState.levelRecords[gameState.currentLevel] = finalRecords;
+      localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
+    }
+
     if (gameState.currentLevel === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < gameState.totalLevels) {
       gameState.highestUnlockedLevel++;
       localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel);
     }
     exitToHome();
   } else if (gameState.moves <= 0) {
-    alert("Out of moves! You failed to clean the timeline.");
-    consumeLife();
+    alert("Out of Moves! The sequence collapsed.");
+    if (gameState.lives > 0) {
+      gameState.lives--;
+      document.getElementById("livesCounter").innerText = gameState.lives;
+    }
     exitToHome();
   }
 }
 
 // ==========================================================================
-// 4. GLOBAL AUXILIARY COMPONENT INTERACTION CONTROL HOOKS
+// 5. DESTRUCTIVE ACTIONS & COSMETICS HOOKS
 // ==========================================================================
 function exitToHome() {
   gameState.isGameActive = false;
   loadHomepage();
 }
 
-function consumeLife() {
-  if (gameState.lives > 0) {
-    gameState.lives--;
-    document.getElementById("livesCounter").innerText = gameState.lives;
-  }
-}
-
-function toggleSettings(shouldOpen) {
-  const modal = document.getElementById("settingsModal");
-  if (shouldOpen) {
-    modal.classList.add("visible");
-  } else {
-    modal.classList.remove("visible");
-  }
-}
-
 function resetGameProgress() {
-  if (confirm("Are you sure you want to completely clear your historical era progress data?")) {
+  if (confirm("Reset timeline milestones?")) {
     gameState.highestUnlockedLevel = 1;
+    gameState.levelRecords = {};
     localStorage.setItem("chrono_highest_level", 1);
-    toggleSettings(false);
+    localStorage.removeItem("chrono_level_records");
+    toggleModal('settingsModal', false);
     loadHomepage();
   }
 }
@@ -371,8 +414,6 @@ function triggerFlashAnimation() {
   const flash = document.getElementById("portalFlash");
   if (flash) {
     flash.classList.add("active");
-    setTimeout(() => {
-      flash.classList.remove("active");
-    }, 400);
+    setTimeout(() => flash.classList.remove("active"), 400);
   }
 }
