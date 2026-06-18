@@ -1,9 +1,10 @@
 :root {
   --gold: #d4af37;
-  --dark-bg: #0e0c09;
-  --panel-bg: #16120e;
-  --border-color: #3a2e22;
-  --text-color: #f5efe6;
+  --sky-grey: #5c6b73;
+  --dark-sky: #2b3a42;
+  --panel-bg: #1a2327;
+  --border-color: #3d4f59;
+  --text-color: #eef1f2;
   --bright-white: #ffffff;
 }
 
@@ -15,13 +16,12 @@
 }
 
 body {
-  background-color: var(--dark-bg);
+  background-color: var(--dark-sky);
   color: var(--text-color);
   min-height: 100vh;
   overflow: hidden;
 }
 
-/* SCREEN MANAGEMENT CLASSES */
 .full-screen-view {
   position: fixed;
   top: 0;
@@ -36,17 +36,43 @@ body {
   display: flex;
 }
 
-/* ==========================================================================
-   PHASE 1: AUTHENTICATION SCREEN DESIGN
-   ========================================================================== */
-#authScreen {
-  background: radial-gradient(circle, #201710 0%, #0e0c09 100%);
+/* PHASE 1: SPINNING LOADER SCREEN */
+#loadingScreen {
+  background: var(--dark-sky);
+  align-items: center;
+  justify-content: center;
+}
+.loader-content {
+  text-align: center;
+}
+.spinning-record {
+  font-size: 5rem;
+  display: inline-block;
+  animation: spinDisk 2s linear infinite;
+  margin-bottom: 20px;
+}
+@keyframes spinDisk {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loading-text {
+  color: var(--gold);
+  letter-spacing: 6px;
+  animation: pulseText 1.5s ease-in-out infinite alternate;
+}
+@keyframes pulseText {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* PHASE 2 & 3: BOOT INTERFACES */
+#authScreen, #welcomeScreen {
+  background: radial-gradient(circle, var(--sky-grey) 0%, var(--dark-sky) 100%);
   align-items: center;
   justify-content: center;
   padding: 20px;
 }
-
-.auth-card {
+.auth-card, .welcome-card {
   background: var(--panel-bg);
   border: 2px solid var(--border-color);
   border-radius: 16px;
@@ -54,30 +80,33 @@ body {
   max-width: 400px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
-
 .game-brand-title {
   color: var(--gold);
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   letter-spacing: 4px;
   margin-bottom: 6px;
-  text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  text-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
-
 .game-brand-tagline {
   font-size: 1rem;
   font-style: italic;
-  color: #8a7a68;
+  color: #9cb1bc;
   margin-bottom: 36px;
 }
-
+.static-record {
+  font-size: 4.5rem;
+  margin: 24px 0;
+  animation: spinDisk 12s linear infinite;
+}
 .auth-action-group {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
+/* UI INTERACTIVE BUTTONS */
 .btn {
   width: 100%;
   padding: 16px;
@@ -88,7 +117,6 @@ body {
   transition: all 0.2s ease;
   border: 1px solid transparent;
 }
-
 .btn-primary {
   background: var(--gold);
   color: #000000;
@@ -97,22 +125,30 @@ body {
   background: #f1c43f;
   transform: translateY(-1px);
 }
-
 .btn-secondary {
-  background: #241d16;
+  background: var(--sky-grey);
   border-color: var(--border-color);
   color: var(--bright-white);
 }
-.btn-secondary:hover {
-  background: #332a20;
+.btn-play-huge {
+  background: var(--gold);
+  color: #000;
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  padding: 18px;
+  box-shadow: 0 0 15px var(--gold);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-play-huge:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 25px var(--gold);
 }
 
-/* ==========================================================================
-   PHASE 2: HOME PAGE MAP LAYOUT
-   ========================================================================== */
+/* PHASE 4: SKY GREY HOMEPAGE ROADMAP */
 .app-status-bar {
   height: 70px;
-  background: #1a1410;
+  background: var(--panel-bg);
   border-bottom: 2px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -120,9 +156,8 @@ body {
   gap: 12px;
   z-index: 20;
 }
-
 .icon-btn {
-  background: #2b2118;
+  background: var(--sky-grey);
   border: 1px solid var(--border-color);
   color: white;
   width: 44px;
@@ -134,9 +169,8 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 .status-indicator-pill {
-  background: #0e0c09;
+  background: var(--dark-sky);
   border: 1px solid var(--border-color);
   padding: 6px 14px;
   border-radius: 20px;
@@ -146,39 +180,29 @@ body {
   font-weight: bold;
   font-size: 1.1rem;
 }
-
-.lives-pill { border-color: #a82323; color: #ff6b6b; }
+.lives-pill { border-color: #c94c4c; color: #ff8e8e; }
 .gold-pill { border-color: var(--gold); color: var(--gold); }
 
-.pill-icon { font-size: 1.2rem; }
-
-/* THE TIMELINE VERTICAL SCROLLWAY */
 .map-scroll-viewport {
   flex: 1;
   overflow-y: auto;
   position: relative;
-  background: linear-gradient(rgba(14, 12, 9, 0.75), rgba(14, 12, 9, 0.82)), 
+  background: linear-gradient(rgba(43, 58, 66, 0.8), rgba(43, 58, 66, 0.88)), 
               url('https://images.unsplash.com/photo-1542224566-6e85f2e6772f?q=80&w=600&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center;
   background-attachment: local;
   padding: 40px 20px;
 }
-
 .zig-zag-map {
   display: flex;
-  flex-direction: column-reverse; /* Builds pathway counting upwards from base */
-  gap: 30px;
+  flex-direction: column-reverse;
+  gap: 32px;
   max-width: 450px;
   margin: 0 auto;
   width: 100%;
 }
-
-.map-row {
-  display: flex;
-  width: 100%;
-  padding: 0 12px;
-}
+.map-row { display: flex; width: 100%; padding: 0 12px; }
 .map-row.left  { justify-content: flex-start; }
 .map-row.mid   { justify-content: center; }
 .map-row.right { justify-content: flex-end; }
@@ -192,51 +216,36 @@ body {
   background: none;
   border: none;
 }
-
 .node-circle {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: #110e0b;
-  border: 3px solid #443629;
+  background: #11171a;
+  border: 3px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   font-size: 1.1rem;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.8);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.5);
   transition: all 0.2s ease;
-  color: var(--bright-white) !important; /* FIXED LOCKED CONTRAST STYLE */
-}
-
-/* MAP NODE VARIANT HOOKS */
-.level-node.unlocked .node-circle {
-  border-color: var(--gold);
-  background: #3c301d;
   color: var(--bright-white) !important;
 }
-
+.level-node.unlocked .node-circle {
+  border-color: var(--gold);
+  background: #3a311c;
+  color: var(--bright-white) !important;
+}
 .level-node.active .node-circle {
   border-color: var(--bright-white);
   background: var(--gold);
-  color: #000000 !important; /* Dark numeral text over glowing background circle marker */
-  box-shadow: 0 0 20px var(--gold);
+  color: #000000 !important;
+  box-shadow: 0 0 22px var(--gold);
   transform: scale(1.15);
 }
+.level-node:disabled { cursor: not-allowed; opacity: 0.5; }
+.node-records { font-size: 0.7rem; color: #9cb1bc; margin-top: 6px; font-weight: bold; }
 
-.level-node:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.node-records {
-  font-size: 0.7rem;
-  color: #b5a492;
-  margin-top: 6px;
-  font-weight: bold;
-}
-
-/* FLOATING ACTIVE ARROW INDICATOR */
 .level-node.active::before {
   content: '▼';
   position: absolute;
@@ -248,174 +257,87 @@ body {
   text-shadow: 0 0 8px var(--gold);
   animation: floatArrow 1.2s ease-in-out infinite alternate;
 }
-
 @keyframes floatArrow {
   0% { transform: translateX(-50%) translateY(0); }
   100% { transform: translateX(-50%) translateY(-6px); }
 }
 
-/* ==========================================================================
-   PHASE 3: GAMEPLAY ARENA SCREEN OVERLAY
-   ========================================================================== */
-#gamePlayScreen {
-  background: #080605;
-  z-index: 30;
+.app-footer-navigation {
+  height: 64px;
+  background: var(--panel-bg);
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+}
+.footer-tab-btn {
+  flex: 1;
+  max-width: 160px;
+  padding: 10px;
+  background: var(--sky-grey);
+  border: 1px solid var(--border-color);
+  color: white;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
+/* PHASE 5: GAME ENGINE UI */
+#gamePlayScreen { background: #0c1114; z-index: 30; }
 .gameplay-header {
   height: 60px;
-  background: #16120e;
+  background: var(--panel-bg);
   border-bottom: 2px solid var(--border-color);
   display: flex;
   align-items: center;
   padding: 0 16px;
   justify-content: space-between;
 }
+.btn-back { background: none; border: none; color: var(--gold); font-size: 1rem; font-weight: bold; cursor: pointer; }
+.current-era-title { font-weight: bold; letter-spacing: 2px; color: var(--bright-white); }
+.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 20px; }
+.gameplay-stats-panel { display: flex; width: 100%; max-width: 360px; gap: 10px; }
+.mini-stat-card { flex: 1; background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 8px; padding: 10px; text-align: center; }
+.mini-stat-card p { font-size: 0.75rem; color: #7f97a4; margin-bottom: 4px; }
+.mini-stat-card span { font-size: 1.3rem; font-weight: bold; color: var(--gold); }
+.canvas-board-wrapper { background: #11171a; border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+canvas { display: block; background: #1a2429; cursor: pointer; max-width: 100%; height: auto; }
 
-.btn-back {
-  background: none;
-  border: none;
-  color: var(--gold);
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.current-era-title {
-  font-weight: bold;
-  letter-spacing: 2px;
-  color: var(--bright-white);
-}
-
-.gameplay-core-layout {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  gap: 20px;
-}
-
-.gameplay-stats-panel {
-  display: flex;
-  width: 100%;
-  max-width: 360px;
-  gap: 10px;
-}
-
-.mini-stat-card {
-  flex: 1;
-  background: var(--panel-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-}
-.mini-stat-card p {
-  font-size: 0.75rem;
-  color: #8a7a68;
-  margin-bottom: 4px;
-}
-.mini-stat-card span {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: var(--gold);
-}
-
-.canvas-board-wrapper {
-  background: #110e0b;
-  border: 3px solid #5a3a20;
-  border-radius: 12px;
-  padding: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.9);
-}
-
-canvas {
-  display: block;
-  background: #1a1410;
-  cursor: pointer;
-  max-width: 100%;
-  height: auto;
-}
-
-/* ==========================================================================
-   MODAL WINDOW DIALOG OVERLAYS
-   ========================================================================== */
+/* MODALS WINDOWS */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.85);
-  z-index: 100;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(12,17,20,0.85);
+  z-index: 100; display: none;
+  align-items: center; justify-content: center; padding: 20px;
 }
-.modal-overlay.visible {
-  display: flex;
-}
-
+.modal-overlay.visible { display: flex; }
 .modal-window {
   background: var(--panel-bg);
   border: 2px solid var(--gold);
   border-radius: 12px;
-  padding: 24px;
-  width: 100%;
-  max-width: 340px;
-  text-align: center;
+  padding: 24px; width: 100%; max-width: 340px; text-align: center;
 }
-
-.modal-window h2 {
-  color: var(--gold);
-  letter-spacing: 2px;
-  font-size: 1.4rem;
-}
-
-.modal-divider {
-  border: none;
-  height: 2px;
-  background: var(--border-color);
-  margin: 16px 0;
-}
-
-.menu-action-btn {
-  width: 100%;
+.modal-window h2 { color: var(--gold); letter-spacing: 2px; font-size: 1.4rem; }
+.modal-divider { border: none; height: 2px; background: var(--border-color); margin: 16px 0; }
+.modal-instruction-text { color: var(--text-color); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
+.coming-soon-badge {
+  background: #3a2222;
+  color: #ff6b6b;
+  border: 1px dashed #7a2828;
   padding: 14px;
-  margin: 6px 0;
-  background: #241d16;
-  border: 1px solid var(--border-color);
-  color: var(--bright-white);
-  border-radius: 6px;
   font-weight: bold;
-  cursor: pointer;
+  border-radius: 6px;
 }
-.menu-action-btn:hover {
-  background: #382e22;
+.menu-action-btn {
+  width: 100%; padding: 14px; margin: 6px 0;
+  background: var(--sky-grey); border: 1px solid var(--border-color);
+  color: var(--bright-white); border-radius: 6px; font-weight: bold; cursor: pointer;
 }
-.menu-action-btn.close {
-  background: #521c1c;
-  border-color: #7a2828;
-}
-.menu-action-btn.close:hover {
-  background: #6e2424;
-}
+.menu-action-btn.close { background: #7a2828; border-color: #9e3333; }
 
-#portalFlash {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: var(--bright-white);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 200;
-}
-#portalFlash.active {
-  animation: flashAnim 0.4s ease-out;
-}
+#portalFlash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bright-white); opacity: 0; pointer-events: none; z-index: 200; }
+#portalFlash.active { animation: flashAnim 0.4s ease-out; }
 @keyframes flashAnim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
