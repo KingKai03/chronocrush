@@ -35,7 +35,7 @@ body {
   display: flex;
 }
 
-/* ☁️ FIXED PURE-CSS MOVING VINTAGE CLOUDS LAYER */
+/* ☁️ PURE-CSS MOVING VINTAGE CLOUDS LAYER */
 .clouds-background-layer {
   position: absolute;
   top: 0; left: 0;
@@ -60,26 +60,43 @@ body {
   100% { background-position: 0% 0%; }
 }
 
-/* ☎️ RETRO BACKGROUND DECORATIONS (ANTI-BORING HOMEPAGE GRID) */
-.map-scroll-viewport::before {
-  content: "📟       ☎️       🎙️\n\n     📺       📻       📼\n\n🪙       ☎️       🎵";
+/* ☎️ FIXED: 3 RETRO ITEMS PERFECTLY SPACED ON LEFT AND RIGHT SIDES */
+.map-scroll-viewport::before,
+.map-scroll-viewport::after {
   position: absolute;
-  top: 10%;
-  left: 5%;
-  right: 5%;
-  white-space: pre-line;
-  font-size: 2.5rem;
-  line-height: 4.5rem;
-  opacity: 0.18;
-  text-align: center;
+  font-size: 3.5rem;
+  opacity: 0.22;
   pointer-events: none;
-  z-index: 1;
-  animation: floatDecorations 8s ease-in-out infinite alternate;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 75%; /* Spans cleanly across most of the scrolling screen height */
+  top: 12%;
 }
 
-@keyframes floatDecorations {
-  0% { transform: translateY(0px) rotate(0deg); }
-  100% { transform: translateY(-15px) rotate(1deg); }
+/* Left side elements column */
+.map-scroll-viewport::before {
+  content: "☎️" "📻" "📼"; /* Exactly 3 spaced objects */
+  left: 8%;
+  animation: floatDecorationsLeft 7s ease-in-out infinite alternate;
+}
+
+/* Right side elements column */
+.map-scroll-viewport::after {
+  content: "📟" "🎙️" "📺"; /* Exactly 3 spaced objects */
+  right: 8%;
+  animation: floatDecorationsRight 7s ease-in-out infinite alternate;
+}
+
+@keyframes floatDecorationsLeft {
+  0% { transform: translateY(0px) translateX(0px) rotate(-2deg); }
+  100% { transform: translateY(-25px) translateX(8px) rotate(4deg); }
+}
+
+@keyframes floatDecorationsRight {
+  0% { transform: translateY(-15px) translateX(5px) rotate(3deg); }
+  100% { transform: translateY(10px) translateX(-5px) rotate(-3deg); }
 }
 
 /* BOOT LOADING SYSTEM VISUALS */
