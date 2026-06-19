@@ -11,10 +11,22 @@ const gameState = {
   ]
 };
 
+// CORE VIEW SWITCHER: This function is required for your buttons to work
+function switchView(viewId) {
+  const views = document.querySelectorAll('.full-screen-view');
+  views.forEach(view => view.classList.remove('active'));
+  
+  const targetView = document.getElementById(viewId);
+  if (targetView) {
+    targetView.classList.add('active');
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const mapLayer = document.getElementById("mapLayer");
   if (!mapLayer) return;
 
+  // Render the level map
   gameState.eras.forEach(era => {
     const banner = document.createElement("div");
     banner.className = "era-header-banner";
@@ -25,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = document.createElement("button");
       btn.className = "level-node unlocked";
       btn.innerText = i;
+      // Add interaction to switch to gameplay
+      btn.onclick = () => switchView('gamePlayScreen');
       mapLayer.appendChild(btn);
     }
   });
