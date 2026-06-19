@@ -1,68 +1,585 @@
+/* ============================================================
+   CHRONOCRUSH — style.css
+   ============================================================ */
+
 :root {
   --gold: #d4af37;
+  --gold-bright: #ffd700;
   --panel-bg: #11171a;
-  --bg-color: #1e272c;
+  --panel-bg-2: #161e23;
+  --bg-navy: #060a18;
+  --bg-navy-2: #0c1430;
   --border-color: #475861;
   --text-color: #eef1f2;
+  --text-dim: #8a9da8;
+  --green: #2d6a4f;
+  --red: #a32a2a;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; overflow: hidden; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-.full-screen-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: none; flex-direction: column; z-index: 10; background: var(--bg-color); }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background-color: var(--bg-navy);
+  color: var(--text-color);
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================
+   STARFIELD + CLOUD BACKGROUND
+   Sits behind everything, visible through transparent panels
+   ============================================================ */
+#cosmicBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(40, 60, 110, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(30, 40, 90, 0.30) 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-navy-2) 0%, var(--bg-navy) 100%);
+  overflow: hidden;
+}
+
+#starLayer {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #ffffff 100%, transparent 0),
+    radial-gradient(1px 1px at 90px 110px, #ffffff 100%, transparent 0),
+    radial-gradient(1.5px 1.5px at 160px 60px, #ffffff 100%, transparent 0),
+    radial-gradient(1px 1px at 200px 180px, #ffffff 100%, transparent 0),
+    radial-gradient(1.5px 1.5px at 260px 20px, #ffffff 100%, transparent 0),
+    radial-gradient(1px 1px at 310px 140px, #ffffff 100%, transparent 0),
+    radial-gradient(1.5px 1.5px at 50px 200px, #ffffff 100%, transparent 0),
+    radial-gradient(1px 1px at 130px 250px, #ffffff 100%, transparent 0);
+  background-size: 340px 280px;
+  opacity: 0.55;
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  0%   { opacity: 0.35; }
+  100% { opacity: 0.7; }
+}
+
+.cloud-drift {
+  position: absolute;
+  background: rgba(180, 195, 220, 0.07);
+  border-radius: 50%;
+  filter: blur(2px);
+}
+.cloud-drift::before, .cloud-drift::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+
+.cloud1 { width: 180px; height: 50px; top: 12%; left: -200px; animation: driftRight 70s linear infinite; }
+.cloud1::before { width: 90px; height: 70px; top: -30px; left: 25px; }
+.cloud1::after  { width: 70px; height: 55px; top: -18px; left: 95px; }
+
+.cloud2 { width: 130px; height: 40px; top: 38%; left: -160px; animation: driftRight 95s linear infinite; animation-delay: -20s; }
+.cloud2::before { width: 65px; height: 50px; top: -22px; left: 18px; }
+.cloud2::after  { width: 50px; height: 38px; top: -12px; left: 70px; }
+
+.cloud3 { width: 220px; height: 60px; top: 65%; left: -260px; animation: driftRight 120s linear infinite; animation-delay: -50s; }
+.cloud3::before { width: 110px; height: 80px; top: -35px; left: 30px; }
+.cloud3::after  { width: 85px; height: 65px; top: -22px; left: 120px; }
+
+.cloud4 { width: 150px; height: 45px; top: 85%; left: -180px; animation: driftRight 105s linear infinite; animation-delay: -75s; }
+.cloud4::before { width: 75px; height: 58px; top: -25px; left: 20px; }
+.cloud4::after  { width: 58px; height: 44px; top: -14px; left: 80px; }
+
+@keyframes driftRight {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(140vw); }
+}
+
+/* ============================================================
+   SCREEN MANAGEMENT
+   ============================================================ */
+.full-screen-view {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  display: none;
+  flex-direction: column;
+  z-index: 10;
+  background: transparent;
+}
 .full-screen-view.active { display: flex; }
 
-.app-status-bar, .gameplay-header { height: 60px; background: var(--panel-bg); border-bottom: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 25; }
-.header-left-status { display: flex; gap: 15px; }
-.status-indicator-pill { background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 12px; font-weight: bold; }
-.header-settings-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; }
+/* Loading & Auth & Welcome screens get a solid-ish backing so text is readable */
+#loadingScreen, #authScreen, #welcomeScreen {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(ellipse at center, rgba(10,16,35,0.6) 0%, rgba(6,10,24,0.92) 100%);
+}
 
-.gameplay-stats-panel { display: flex; justify-content: space-around; background: rgba(0,0,0,0.3); padding: 10px 5px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-.mini-stat-card { display: flex; flex-direction: column; align-items: center; }
-.mini-stat-card .label { font-size: 0.75rem; color: #8a9da8; letter-spacing: 1px; }
-.mini-stat-card .val { font-size: 1.3rem; font-weight: bold; color: var(--gold); margin-top: 2px; }
+.loader-content { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.spinning-record {
+  font-size: 4rem;
+  animation: spinRecord 1.6s linear infinite;
+}
+@keyframes spinRecord { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loading-text { letter-spacing: 3px; color: var(--gold); font-size: 1rem; }
 
-.map-scroll-viewport { flex: 1; overflow-y: auto; padding: 30px 15px; z-index: 5; }
-.zig-zag-map { display: flex; flex-direction: column-reverse; gap: 30px; max-width: 400px; margin: 0 auto; }
-.map-row { display: flex; width: 100%; }
-.map-row.left { justify-content: flex-start; }
-.map-row.mid { justify-content: center; }
-.map-row.right { justify-content: flex-end; }
-.era-header-banner { background: var(--panel-bg); border: 1px solid var(--gold); color: var(--gold); padding: 8px; border-radius: 6px; font-weight: bold; text-align: center; width: 100%; margin: 15px 0; }
+.auth-card, .welcome-card {
+  background: rgba(17, 23, 26, 0.75);
+  border: 1px solid rgba(212,175,55,0.35);
+  border-radius: 18px;
+  padding: 40px 32px;
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 90vw;
+}
 
-.level-node { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: none; border: none; }
-.node-circle { width: 55px; height: 55px; border-radius: 50%; background: var(--panel-bg); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+.game-brand-title {
+  font-size: clamp(2rem, 8vw, 3rem);
+  letter-spacing: 4px;
+  color: var(--gold-bright);
+  text-shadow: 0 0 30px rgba(212,175,55,0.45);
+}
+.game-brand-tagline {
+  color: var(--text-dim);
+  font-style: italic;
+  letter-spacing: 2px;
+  margin-top: -10px;
+}
+
+.static-record {
+  font-size: 4.5rem;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5));
+}
+
+.btn {
+  border: none;
+  border-radius: 30px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.btn:active { transform: scale(0.95); }
+.btn-primary {
+  background: var(--gold);
+  color: #1a1300;
+  padding: 14px 38px;
+  font-size: 1rem;
+}
+.btn-play-huge {
+  background: linear-gradient(145deg, #ffe066, var(--gold));
+  color: #1a1300;
+  padding: 20px 64px;
+  font-size: 1.3rem;
+  box-shadow: 0 8px 24px rgba(212,175,55,0.4);
+}
+
+/* ============================================================
+   HEADER / STATUS BAR (Home + Gameplay)
+   ============================================================ */
+.app-status-bar, .gameplay-header {
+  height: 64px;
+  background: rgba(17, 23, 26, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 25;
+  flex-shrink: 0;
+}
+
+.header-left-status { display: flex; gap: 12px; align-items: center; }
+
+.status-indicator-pill {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.95rem;
+}
+.lives-pill { color: #ff6b81; }
+.gold-pill { color: var(--gold-bright); }
+
+.icon-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-settings-btn { margin-left: auto; }
+
+/* ============================================================
+   MAP / LEVEL SELECT (Candy-Crush style winding path)
+   ============================================================ */
+.map-scroll-viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 30px 15px 50px;
+  z-index: 5;
+  position: relative;
+}
+
+.zig-zag-map {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 36px;
+  max-width: 420px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.map-row { display: flex; width: 100%; position: relative; }
+.map-row.left { justify-content: flex-start; padding-left: 8%; }
+.map-row.mid  { justify-content: center; }
+.map-row.right{ justify-content: flex-end; padding-right: 8%; }
+
+.era-header-banner {
+  background: linear-gradient(135deg, rgba(212,175,55,0.18), rgba(17,23,26,0.85));
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 800;
+  text-align: center;
+  width: 100%;
+  margin: 18px 0;
+  letter-spacing: 2px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.era-header-banner .era-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+  text-transform: none;
+}
+
+.level-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  position: relative;
+}
+
+/* Black record disk node with white level number */
+.node-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 10px, #0b0b0b 20px, #1c1c1c 100%);
+  border: 3px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #ffffff;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
 .level-node.unlocked .node-circle { border-color: var(--gold); }
-.level-node.active .node-circle { border-color: white; background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); }
+.level-node.active .node-circle {
+  border-color: #ffffff;
+  box-shadow: 0 0 18px var(--gold), 0 4px 10px rgba(0,0,0,0.5);
+  animation: pulseNode 1.6s ease-in-out infinite;
+}
+@keyframes pulseNode {
+  0%, 100% { box-shadow: 0 0 12px var(--gold), 0 4px 10px rgba(0,0,0,0.5); }
+  50%      { box-shadow: 0 0 24px var(--gold-bright), 0 4px 10px rgba(0,0,0,0.5); }
+}
+.level-node:disabled { cursor: not-allowed; opacity: 0.55; }
 
-.gameplay-core-layout { flex: 1; display: flex; flex-direction: column; padding: 10px; }
-.canvas-board-wrapper { background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 12px; padding: 8px; margin: 0 auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-canvas { display: block; background: #161d21; width: 320px; height: 320px; }
+.node-records {
+  margin-top: 5px;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
 
-/* Modal overlays */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 100; display: none; align-items: center; justify-content: center; overflow: hidden; }
+/* ============================================================
+   LIVES / LEVEL BADGE — top-left of map (small record disk)
+   ============================================================ */
+.map-corner-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(17,23,26,0.7);
+  padding: 6px 12px 6px 6px;
+  border-radius: 30px;
+  border: 1px solid rgba(212,175,55,0.3);
+  backdrop-filter: blur(4px);
+}
+.mini-record-disk {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #161616 12px, #0a0a0a 100%);
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+.map-corner-badge .badge-lives { color: #ff6b81; font-weight: bold; font-size: 0.9rem; }
+
+/* ============================================================
+   ERA UNLOCK BANNER (toast)
+   ============================================================ */
+#eraUnlockToast {
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: linear-gradient(135deg, #1c1f12, #2a2308);
+  border: 2px solid var(--gold-bright);
+  border-radius: 16px;
+  padding: 22px 30px;
+  text-align: center;
+  box-shadow: 0 0 50px rgba(212,175,55,0.5), 0 12px 30px rgba(0,0,0,0.6);
+  transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 88vw;
+  max-width: 340px;
+}
+#eraUnlockToast.show { top: 60px; }
+#eraUnlockToast .toast-label {
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+#eraUnlockToast .toast-era-name {
+  font-size: 1.4rem;
+  color: var(--gold-bright);
+  font-weight: 900;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+#eraUnlockToast .toast-icon { font-size: 2rem; margin-bottom: 4px; }
+
+/* ============================================================
+   BOTTOM NAV — all page options together, beautifully spaced
+   ============================================================ */
+.app-footer-navigation {
+  height: 68px;
+  background: rgba(17, 23, 26, 0.9);
+  backdrop-filter: blur(8px);
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 25;
+  flex-shrink: 0;
+  padding: 0 6px;
+}
+.footer-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  flex: 1;
+  padding: 8px 2px;
+  border-radius: 10px;
+  transition: background 0.15s, color 0.15s;
+}
+.footer-tab-btn .tab-icon { font-size: 1.3rem; }
+.footer-tab-btn:active { background: rgba(255,255,255,0.06); }
+.footer-tab-btn.locked { opacity: 0.45; }
+
+/* ============================================================
+   GAMEPLAY SCREEN
+   ============================================================ */
+.current-era-title {
+  font-weight: 800;
+  color: var(--gold-bright);
+  letter-spacing: 1px;
+  font-size: 1rem;
+}
+
+.gameplay-core-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  overflow-y: auto;
+  z-index: 5;
+}
+
+.gameplay-stats-panel {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(17,23,26,0.75);
+  backdrop-filter: blur(6px);
+  padding: 10px 5px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+.mini-stat-card { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+.mini-stat-card .label { font-size: 0.68rem; color: var(--text-dim); letter-spacing: 1px; }
+.mini-stat-card .val { font-size: 1.25rem; font-weight: bold; color: var(--gold); margin-top: 2px; }
+
+.challenge-banner {
+  background: rgba(212,175,55,0.1);
+  border: 1px solid rgba(212,175,55,0.35);
+  border-radius: 10px;
+  padding: 8px 14px;
+  text-align: center;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--gold-bright);
+  font-weight: 600;
+}
+
+.booster-tray {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.booster-btn {
+  background: rgba(17,23,26,0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: white;
+  position: relative;
+  min-width: 56px;
+}
+.booster-btn .booster-icon { font-size: 1.3rem; }
+.booster-btn .booster-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--red);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: 2px solid var(--bg-navy);
+}
+.booster-btn.selected { border-color: var(--gold); box-shadow: 0 0 10px rgba(212,175,55,0.5); }
+.booster-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.canvas-board-wrapper {
+  background: rgba(17,23,26,0.9);
+  border: 3px solid var(--border-color);
+  border-radius: 14px;
+  padding: 8px;
+  margin: 0 auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+canvas { display: block; background: #0e1418; width: 320px; height: 320px; border-radius: 6px; }
+
+/* ============================================================
+   MODALS — DO NOT CHANGE record disc structure
+   ============================================================ */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
 .modal-overlay.visible { display: flex; }
 
-/* Background Canvas for Fireworks */
-#fireworksCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 101; }
+#fireworksCanvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 101;
+}
 
-/* The Vinyl Record Shell Container Layout */
-.record-modal-disc { width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 12px, #0b0b0b 25px, #222 35px, #111 60px, #222 90px, #050505 130px, #151515 100%); border: 8px solid #2a2a2a; box-shadow: 0 12px 36px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; position: relative; z-index: 105; animation: recordSlideIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards; }
-.record-modal-disc.gold-disc { background: radial-gradient(circle, #e5c158 2px, #866413 5px, #b89727 20px, #917216 45px, #cca325 75px, #a38014 110px, #614b09 100%); border: 8px solid #ffd700; box-shadow: 0 0 40px rgba(212,175,55,0.4), 0 12px 36px rgba(0,0,0,0.9); }
+.record-modal-disc {
+  width: 340px; height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2c2c2c 2px, #0a0a0a 4px, #1a1a1a 12px, #0b0b0b 25px, #222 35px, #111 60px, #222 90px, #050505 130px, #151515 100%);
+  border: 8px solid #2a2a2a;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 105;
+  animation: recordSlideIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+}
+.record-modal-disc.gold-disc {
+  background: radial-gradient(circle, #e5c158 2px, #866413 5px, #b89727 20px, #917216 45px, #cca325 75px, #a38014 110px, #614b09 100%);
+  border: 8px solid #ffd700;
+  box-shadow: 0 0 40px rgba(212,175,55,0.4), 0 12px 36px rgba(0,0,0,0.9);
+}
 
-/* Center Record Sticker Paper */
-.record-center-label { width: 165px; height: 165px; border-radius: 50%; background: #ffffff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; text-align: center; border: 4px dashed rgba(0,0,0,0.15); box-shadow: inset 0 0 15px rgba(0,0,0,0.2); position: relative; }
+.record-center-label {
+  width: 165px; height: 165px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px; text-align: center;
+  border: 4px dashed rgba(0,0,0,0.15);
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.2);
+  position: relative;
+}
 .gold-disc .record-center-label { background: #111416; color: #fff; border: 4px dashed rgba(212,175,55,0.4); }
 
 .record-center-label h2 { font-size: 1.1rem; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase; }
 .record-center-label h2.congrats-text { font-size: 0.78rem; color: var(--gold); margin-bottom: 2px; line-height: 1.1; }
 .sub-pass-text { font-size: 0.55rem; font-weight: bold; opacity: 0.7; letter-spacing: 0.5px; margin-bottom: 5px; text-transform: uppercase; }
 
-/* Compact Button System on the Center Sticker Label */
 .record-btn-stack { display: flex; flex-direction: column; width: 100%; gap: 4px; margin-top: 4px; }
-.record-action-btn { width: 100%; padding: 5px 2px; border-radius: 40px; border: none; font-size: 0.68rem; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: transform 0.1s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.record-action-btn {
+  width: 100%; padding: 5px 2px; border-radius: 40px; border: none;
+  font-size: 0.68rem; font-weight: 800; cursor: pointer; text-transform: uppercase;
+  transition: transform 0.1s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
 .record-action-btn:active { transform: scale(0.95); }
-
 .btn-go { background: #2d6a4f; color: white; }
 .btn-retry { background: #cca325; color: black; }
 .btn-stop { background: #a32a2a; color: white; }
@@ -75,15 +592,101 @@ canvas { display: block; background: #161d21; width: 320px; height: 320px; }
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* Settings elements */
-.modal-window { background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 25px; text-align: center; width: 85%; max-width: 320px; position: relative; z-index: 105; }
+/* ============================================================
+   SETTINGS / GENERIC MODAL WINDOW
+   ============================================================ */
+.modal-window {
+  background: var(--panel-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  padding: 26px;
+  text-align: center;
+  width: 85%;
+  max-width: 320px;
+  position: relative;
+  z-index: 105;
+}
 .modal-close-x { position: absolute; top: 10px; right: 15px; background: none; border: none; color: #ff5c5c; font-size: 1.4rem; cursor: pointer; }
 .toggle-control-item { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
-.setting-toggle-btn { padding: 6px 12px; border-radius: 4px; border: none; font-weight: bold; background: #c94c4c; color: white; width: 65px; cursor: pointer; }
-.setting-toggle-btn.active { background: #2d6a4f; }
-.menu-action-btn { width: 100%; padding: 10px; margin-top: 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-.menu-action-btn.destructive { background: #a32a2a; color: white; }
-.app-footer-navigation { height: 60px; background: var(--panel-bg); border-top: 2px solid var(--border-color); display: flex; align-items: center; justify-content: space-around; }
-.footer-tab-btn, .btn-back, .modal-btn { background: #2d3940; border: 1px solid var(--border-color); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-#portalFlash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; opacity: 0; pointer-events: none; z-index: 200; transition: opacity 0.4s ease; }
+.setting-toggle-btn { padding: 6px 14px; border-radius: 20px; border: none; font-weight: bold; background: #c94c4c; color: white; width: 65px; cursor: pointer; }
+.setting-toggle-btn.active { background: var(--green); }
+.menu-action-btn { width: 100%; padding: 11px; margin-top: 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+.menu-action-btn.destructive { background: var(--red); color: white; }
+
+/* ============================================================
+   GENERIC SUBPAGES — Shop / Friends / Awards
+   ============================================================ */
+.generic-subpage { background: transparent; }
+.subpage-header {
+  height: 64px;
+  background: rgba(17,23,26,0.9);
+  backdrop-filter: blur(8px);
+  border-bottom: 2px solid var(--border-color);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.subpage-header h2 { letter-spacing: 2px; font-size: 1.05rem; color: var(--gold-bright); }
+.btn-back {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-color);
+  color: white; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: bold;
+  font-size: 0.85rem;
+}
+.subpage-body { flex: 1; padding: 20px 16px; z-index: 5; }
+.scrollable-content { overflow-y: auto; }
+.center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+
+.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.shop-item-card {
+  background: rgba(17,23,26,0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.shop-item-card .shop-icon { font-size: 2rem; }
+.shop-item-card h3 { font-size: 0.85rem; letter-spacing: 0.5px; }
+.shop-item-card p { font-size: 0.7rem; color: var(--text-dim); }
+.buy-btn {
+  background: var(--gold);
+  color: #1a1300;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.social-action-btn {
+  border: none;
+  border-radius: 30px;
+  padding: 14px 30px;
+  font-weight: 800;
+  cursor: pointer;
+  color: white;
+  font-size: 0.95rem;
+}
+.link-green { background: var(--green); }
+.link-facebook { background: #3b5998; }
+
+.coming-soon-art { font-size: 4rem; opacity: 0.6; }
+.coming-soon-text { color: var(--text-dim); font-style: italic; }
+
+/* ============================================================
+   PORTAL FLASH
+   ============================================================ */
+#portalFlash {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: white; opacity: 0; pointer-events: none; z-index: 200;
+  transition: opacity 0.4s ease;
+}
 #portalFlash.active { opacity: 0.8; }
+
+/* Scrollbar polish (webkit) */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.4); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
