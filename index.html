@@ -6,77 +6,50 @@
   <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
-<body onclick="initAudio()">
+<body>
 
-  <div id="loadingScreen" class="full-screen-view active">
-    <div class="loader-content">
-      <div class="spinning-record">💿</div>
-      <h2 class="loading-text">LOADING...</h2>
-    </div>
-  </div>
+  <div id="cosmicBackdrop"><div id="starLayer"></div></div>
+  <div class="cloud-drift cloud1"></div>
+  <div class="cloud-drift cloud2"></div>
+  <div class="cloud-drift cloud3"></div>
+  <div class="cloud-drift cloud4"></div>
 
-  <div id="authScreen" class="full-screen-view">
-    <div class="auth-card">
-      <h1 class="game-brand-title">CHRONOCRUSH</h1>
-      <p class="game-brand-tagline">The Era Odyssey</p>
-      <div class="auth-action-group">
-        <button class="btn btn-primary" onclick="handleAuth()">Play as Guest</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="welcomeScreen" class="full-screen-view">
+  <div id="welcomeScreen" class="full-screen-view active">
     <div class="welcome-card">
       <h1 class="game-brand-title">CHRONOCRUSH</h1>
-      <div class="static-record">🎵</div>
-      <button class="btn btn-play-huge" onclick="transitionToMap()">PLAY!</button>
+      <p class="game-brand-tagline">The Era Odyssey</p>
+      <div class="static-record">📻</div>
+      <button class="btn btn-play-huge" onclick="transitionToMap()">PLAY</button>
     </div>
   </div>
 
   <div id="homePage" class="full-screen-view">
     <header class="app-status-bar">
-      <div class="header-left-status">
-        <div class="status-indicator-pill lives-pill">❤️ <span id="livesCounter">5</span></div>
-        <div class="status-indicator-pill gold-pill">🪙 <span id="profileGold">150</span></div>
+      <div class="map-corner-badge">
+        <div class="mini-record-disk" id="currLvlDisc">1</div>
+        <div class="badge-lives">♥ <span id="livesCounter">5</span></div>
+        <div class="badge-coins">🪙 <span id="coinsCounter">150</span></div>
       </div>
       <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
-
     <main class="map-scroll-viewport">
       <div class="zig-zag-map" id="mapLayer"></div>
     </main>
-
-    <footer class="app-footer-navigation">
-      <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
-      <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
-    </footer>
-  </div>
-
-  <div id="shopPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>TIME SHOP</h2></header>
-    <div class="subpage-body scrollable-content">
-      <div class="shop-item-card"><h3>❤️ Extra Lives</h3><button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button></div>
-    </div>
-  </div>
-
-  <div id="friendsPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>ADD FRIENDS</h2></header>
-    <div class="subpage-body center-content">
-      <button class="social-action-btn link-green" onclick="alert('Link Copied!')">🔗 Copy Invite Link</button>
-    </div>
+    <nav class="app-footer-navigation">
+      <button class="footer-tab-btn" onclick="switchView('shopPage')"><span class="tab-icon">🛒</span>SHOP</button>
+      <button class="footer-tab-btn" onclick="switchView('friendsPage')"><span class="tab-icon">👥</span>FRIENDS</button>
+      <button class="footer-tab-btn" onclick="switchView('awardsPage')"><span class="tab-icon">🏆</span>AWARDS</button>
+    </nav>
   </div>
 
   <div id="gamePlayScreen" class="full-screen-view">
     <header class="gameplay-header">
-      <button class="btn-back" onclick="exitToHome()">◀ Leave</button>
-      <div class="current-era-title" id="activeEraName">Level 1</div>
+      <span class="current-era-title" id="activeEraName">LEVEL</span>
     </header>
-    
     <div class="gameplay-core-layout">
       <div class="gameplay-stats-panel">
-        <div class="mini-stat-card"><span class="label">MOVES</span><span id="movesDisplay" class="val">22</span></div>
-        <div class="mini-stat-card"><span class="label">TARGET</span><span id="targetDisplay" class="val">500</span></div>
-        <div class="mini-stat-card"><span class="label">SCORE</span><span id="scoreDisplay" class="val">0</span></div>
+        <div class="mini-stat-card"><div class="label">MOVES</div><div class="val" id="movesDisplay">22</div></div>
+        <div class="mini-stat-card"><div class="label">TARGET</div><div class="val" id="targetDisplay">500</div></div>
       </div>
       <div class="canvas-board-wrapper">
         <canvas id="gameCanvas" width="320" height="320"></canvas>
@@ -84,42 +57,46 @@
     </div>
   </div>
 
+  <div id="shopPage" class="full-screen-view">
+    <header class="app-status-bar"><h2>TIME SHOP</h2><button onclick="loadHomepage()">◀ Back</button></header>
+    <main class="map-scroll-viewport">
+        <div class="shop-item"><h3>♥ Extra Lives</h3><div class="price-tag">🪙 50</div></div>
+    </main>
+  </div>
+
+  <div id="friendsPage" class="full-screen-view">
+    <header class="app-status-bar"><h2>FRIENDS</h2><button onclick="loadHomepage()">◀ Back</button></header>
+    <main class="map-scroll-viewport"><h1>Add Friends</h1></main>
+  </div>
+
+  <div id="awardsPage" class="full-screen-view">
+    <header class="app-status-bar"><h2>AWARDS</h2><button onclick="loadHomepage()">◀ Back</button></header>
+    <main class="map-scroll-viewport"><h1>Awards coming soon...</h1></main>
+  </div>
+
   <div id="levelReadyModal" class="modal-overlay">
-    <div class="record-modal-disc">
-      <div class="record-center-label">
-        <h2 id="modalLevelTitle">LEVEL 1</h2>
-        <div class="record-btn-stack">
-          <button class="record-action-btn btn-go" onclick="confirmAndStartLevel()">PLAY</button>
-          <button class="record-action-btn btn-stop" onclick="toggleModal('levelReadyModal', false)">BACK TO MAP</button>
-        </div>
-      </div>
-    </div>
+    <div class="record-modal-disc"><div class="record-center-label"><h2 id="modalLevelTitle">LEVEL</h2><button class="btn btn-primary" onclick="confirmAndStartLevel()">START</button></div></div>
   </div>
 
   <div id="levelSuccessModal" class="modal-overlay">
     <canvas id="fireworksCanvas"></canvas>
     <div class="record-modal-disc gold-disc">
       <div class="record-center-label">
-        <h2 class="congrats-text">CONGRATULATIONS!</h2>
-        <p class="sub-pass-text">YOU PASSED THE LEVEL</p>
-        <div id="modalRecordsDisplay"></div>
-        <div class="record-btn-stack">
-          <button class="record-action-btn btn-go" onclick="advanceToNextLevel()">NEXT LEVEL</button>
-          <button class="record-action-btn btn-retry" onclick="retryCurrentLevel()">RETRY</button>
-          <button class="record-action-btn btn-stop" onclick="toggleModal('levelSuccessModal', false)">BACK TO MAP</button>
-        </div>
+        <h2>LEVEL COMPLETE</h2>
+        <div class="modal-records-display" id="modalRecordsDisplay"></div>
+        <button class="btn btn-primary" onclick="advanceToNextLevel()">NEXT LEVEL</button>
+        <button class="btn" onclick="retryCurrentLevel()">RETRY</button>
+        <button class="btn" onclick="loadHomepage()">BACK TO MAP</button>
       </div>
     </div>
   </div>
 
   <div id="settingsModal" class="modal-overlay">
-    <div class="modal-window">
-      <button class="modal-close-x" onclick="toggleModal('settingsModal', false)">✕</button>
+    <div class="settings-panel">
       <h2>SETTINGS</h2>
-      <div class="toggle-control-item"><span>Music</span><button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button></div>
-      <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
-      <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
-      <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Progress</button>
+      <div class="settings-row"><span>SOUND</span><button id="toggleSoundBtn" onclick="togglePreference('sound')">ON</button></div>
+      <div class="settings-row"><span>VIBRATION</span><button id="toggleVibBtn" onclick="togglePreference('vib')">ON</button></div>
+      <button onclick="toggleModal('settingsModal', false)">CLOSE</button>
     </div>
   </div>
 
