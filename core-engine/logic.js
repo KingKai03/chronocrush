@@ -11,7 +11,7 @@ const gameState = {
   ]
 };
 
-// CORE VIEW SWITCHER: This function is required for your buttons to work
+// --- CORE VIEW SWITCHER ---
 function switchView(viewId) {
   const views = document.querySelectorAll('.full-screen-view');
   views.forEach(view => view.classList.remove('active'));
@@ -22,6 +22,15 @@ function switchView(viewId) {
   }
 }
 
+// --- MODAL TOGGLER ---
+function toggleModal(modalId, show) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.classList.toggle('active', show);
+  }
+}
+
+// --- INITIALIZATION ---
 document.addEventListener("DOMContentLoaded", () => {
   const mapLayer = document.getElementById("mapLayer");
   if (!mapLayer) return;
@@ -37,9 +46,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = document.createElement("button");
       btn.className = "level-node unlocked";
       btn.innerText = i;
-      // Add interaction to switch to gameplay
+      // Triggers transition to gameplay screen
       btn.onclick = () => switchView('gamePlayScreen');
       mapLayer.appendChild(btn);
     }
   });
+
+  // Ensure settings button exists and works
+  const settingsBtn = document.querySelector('.header-settings-btn');
+  if (settingsBtn) {
+    settingsBtn.onclick = () => toggleModal('settingsModal', true);
+  }
 });
