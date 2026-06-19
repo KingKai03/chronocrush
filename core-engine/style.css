@@ -1,101 +1,14 @@
-/* ============================================================
-   CHRONOCRUSH - FULL STYLE SHEET
-   ============================================================ */
+:root { --gold: #d4af37; --bg-navy: #060a18; }
+body { margin: 0; background-color: var(--bg-navy); color: white; font-family: sans-serif; overflow: hidden; }
 
-:root { 
-    --gold: #d4af37; 
-    --bg-navy: #060a18; 
-}
+#cosmicBackdrop { position: fixed; inset: 0; z-index: 0; background: radial-gradient(circle at center, #1b2735 0%, #060a18 100%); }
 
-* { box-sizing: border-box; }
-
-body { 
-    margin: 0; 
-    background-color: var(--bg-navy); 
-    color: white; 
-    font-family: sans-serif; 
-    overflow: hidden; 
-}
-
-/* --- BACKGROUND LAYER --- */
-#cosmicBackdrop { 
-    position: fixed; inset: 0; z-index: 0; 
-    background: radial-gradient(circle at center, #1b2735 0%, #060a18 100%); 
-}
-
-/* Cloud Animation */
-.cloud-drift { 
-    position: absolute; width: 250px; height: 120px; 
-    background: rgba(255, 255, 255, 0.03); 
-    filter: blur(50px); border-radius: 50%; z-index: 1; 
-    animation: drift 120s linear infinite; 
-}
-
-.cloud1 { top: 10%; left: -300px; animation-delay: 0s; }
-.cloud2 { top: 40%; left: -400px; animation-delay: 30s; }
-.cloud3 { top: 70%; left: -500px; animation-delay: 60s; }
-
-@keyframes drift { from { left: -500px; } to { left: 100%; } }
-
-/* --- UI LAYER (Z-Index 10+) --- */
-.full-screen-view { 
-    display: none; position: fixed; inset: 0; z-index: 10; 
-    flex-direction: column; 
-}
+.full-screen-view { display: none; position: fixed; inset: 0; z-index: 10; flex-direction: column; }
 .full-screen-view.active { display: flex; }
 
-/* Map & Eras */
-#mapLayer { 
-    padding: 20px; overflow-y: auto; flex: 1; 
-    display: flex; flex-direction: column; align-items: center; 
-}
+#mapLayer { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; align-items: center; }
+.era-header-banner { font-weight: bold; margin-top: 20px; color: var(--gold); }
+.level-node { margin: 5px; padding: 10px; background: #222; border: 1px solid white; cursor: pointer; color: white; }
+.level-node.unlocked { border-color: var(--gold); }
 
-.era-header-banner { 
-    font-size: 1.5rem; font-weight: bold; margin: 30px 0 15px; 
-    color: var(--gold); text-shadow: 0 0 10px rgba(212,175,55,0.5); 
-}
-
-.level-node { 
-    width: 60px; height: 60px; margin: 10px; 
-    background: #1a1f35; border: 2px solid #333; 
-    border-radius: 50%; color: white; cursor: pointer; 
-    display: flex; align-items: center; justify-content: center; 
-    transition: transform 0.2s;
-}
-
-.level-node.unlocked { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
-.level-node:hover { transform: scale(1.1); }
-
-/* Bottom Footer */
-.app-footer-navigation { 
-    height: 80px; display: flex; justify-content: space-around; 
-    align-items: center; background: rgba(0,0,0,0.85); 
-    border-top: 2px solid var(--gold); z-index: 20; 
-}
-
-.footer-tab-btn { 
-    background: none; border: none; color: white; 
-    cursor: pointer; font-size: 0.9rem; font-weight: bold; 
-}
-
-/* Gameplay Board */
-#gameCanvas { 
-    margin: auto; background: rgba(0,0,0,0.5); 
-    border: 4px solid var(--gold); border-radius: 15px; 
-    box-shadow: 0 0 20px rgba(0,0,0,0.5); 
-}
-
-/* Modal Overlay */
-.modal-overlay { 
-    display: none; position: fixed; inset: 0; 
-    background: rgba(0,0,0,0.95); z-index: 100; 
-    justify-content: center; align-items: center; 
-}
-.modal-overlay.active { display: flex; }
-
-.record-modal-disc { 
-    width: 300px; height: 300px; background: #000; 
-    border: 8px solid var(--gold); border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center; 
-    flex-direction: column; color: white; text-align: center; 
-}
+.app-footer-navigation { height: 70px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.8); z-index: 20; border-top: 1px solid var(--gold); }
