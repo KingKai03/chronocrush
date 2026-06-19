@@ -1,4 +1,38 @@
-/* ============================================================
+const gameState = { highestUnlockedLevel: 1 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Fixes the "DOM fully loaded" error by waiting for full render
+  loadHomepage();
+});
+
+function loadHomepage() {
+  const mapLayer = document.getElementById("mapLayer");
+  if (!mapLayer) return;
+  mapLayer.innerHTML = ""; 
+
+  // Hardcoded era structure to ensure no errors
+  const eras = [
+    { name: "1940S NOIR", start: 1, end: 10 },
+    { name: "1950S ROCKABILLY", start: 11, end: 20 }
+  ];
+
+  eras.forEach(era => {
+    const banner = document.createElement("div");
+    banner.className = "era-header-banner";
+    banner.innerText = era.name;
+    mapLayer.appendChild(banner);
+
+    for (let i = era.start; i <= era.end; i++) {
+      const btn = document.createElement("button");
+      btn.className = "level-node unlocked";
+      btn.innerText = i;
+      mapLayer.appendChild(btn);
+    }
+  });
+  
+  // Ensure the page is set to active
+  document.getElementById("homePage").classList.add("active");
+}/* ============================================================
    CHRONOCRUSH — logic.js
    ============================================================ */
 
