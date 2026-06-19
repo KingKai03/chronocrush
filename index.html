@@ -2,105 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
 <body>
-
-  <div id="cosmicBackdrop"><div id="starLayer"></div></div>
-  <div class="cloud-drift cloud1"></div>
-  <div class="cloud-drift cloud2"></div>
-  <div class="cloud-drift cloud3"></div>
-  <div class="cloud-drift cloud4"></div>
-
-  <div id="welcomeScreen" class="full-screen-view active">
-    <div class="welcome-card">
-      <h1 class="game-brand-title">CHRONOCRUSH</h1>
-      <p class="game-brand-tagline">The Era Odyssey</p>
-      <div class="static-record">📻</div>
-      <button class="btn btn-play-huge" onclick="transitionToMap()">PLAY</button>
-    </div>
-  </div>
-
+  <div id="cosmicBackdrop"></div>
+  
   <div id="homePage" class="full-screen-view">
-    <header class="app-status-bar">
-      <div class="map-corner-badge">
-        <div class="mini-record-disk" id="currLvlDisc">1</div>
-        <div class="badge-lives">♥ <span id="livesCounter">5</span></div>
-        <div class="badge-coins">🪙 <span id="coinsCounter">150</span></div>
-      </div>
-      <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
-    </header>
-    <main class="map-scroll-viewport">
-      <div class="zig-zag-map" id="mapLayer"></div>
-    </main>
+    <main id="mapLayer" class="map-scroll-viewport"></main>
     <nav class="app-footer-navigation">
-      <button class="footer-tab-btn" onclick="switchView('shopPage')"><span class="tab-icon">🛒</span>SHOP</button>
-      <button class="footer-tab-btn" onclick="switchView('friendsPage')"><span class="tab-icon">👥</span>FRIENDS</button>
-      <button class="footer-tab-btn" onclick="switchView('awardsPage')"><span class="tab-icon">🏆</span>AWARDS</button>
+      <button>SHOP</button>
+      <button>FRIENDS</button>
+      <button>AWARDS</button>
     </nav>
   </div>
 
-  <div id="gamePlayScreen" class="full-screen-view">
-    <header class="gameplay-header">
-      <span class="current-era-title" id="activeEraName">LEVEL</span>
-    </header>
-    <div class="gameplay-core-layout">
-      <div class="gameplay-stats-panel">
-        <div class="mini-stat-card"><div class="label">MOVES</div><div class="val" id="movesDisplay">22</div></div>
-        <div class="mini-stat-card"><div class="label">TARGET</div><div class="val" id="targetDisplay">500</div></div>
-      </div>
-      <div class="canvas-board-wrapper">
-        <canvas id="gameCanvas" width="320" height="320"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div id="shopPage" class="full-screen-view">
-    <header class="app-status-bar"><h2>TIME SHOP</h2><button onclick="loadHomepage()">◀ Back</button></header>
-    <main class="map-scroll-viewport">
-        <div class="shop-item"><h3>♥ Extra Lives</h3><div class="price-tag">🪙 50</div></div>
-    </main>
-  </div>
-
-  <div id="friendsPage" class="full-screen-view">
-    <header class="app-status-bar"><h2>FRIENDS</h2><button onclick="loadHomepage()">◀ Back</button></header>
-    <main class="map-scroll-viewport"><h1>Add Friends</h1></main>
-  </div>
-
-  <div id="awardsPage" class="full-screen-view">
-    <header class="app-status-bar"><h2>AWARDS</h2><button onclick="loadHomepage()">◀ Back</button></header>
-    <main class="map-scroll-viewport"><h1>Awards coming soon...</h1></main>
-  </div>
-
-  <div id="levelReadyModal" class="modal-overlay">
-    <div class="record-modal-disc"><div class="record-center-label"><h2 id="modalLevelTitle">LEVEL</h2><button class="btn btn-primary" onclick="confirmAndStartLevel()">START</button></div></div>
-  </div>
-
-  <div id="levelSuccessModal" class="modal-overlay">
-    <canvas id="fireworksCanvas"></canvas>
-    <div class="record-modal-disc gold-disc">
-      <div class="record-center-label">
-        <h2>LEVEL COMPLETE</h2>
-        <div class="modal-records-display" id="modalRecordsDisplay"></div>
-        <button class="btn btn-primary" onclick="advanceToNextLevel()">NEXT LEVEL</button>
-        <button class="btn" onclick="retryCurrentLevel()">RETRY</button>
-        <button class="btn" onclick="loadHomepage()">BACK TO MAP</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="settingsModal" class="modal-overlay">
-    <div class="settings-panel">
-      <h2>SETTINGS</h2>
-      <div class="settings-row"><span>SOUND</span><button id="toggleSoundBtn" onclick="togglePreference('sound')">ON</button></div>
-      <div class="settings-row"><span>VIBRATION</span><button id="toggleVibBtn" onclick="togglePreference('vib')">ON</button></div>
-      <button onclick="toggleModal('settingsModal', false)">CLOSE</button>
-    </div>
-  </div>
-
-  <div id="portalFlash"></div>
   <script src="core-engine/logic.js"></script>
 </body>
 </html>
