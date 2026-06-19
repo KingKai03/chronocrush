@@ -1,4 +1,21 @@
-/* ============================================================
+:root { --gold: #d4af37; --bg-navy: #060a18; }
+body { margin: 0; background-color: var(--bg-navy); color: white; font-family: sans-serif; overflow: hidden; }
+
+/* Backdrop: Z-index 0 */
+#cosmicBackdrop { position: fixed; inset: 0; z-index: 0; background: radial-gradient(circle at center, #1b2735 0%, #060a18 100%); }
+
+/* Map & Game: Z-index 10 */
+.full-screen-view { display: none; position: fixed; inset: 0; z-index: 10; flex-direction: column; }
+.full-screen-view.active { display: flex; }
+
+/* Map Styles */
+#mapLayer { padding: 20px; overflow-y: auto; color: white; }
+.era-header-banner { font-weight: bold; margin-top: 20px; color: var(--gold); }
+.level-node { margin: 5px; padding: 10px; background: #222; border: 1px solid white; cursor: pointer; }
+.level-node.unlocked { border-color: var(--gold); }
+
+/* Footer Navigation */
+.app-footer-navigation { height: 70px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.8); z-index: 20; border-top: 1px solid var(--gold); }/* ============================================================
    CHRONOCRUSH — style.css
    ============================================================ */
 
