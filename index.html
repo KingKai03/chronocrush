@@ -4,58 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CHRONOCRUSH</title>
-  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
 <body>
 
-  <div id="cosmicBackdrop"></div>
-  <div class="cloud-drift cloud1"></div>
-  <div class="cloud-drift cloud2"></div>
-
   <div id="homePage" class="full-screen-view active">
-    <header class="app-status-bar">
-        <button class="header-settings-btn" onclick="toggleModal('settingsModal', true)">⚙️ SETTINGS</button>
-    </header>
-    <main id="mapLayer" class="map-scroll-viewport"></main>
-    <nav class="app-footer-navigation">
-      <button onclick="switchView('shopPage')">🛒 SHOP</button>
-      <button onclick="switchView('friendsPage')">👥 FRIENDS</button>
-      <button onclick="switchView('awardsPage')">🏆 AWARDS</button>
-    </nav>
-  </div>
-
-  <div id="gamePlayScreen" class="full-screen-view">
-    <div class="gameplay-header">LEVEL</div>
-    <canvas id="gameCanvas" width="320" height="320"></canvas>
-    <button onclick="switchView('homePage')">BACK TO MAP</button>
-  </div>
-
-  <div id="shopPage" class="full-screen-view">
-    <h2>SHOP</h2><button onclick="switchView('homePage')">BACK</button>
-  </div>
-  
-  <div id="friendsPage" class="full-screen-view">
-    <h2>FRIENDS</h2><button onclick="switchView('homePage')">BACK</button>
-  </div>
-  
-  <div id="awardsPage" class="full-screen-view">
-    <h2>AWARDS</h2><button onclick="switchView('homePage')">BACK</button>
-  </div>
-
-  <div id="levelSuccessModal" class="modal-overlay">
-    <div class="record-modal-disc">
-      <h2>LEVEL COMPLETE</h2>
-      <button onclick="switchView('homePage')">BACK TO MAP</button>
+    <div class="cloud-layer">
+      <div class="cloud">☁️</div>
+      <div class="cloud">☁️</div>
+      <div class="cloud">☁️</div>
+      <div class="cloud">☁️</div>
     </div>
+    
+    <header class="app-status-bar"></header>
+    <main class="map-scroll-viewport">
+      <div class="zig-zag-map" id="mapLayer"></div>
+    </main>
   </div>
 
-  <div id="settingsModal" class="modal-overlay">
-    <div class="record-modal-disc">
-      <h2>SETTINGS</h2>
-      <button onclick="toggleModal('settingsModal', false)">CLOSE</button>
-    </div>
-  </div>
+  <div id="portalFlash"></div>
 
   <script src="core-engine/logic.js"></script>
 </body>
