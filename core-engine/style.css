@@ -14,6 +14,10 @@
   --text-dim: #8a9da8;
   --green: #2d6a4f;
   --red: #a32a2a;
+  /* Board tile colours — bright enough to read emojis clearly */
+  --tile-bg: #1e2d36;
+  --tile-bg-alt: #1a2830;
+  --tile-border: #3a5060;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,7 +33,6 @@ body {
 
 /* ============================================================
    STARFIELD + CLOUD BACKGROUND
-   Sits behind everything, visible through transparent panels
    ============================================================ */
 #cosmicBackdrop {
   position: fixed;
@@ -391,7 +394,7 @@ body {
 #eraUnlockToast .toast-icon { font-size: 2rem; margin-bottom: 4px; }
 
 /* ============================================================
-   BOTTOM NAV — all page options together, beautifully spaced
+   BOTTOM NAV
    ============================================================ */
 .app-footer-navigation {
   height: 68px;
@@ -425,6 +428,95 @@ body {
 .footer-tab-btn .tab-icon { font-size: 1.3rem; }
 .footer-tab-btn:active { background: rgba(255,255,255,0.06); }
 .footer-tab-btn.locked { opacity: 0.45; }
+
+/* ============================================================
+   LEVEL TRANSITION SCREEN
+   Two panels slide in from top + bottom, meet in the middle.
+   Then a record spins with "LOADING!" text beneath it.
+   ============================================================ */
+.level-transition-screen {
+  z-index: 90 !important;
+  overflow: hidden;
+  pointer-events: none;
+}
+.level-transition-screen.active {
+  pointer-events: all;
+}
+
+/* Top panel slides down from -50vh to 0 */
+.transition-panel-top {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(180deg, #060a18 0%, #0e1a2e 100%);
+  border-bottom: 3px solid var(--gold);
+  transform: translateY(-100%);
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+/* Bottom panel slides up from +50vh to 0 */
+.transition-panel-bottom {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(0deg, #060a18 0%, #0e1a2e 100%);
+  border-top: 3px solid var(--gold);
+  transform: translateY(100%);
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+/* When panels are "closed" (panels slid in) */
+.level-transition-screen.panels-closed .transition-panel-top {
+  transform: translateY(0);
+}
+.level-transition-screen.panels-closed .transition-panel-bottom {
+  transform: translateY(0);
+}
+
+/* Center content — record + loading text — hidden until panels are in */
+.transition-center-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.level-transition-screen.show-content .transition-center-content {
+  opacity: 1;
+}
+
+.transition-record {
+  font-size: 5rem;
+  animation: transitionSpin 0.7s linear infinite;
+  filter: drop-shadow(0 0 18px rgba(212,175,55,0.6));
+}
+@keyframes transitionSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.transition-loading-text {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 5px;
+  color: var(--gold-bright);
+  text-shadow: 0 0 20px rgba(212,175,55,0.5);
+  text-transform: uppercase;
+}
+.transition-exclaim {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255,255,255,0.6);
+}
 
 /* ============================================================
    GAMEPLAY SCREEN
@@ -511,15 +603,27 @@ body {
 .booster-btn.selected { border-color: var(--gold); box-shadow: 0 0 10px rgba(212,175,55,0.5); }
 .booster-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ============================================================
+   CANVAS BOARD WRAPPER — FIXED BRIGHT TILES
+   ============================================================ */
 .canvas-board-wrapper {
-  background: rgba(17,23,26,0.9);
+  background: #1a2a35;
   border: 3px solid var(--border-color);
   border-radius: 14px;
   padding: 8px;
   margin: 0 auto;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
-canvas { display: block; background: #0e1418; width: 320px; height: 320px; border-radius: 6px; }
+
+/* The canvas background itself is now a visible mid-dark blue-teal
+   so emojis pop clearly against it */
+canvas {
+  display: block;
+  background: #1e3040;
+  width: 320px;
+  height: 320px;
+  border-radius: 6px;
+}
 
 /* ============================================================
    MODALS — DO NOT CHANGE record disc structure
