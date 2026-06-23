@@ -80,10 +80,14 @@
       <button class="footer-tab-btn" onclick="switchView('shopPage')">
         <span class="tab-icon">🛒</span><span>Shop</span>
       </button>
+      <button class="footer-tab-btn" onclick="openDailyChallenge()">
+        <span class="tab-icon">⚡</span><span>Daily</span>
+        <span class="daily-badge" id="dailyBadge" style="display:none"></span>
+      </button>
       <button class="footer-tab-btn" onclick="switchView('friendsPage')">
         <span class="tab-icon">👥</span><span>Friends</span>
       </button>
-      <button class="footer-tab-btn locked" onclick="switchView('awardsPage')">
+      <button class="footer-tab-btn" onclick="openAwardsPage()">
         <span class="tab-icon">🏆</span><span>Awards</span>
       </button>
     </footer>
@@ -163,17 +167,28 @@
   </div>
 
   <!-- ============================================================
-       AWARDS PAGE (Coming Soon)
+       DAILY CHALLENGE PAGE
+       ============================================================ -->
+  <div id="dailyPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>⚡ DAILY CHALLENGE</h2>
+    </header>
+    <div class="subpage-body scrollable-content" id="dailyChallengeBody">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       AWARDS PAGE
        ============================================================ -->
   <div id="awardsPage" class="full-screen-view generic-subpage">
     <header class="subpage-header">
       <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
-      <h2>AWARDS</h2>
+      <h2>🏆 AWARDS</h2>
     </header>
-    <div class="subpage-body center-content">
-      <div class="coming-soon-art">🏆</div>
-      <h2 style="color: var(--gold-bright); letter-spacing: 1px;">Coming Soon</h2>
-      <p class="coming-soon-text">Trophies and achievements are on their way through the timeline.</p>
+    <div class="subpage-body scrollable-content" id="awardsBody">
+      <!-- Populated by JS -->
     </div>
   </div>
 
