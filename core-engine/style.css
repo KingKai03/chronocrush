@@ -424,6 +424,7 @@ body {
   padding: 8px 2px;
   border-radius: 10px;
   transition: background 0.15s, color 0.15s;
+  position: relative;
 }
 .footer-tab-btn .tab-icon { font-size: 1.3rem; }
 .footer-tab-btn:active { background: rgba(255,255,255,0.06); }
@@ -842,6 +843,225 @@ body {
 
 .coming-soon-art { font-size: 4rem; opacity: 0.6; }
 .coming-soon-text { color: var(--text-dim); font-style: italic; }
+
+/* ============================================================
+   DAILY CHALLENGE PAGE
+   ============================================================ */
+.daily-badge {
+  position: absolute;
+  top: 4px; right: 6px;
+  width: 8px; height: 8px;
+  background: #ff4757;
+  border-radius: 50%;
+  border: 2px solid var(--bg-navy);
+}
+
+.daily-hero {
+  background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(17,23,26,0.9));
+  border: 1px solid rgba(212,175,55,0.4);
+  border-radius: 16px;
+  padding: 22px 18px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.daily-hero .daily-era-icon { font-size: 3rem; margin-bottom: 8px; }
+.daily-hero .daily-title {
+  font-size: 0.7rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.daily-hero .daily-era-name {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--gold-bright);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.daily-hero .daily-desc {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.daily-reset-timer {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+.daily-reset-timer span { color: var(--gold); font-weight: bold; }
+
+.daily-tasks-list { display: flex; flex-direction: column; gap: 12px; }
+
+.daily-task-card {
+  background: rgba(17,23,26,0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 13px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.daily-task-card.task-done {
+  border-color: #2d6a4f;
+  background: rgba(45,106,79,0.15);
+}
+.daily-task-card.task-done::after {
+  content: '✓';
+  position: absolute;
+  right: 14px;
+  font-size: 1.2rem;
+  color: #52c48a;
+  font-weight: 900;
+}
+
+.task-icon { font-size: 2rem; flex-shrink: 0; }
+.task-info { flex: 1; }
+.task-info h3 { font-size: 0.88rem; font-weight: 800; margin-bottom: 3px; }
+.task-info p  { font-size: 0.72rem; color: var(--text-dim); }
+.task-reward {
+  background: rgba(212,175,55,0.15);
+  border: 1px solid rgba(212,175,55,0.3);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--gold-bright);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.daily-progress-bar-wrap {
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  height: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.daily-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #ffe066);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+/* ============================================================
+   AWARDS PAGE
+   ============================================================ */
+.awards-intro {
+  text-align: center;
+  padding: 16px 0 20px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.era-trophy-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.era-trophy-card {
+  background: rgba(17,23,26,0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.era-trophy-card.trophy-gold {
+  border-color: #ffd700;
+  background: rgba(212,175,55,0.1);
+  box-shadow: 0 0 20px rgba(212,175,55,0.2);
+}
+.era-trophy-card.trophy-silver {
+  border-color: #b8c0cc;
+  background: rgba(184,192,204,0.08);
+  box-shadow: 0 0 14px rgba(184,192,204,0.15);
+}
+.era-trophy-card.trophy-bronze {
+  border-color: #cd7f32;
+  background: rgba(205,127,50,0.08);
+  box-shadow: 0 0 14px rgba(205,127,50,0.1);
+}
+.era-trophy-card.trophy-locked {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.trophy-icon-wrap {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.08);
+}
+.trophy-gold   .trophy-icon-wrap { background: rgba(212,175,55,0.18); border-color: #ffd700; }
+.trophy-silver .trophy-icon-wrap { background: rgba(184,192,204,0.18); border-color: #b8c0cc; }
+.trophy-bronze .trophy-icon-wrap { background: rgba(205,127,50,0.18); border-color: #cd7f32; }
+
+.trophy-info { flex: 1; }
+.trophy-info h3 {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.trophy-info .trophy-sub {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.trophy-stars { font-size: 0.75rem; letter-spacing: 2px; }
+
+.trophy-badge-label {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.trophy-gold   .trophy-badge-label { background: #ffd700; color: #1a1300; }
+.trophy-silver .trophy-badge-label { background: #b8c0cc; color: #1a1300; }
+.trophy-bronze .trophy-badge-label { background: #cd7f32; color: #fff; }
+.trophy-locked .trophy-badge-label { background: rgba(255,255,255,0.1); color: var(--text-dim); }
+
+.trophy-level-progress {
+  margin-top: 6px;
+}
+.trophy-level-bar-wrap {
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  height: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.trophy-level-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.trophy-gold   .trophy-level-bar-fill { background: linear-gradient(90deg, #d4af37, #ffd700); }
+.trophy-silver .trophy-level-bar-fill { background: linear-gradient(90deg, #8a9da8, #b8c0cc); }
+.trophy-bronze .trophy-level-bar-fill { background: linear-gradient(90deg, #a0622a, #cd7f32); }
+.trophy-locked .trophy-level-bar-fill { background: rgba(255,255,255,0.2); }
 
 /* ============================================================
    PORTAL FLASH
