@@ -26,23 +26,22 @@ const gameState = {
   matchExplosions: [],
   boosters: { hammer: 3, bomb: 3, shuffle: 3 },
   activeBooster: null,
-  challengeTarget: null,      // { item: '📻', count: 10 }
+  challengeTarget: null,
   challengeProgress: 0,
   lastSeenEraName: null
 };
 
-// Global container arrays and request handles for the canvas fireworks engine
+// Fireworks engine
 let fxCanvas = null;
 let fxCtx = null;
 let fxParticles = [];
 let fxAnimationId = null;
 
-// Cached DOM refs (assigned in boot())
+// Cached DOM refs
 let canvas, ctx;
 
 /* ============================================================
    ERA TIMELINE — 7 eras, 10 levels each (1-70)
-   Each era has its own gadget set
    ============================================================ */
 const eraTimeline = [
   { name: "1940s Noir",         startLvl: 1,  endLvl: 10, tempo: 62, melody: [196, 220, 246, 220, 196, 174], items: ['📻','🎩','✒️','🎷'] },
@@ -81,7 +80,6 @@ function boot() {
     }, { passive: false });
   }
 
-  // Cache and setup full window viewport hooks for the fireworks layout
   fxCanvas = document.getElementById("fireworksCanvas");
   if (fxCanvas) fxCtx = fxCanvas.getContext("2d");
   window.addEventListener("resize", resizeFireworksCanvas);
@@ -110,8 +108,7 @@ function resizeFireworksCanvas() {
 }
 
 /* ============================================================
-   AMBIENT COFFEE-HOUSE INSTRUMENTAL AUDIO ENGINE
-   Soft, slow, jazzy sine/triangle tones — no lyrics, gentle.
+   AUDIO ENGINE
    ============================================================ */
 function initAudio() {
   if (!gameState.audioCtx) {
@@ -137,7 +134,7 @@ function startEraMusic(eraName) {
   if (!era) return;
 
   let step = 0;
-  const noteLen = 60 / era.tempo; // slow, relaxed tempo
+  const noteLen = 60 / era.tempo;
 
   gameState.musicInterval = setInterval(() => {
     if (!gameState.preferences.sound || !gameState.audioCtx || gameState.audioCtx.state === 'suspended') return;
@@ -145,7 +142,6 @@ function startEraMusic(eraName) {
     const ac = gameState.audioCtx;
     const freq = era.melody[step % era.melody.length];
 
-    // Warm pad voice (triangle through lowpass) — gentle coffee-house feel
     const osc = ac.createOscillator();
     const gain = ac.createGain();
     const filter = ac.createBiquadFilter();
@@ -168,7 +164,6 @@ function startEraMusic(eraName) {
     osc.start();
     osc.stop(ac.currentTime + noteLen * 1.4);
 
-    // Soft sub-octave warmth layer every other note (like a brushed bass)
     if (step % 2 === 0) {
       const subOsc = ac.createOscillator();
       const subGain = ac.createGain();
@@ -208,6 +203,56 @@ function switchView(id) {
   document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(id);
   if (target) target.classList.add('active');
+}
+
+/* ============================================================
+   LEVEL TRANSITION ANIMATION
+   Panels slide in from top + bottom, record spins, then level loads.
+   ============================================================ */
+function playLevelTransition(callback) {
+  const screen   = document.getElementById('levelTransitionScreen');
+  const panelTop = document.getElementById('transitionPanelTop');
+  const panelBot = document.getElementById('transitionPanelBottom');
+  const center   = document.getElementById('transitionCenter');
+
+  // Reset state
+  screen.classList.remove('panels-closed', 'show-content');
+  panelTop.style.transition = 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
+  panelBot.style.transition = 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
+
+  // Show the transition screen on top of everything
+  document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
+  screen.classList.add('active');
+
+  // Step 1: slide panels in (0ms → 550ms)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      screen.classList.add('panels-closed');
+    });
+  });
+
+  // Step 2: panels have met — show spinning record + text (600ms)
+  setTimeout(() => {
+    screen.classList.add('show-content');
+  }, 620);
+
+  // Step 3: hold the loading moment, then fire callback (1350ms total)
+  setTimeout(() => {
+    // Hide centre content before opening
+    screen.classList.remove('show-content');
+
+    // Slide panels back out
+    setTimeout(() => {
+      screen.classList.remove('panels-closed');
+    }, 120);
+
+    // After panels have retracted, show the actual gameplay
+    setTimeout(() => {
+      screen.classList.remove('active');
+      if (callback) callback();
+    }, 700);
+
+  }, 1350);
 }
 
 /* ============================================================
@@ -266,7 +311,6 @@ function loadHomepage() {
   const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
   if (currentEra) startEraMusic(currentEra.name);
 
-  // Scroll to the active level on load
   requestAnimationFrame(() => {
     const activeNode = mapLayer.querySelector('.level-node.active');
     if (activeNode) activeNode.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -303,19 +347,26 @@ function confirmAndStartLevel() {
     return;
   }
 
-  startLevelLogic(gameState.levelPendingStart);
+  // Play transition animation THEN start the level
+  playLevelTransition(() => {
+    startLevelLogic(gameState.levelPendingStart);
+  });
 }
 
 function retryCurrentLevel() {
   toggleModal('levelSuccessModal', false);
-  startLevelLogic(gameState.currentLevel);
+  playLevelTransition(() => {
+    startLevelLogic(gameState.currentLevel);
+  });
 }
 
 function advanceToNextLevel() {
   toggleModal('levelSuccessModal', false);
   let next = gameState.currentLevel + 1;
   if (next <= gameState.totalLevels && next <= gameState.highestUnlockedLevel) {
-    startLevelLogic(next);
+    playLevelTransition(() => {
+      startLevelLogic(next);
+    });
   } else {
     loadHomepage();
   }
@@ -333,18 +384,14 @@ function startLevelLogic(lvl) {
   gameState.activeBooster = null;
   gameState.matchExplosions = [];
 
-  // Target score climbs steadily — each level a bit harder than the last
   gameState.targetScore = 400 + (lvl * 60);
-
-  // Reset boosters to 3 each, fresh per level
   gameState.boosters = { hammer: 3, bomb: 3, shuffle: 3 };
 
   const era = getCurrentEraForLevel(lvl);
 
-  // Gadget-clear challenge: target item + count scale with level depth in era
-  const levelInEra = lvl - era.startLvl + 1; // 1..10
+  const levelInEra = lvl - era.startLvl + 1;
   const challengeItem = era.items[(lvl - 1) % era.items.length];
-  const challengeCount = 8 + Math.floor(levelInEra * 1.2); // ~9 to ~20
+  const challengeCount = 8 + Math.floor(levelInEra * 1.2);
 
   gameState.challengeTarget = { item: challengeItem, count: challengeCount };
   gameState.challengeProgress = 0;
@@ -362,7 +409,6 @@ function startLevelLogic(lvl) {
   switchView("gamePlayScreen");
   generateBoard(era.items);
 
-  // Era unlock toast — only fires the first time we enter a new era
   maybeShowEraUnlockToast(era);
 }
 
@@ -395,7 +441,6 @@ function generateBoard(itemSet) {
       gameState.grid[r][c] = randomItem(itemSet);
     }
   }
-  // Clear any accidental starting matches without granting points
   let guard = 0;
   while (findBoardMatches().length > 0 && guard < 50) {
     resolveSilentMatches(itemSet);
@@ -417,7 +462,7 @@ function resolveSilentMatches(itemSet) {
 }
 
 /* ============================================================
-   RENDER LOOP
+   RENDER LOOP — bright tile backgrounds so emojis are visible
    ============================================================ */
 function updateAndDrawBoard() {
   if (!canvas || !ctx) return;
@@ -428,20 +473,37 @@ function updateAndDrawBoard() {
       const x = c * TILE_PX;
       const y = r * TILE_PX;
 
-      ctx.strokeStyle = "#32414a";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, TILE_PX, TILE_PX);
+      // Checkerboard-style alternating tile colours — both visibly bright
+      const isEven = (r + c) % 2 === 0;
+      ctx.fillStyle = isEven ? '#243545' : '#1e2e3c';
+      ctx.fillRect(x, y, TILE_PX, TILE_PX);
 
+      // Subtle inner highlight along top + left edges
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(x, y, TILE_PX, 2);        // top highlight
+      ctx.fillRect(x, y, 2, TILE_PX);        // left highlight
+
+      // Grid line
+      ctx.strokeStyle = '#1a2530';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + 0.75, y + 0.75, TILE_PX - 1.5, TILE_PX - 1.5);
+
+      // Selected tile glow overlay
       if (gameState.selectedTile && gameState.selectedTile.r === r && gameState.selectedTile.c === c) {
-        ctx.fillStyle = "rgba(212,175,55,0.3)";
+        ctx.fillStyle = 'rgba(212,175,55,0.35)';
         ctx.fillRect(x, y, TILE_PX, TILE_PX);
+        // Gold border highlight
+        ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 1, y + 1, TILE_PX - 2, TILE_PX - 2);
       }
 
+      // Emoji — drawn large and centred
       if (gameState.grid[r] && gameState.grid[r][c]) {
-        ctx.font = "26px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(gameState.grid[r][c], x + TILE_PX / 2, y + TILE_PX / 2);
+        ctx.font = '28px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(gameState.grid[r][c], x + TILE_PX / 2, y + TILE_PX / 2 + 1);
       }
     }
   }
@@ -526,38 +588,36 @@ function selectBooster(type) {
   if (gameState.boosters[type] <= 0) return;
 
   if (gameState.activeBooster === type) {
-    gameState.activeBooster = null; // deselect
+    gameState.activeBooster = null;
   } else {
     gameState.activeBooster = type;
   }
   updateBoosterUI();
 
-  // Shuffle fires immediately, no tile target needed
   if (gameState.activeBooster === 'shuffle') {
     useShuffleBooster();
   }
 }
 
 function updateBoosterUI() {
-  const hammerBtn = document.getElementById('boosterHammerBtn');
-  const bombBtn = document.getElementById('boosterBombBtn');
+  const hammerBtn  = document.getElementById('boosterHammerBtn');
+  const bombBtn    = document.getElementById('boosterBombBtn');
   const shuffleBtn = document.getElementById('boosterShuffleBtn');
-
-  const hammerCount = document.getElementById('hammerCount');
-  const bombCount = document.getElementById('bombCount');
+  const hammerCount  = document.getElementById('hammerCount');
+  const bombCount    = document.getElementById('bombCount');
   const shuffleCount = document.getElementById('shuffleCount');
 
-  if (hammerCount) hammerCount.innerText = gameState.boosters.hammer;
-  if (bombCount) bombCount.innerText = gameState.boosters.bomb;
+  if (hammerCount)  hammerCount.innerText  = gameState.boosters.hammer;
+  if (bombCount)    bombCount.innerText    = gameState.boosters.bomb;
   if (shuffleCount) shuffleCount.innerText = gameState.boosters.shuffle;
 
   [hammerBtn, bombBtn, shuffleBtn].forEach(btn => btn && btn.classList.remove('selected'));
 
-  if (gameState.activeBooster === 'hammer' && hammerBtn) hammerBtn.classList.add('selected');
-  if (gameState.activeBooster === 'bomb' && bombBtn) bombBtn.classList.add('selected');
+  if (gameState.activeBooster === 'hammer' && hammerBtn)  hammerBtn.classList.add('selected');
+  if (gameState.activeBooster === 'bomb'   && bombBtn)    bombBtn.classList.add('selected');
 
-  if (hammerBtn) hammerBtn.disabled = gameState.boosters.hammer <= 0;
-  if (bombBtn) bombBtn.disabled = gameState.boosters.bomb <= 0;
+  if (hammerBtn)  hammerBtn.disabled  = gameState.boosters.hammer  <= 0;
+  if (bombBtn)    bombBtn.disabled    = gameState.boosters.bomb    <= 0;
   if (shuffleBtn) shuffleBtn.disabled = gameState.boosters.shuffle <= 0;
 }
 
@@ -644,7 +704,6 @@ function handleCanvasClick(e) {
   const r = Math.floor(y / TILE_PX);
   if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
 
-  // Booster targeting mode
   if (gameState.activeBooster === 'hammer') {
     useHammerOnTile(r, c);
     return;
@@ -705,7 +764,6 @@ function findBoardMatches() {
     }
   }
 
-  // de-dupe
   const seen = new Set();
   return matches.filter(m => {
     const key = `${m.r},${m.c}`;
@@ -773,7 +831,7 @@ function evaluateLevelEndConditions() {
 }
 
 /* ============================================================
-   WIN HANDLING — awards boosters, unlocks next level
+   WIN HANDLING
    ============================================================ */
 function win() {
   gameState.isGameActive = false;
@@ -785,12 +843,10 @@ function win() {
   gameState.levelRecords[gameState.currentLevel] = stars;
   localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
 
-  // Reward boosters for winning
   gameState.boosters.hammer += 1;
   gameState.boosters.bomb += (stars >= 2 ? 1 : 0);
   gameState.boosters.shuffle += (stars >= 3 ? 1 : 0);
 
-  // Reward gold
   gameState.gold += 10 * stars;
   localStorage.setItem("chrono_gold", gameState.gold);
 
@@ -800,7 +856,7 @@ function win() {
   }
 
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
-  switchView("homePage"); // Clear gameplay screen from background view
+  switchView("homePage");
   toggleModal('levelSuccessModal', true);
 }
 
