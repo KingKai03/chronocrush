@@ -517,23 +517,39 @@ function useHammerOnTile(r, c) {
   gameState.activeBooster = null;
   triggerVibration(60);
   updateBoosterUI();
-  setTimeout(() => cascadeColumns(era.items), 270);
+  setTimeout(() => refillDestroyedTiles([{r, c}], era.items), 280);
 }
 
 function useBombOnTile(r, c) {
   if (gameState.boosters.bomb <= 0) return;
   gameState.boosters.bomb--;
   const era = getCurrentEraForLevel(gameState.currentLevel);
+  const destroyed = [];
   for (let dr = -1; dr <= 1; dr++)
     for (let dc = -1; dc <= 1; dc++) {
       const nr = r+dr, nc = c+dc;
-      if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE)
+      if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
         destroyTile(nr, nc, era.items);
+        destroyed.push({r: nr, c: nc});
+      }
     }
   gameState.activeBooster = null;
   triggerVibration([80,40,80]);
   updateBoosterUI();
-  setTimeout(() => cascadeColumns(era.items), 270);
+  setTimeout(() => refillDestroyedTiles(destroyed, era.items), 280);
+}
+
+function refillDestroyedTiles(positions, itemSet) {
+  positions.forEach(pos => {
+    gameState.grid[pos.r][pos.c] = randomItem(itemSet);
+    const tile = getTile(pos.r, pos.c);
+    if (tile) {
+      tile.classList.remove('matched');
+      tile.textContent = gameState.grid[pos.r][pos.c];
+      animateDrop(pos.r, pos.c);
+    }
+  });
+  setTimeout(checkChallengeAndScore, 360);
 }
 
 function destroyTile(r, c, itemSet) {
@@ -591,71 +607,46 @@ function checkChallengeAndScore() {
   const matches = findBoardMatches();
   if (matches.length === 0) { evaluateLevelEndConditions(); return; }
 
-  // Score + challenge tracking
-  gameState.score += matches.length * 50;
-  document.getElementById("scoreDisplay").innerText = gameState.score;
-  triggerVibration([60, 40, 60]);
-
   const era = getCurrentEraForLevel(gameState.currentLevel);
-  const matchedSet = new Set();
 
+  // De-dupe matched positions
+  const matchedSet = new Set();
+  const matchedPositions = [];
   matches.forEach(pos => {
     const key = `${pos.r},${pos.c}`;
     if (matchedSet.has(key)) return;
     matchedSet.add(key);
+    matchedPositions.push(pos);
+  });
+
+  // Score + challenge tracking
+  gameState.score += matchedPositions.length * 50;
+  document.getElementById("scoreDisplay").innerText = gameState.score;
+  triggerVibration([60, 40, 60]);
+
+  matchedPositions.forEach(pos => {
     if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
-    // 1. Flash + shrink animation
+    // Flash + shrink just those tiles
     animateMatch(pos.r, pos.c);
-    // Mark grid cell as empty
-    gameState.grid[pos.r][pos.c] = null;
   });
 
   updateChallengeBanner();
 
-  // 2. After match animation: cascade columns down, then refill from top
+  // After vanish animation: refill only the matched cells in place
   setTimeout(() => {
-    cascadeColumns(era.items);
-  }, 270);
-}
-
-function cascadeColumns(itemSet) {
-  // For each column, compact non-null tiles to the bottom, fill top with new
-  for (let c = 0; c < BOARD_SIZE; c++) {
-    // Collect surviving tiles bottom-up
-    const surviving = [];
-    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      if (gameState.grid[r][c] !== null) surviving.push(gameState.grid[r][c]);
-    }
-    // How many new tiles needed
-    const needed = BOARD_SIZE - surviving.length;
-    // Fill from bottom: surviving first, then new items on top
-    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      const idx = BOARD_SIZE - 1 - r; // 0 = bottom row
-      if (idx < surviving.length) {
-        gameState.grid[r][c] = surviving[idx];
-      } else {
-        gameState.grid[r][c] = randomItem(itemSet);
+    matchedPositions.forEach(pos => {
+      gameState.grid[pos.r][pos.c] = randomItem(era.items);
+      const tile = getTile(pos.r, pos.c);
+      if (tile) {
+        tile.classList.remove('matched');
+        tile.textContent = gameState.grid[pos.r][pos.c];
+        animateDrop(pos.r, pos.c);
       }
-    }
-  }
-
-  // Render the new grid state, then play drop animations on changed tiles
-  renderBoard();
-
-  // Animate every tile with a staggered drop — feels like they fall from above
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    for (let c = 0; c < BOARD_SIZE; c++) {
-      const tile = getTile(r, c);
-      if (!tile) continue;
-      // Stagger by row (top rows fall furthest, slight delay per row)
-      const delay = r * 28;
-      setTimeout(() => animateDrop(r, c), delay);
-    }
-  }
-
-  // Check for chain matches after tiles have settled
-  setTimeout(checkChallengeAndScore, 420);
+    });
+    // Check for new matches after refill settles
+    setTimeout(checkChallengeAndScore, 360);
+  }, 280);
 }
 
 function afterMatch() {
