@@ -1,9 +1,12 @@
 /* ============================================================
-   CHRONOCRUSH — logic.js
+   CHRONOCRUSH — logic.js  (full rewrite, board + audio fixed)
    ============================================================ */
 
 const BOARD_SIZE = 6;
-const TILE_PX = 320 / BOARD_SIZE; // 53.33px per tile
+
+// Canvas physical size — set at runtime to match wrapper
+let CANVAS_PX  = 320;   // updated in resizeCanvas()
+let TILE_PX    = CANVAS_PX / BOARD_SIZE;
 
 const gameState = {
   lives: 5,
@@ -21,8 +24,9 @@ const gameState = {
   selectedTile: null,
   preferences: { sound: true, sfx: true, vibe: true },
   audioCtx: null,
-  musicInterval: null,
+  musicNodes: [],          // track active oscillator nodes so we can stop them
   currentTrackEra: null,
+  musicSchedulerId: null,  // setInterval id
   matchExplosions: [],
   boosters: { hammer: 3, bomb: 3, shuffle: 3 },
   activeBooster: null,
@@ -41,38 +45,41 @@ let fxAnimationId = null;
 let canvas, ctx;
 
 /* ============================================================
-   ERA TIMELINE — 7 eras, 10 levels each (1-70)
+   ERA TIMELINE
    ============================================================ */
 const eraTimeline = [
-  { name: "1940s Noir",         startLvl: 1,  endLvl: 10, tempo: 62, melody: [196, 220, 246, 220, 196, 174], items: ['📻','🎩','✒️','🎷'] },
-  { name: "1950s Rockabilly",   startLvl: 11, endLvl: 20, tempo: 64, melody: [220, 261, 329, 261, 220, 196], items: ['🥤','🎸','🕶️','🚗'] },
-  { name: "1960s Psychedelic",  startLvl: 21, endLvl: 30, tempo: 60, melody: [293, 329, 392, 329, 293, 261], items: ['☮️','🌸','🚌','🎨'] },
-  { name: "1970s Disco",        startLvl: 31, endLvl: 40, tempo: 66, melody: [220, 329, 293, 220, 246, 196], items: ['🪩','✨','🛼','🕺'] },
-  { name: "1980s Retro Synth",  startLvl: 41, endLvl: 50, tempo: 68, melody: [329, 392, 440, 392, 349, 311], items: ['🎮','📼','🕹️','📟'] },
-  { name: "1990s Grunge",       startLvl: 51, endLvl: 60, tempo: 60, melody: [196, 220, 196, 174, 164, 174], items: ['📀','☎️','🧥','🎧'] },
-  { name: "2000s Y2K Pop",      startLvl: 61, endLvl: 70, tempo: 70, melody: [261, 329, 392, 329, 293, 349], items: ['💿','📱','👛','🌐'] }
+  { name: "1940s Noir",        startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'] },
+  { name: "1950s Rockabilly",  startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'] },
+  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, items: ['☮️','🌸','🚌','🎨'] },
+  { name: "1970s Disco",       startLvl: 31, endLvl: 40, items: ['🪩','✨','🛼','🕺'] },
+  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, items: ['🎮','📼','🕹️','📟'] },
+  { name: "1990s Grunge",      startLvl: 51, endLvl: 60, items: ['📀','☎️','🧥','🎧'] },
+  { name: "2000s Y2K Pop",     startLvl: 61, endLvl: 70, items: ['💿','📱','👛','🌐'] }
 ];
 
 /* ============================================================
-   INITIALISATION
+   BOOT
    ============================================================ */
 document.addEventListener("DOMContentLoaded", boot);
 
 function boot() {
   gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
-  gameState.levelRecords = JSON.parse(localStorage.getItem("chrono_level_records")) || {};
-  gameState.preferences = JSON.parse(localStorage.getItem("chrono_preferences")) || { sound: true, sfx: true, vibe: true };
-  gameState.gold = parseInt(localStorage.getItem("chrono_gold"));
-  if (isNaN(gameState.gold)) gameState.gold = 150;
-  gameState.lives = parseInt(localStorage.getItem("chrono_lives"));
+  gameState.levelRecords  = JSON.parse(localStorage.getItem("chrono_level_records"))  || {};
+  gameState.preferences   = JSON.parse(localStorage.getItem("chrono_preferences"))    || { sound: true, sfx: true, vibe: true };
+  gameState.gold  = parseInt(localStorage.getItem("chrono_gold"))  || 150;
+  gameState.lives = parseInt(localStorage.getItem("chrono_lives")) || 5;
+  if (isNaN(gameState.gold))  gameState.gold  = 150;
   if (isNaN(gameState.lives)) gameState.lives = 5;
   gameState.lastSeenEraName = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
 
   syncSettingsUI();
 
   canvas = document.getElementById("gameCanvas");
-  ctx = canvas ? canvas.getContext("2d") : null;
+  ctx    = canvas ? canvas.getContext("2d") : null;
+
   if (canvas) {
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
     canvas.addEventListener("mousedown", handleCanvasClick);
     canvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
@@ -90,6 +97,29 @@ function boot() {
   setTimeout(() => switchView("authScreen"), 900);
 }
 
+/* ============================================================
+   CANVAS RESIZE — keeps internal resolution matching CSS size
+   so emoji render at the correct position and scale.
+   ============================================================ */
+function resizeCanvas() {
+  if (!canvas) return;
+
+  const wrapper = canvas.parentElement;
+  const size    = wrapper ? Math.min(wrapper.clientWidth - 16, 380) : 320;
+
+  CANVAS_PX = size;
+  TILE_PX   = CANVAS_PX / BOARD_SIZE;
+
+  // Set the actual pixel buffer to match display size (avoids DPI blur)
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(CANVAS_PX * dpr);
+  canvas.height = Math.round(CANVAS_PX * dpr);
+  canvas.style.width  = CANVAS_PX + "px";
+  canvas.style.height = CANVAS_PX + "px";
+
+  if (ctx) ctx.scale(dpr, dpr);
+}
+
 function syncSettingsUI() {
   const map = { sound: 'toggleSoundBtn', sfx: 'toggleSfxBtn', vibe: 'toggleVibeBtn' };
   Object.keys(map).forEach(key => {
@@ -102,19 +132,21 @@ function syncSettingsUI() {
 
 function resizeFireworksCanvas() {
   if (fxCanvas) {
-    fxCanvas.width = window.innerWidth;
+    fxCanvas.width  = window.innerWidth;
     fxCanvas.height = window.innerHeight;
   }
 }
 
 /* ============================================================
-   AUDIO ENGINE
+   SPACE MUSIC ENGINE
+   Gentle, slow, ambient — pads + soft sub-bass + occasional
+   shimmer. Sounds like floating through a nebula, not a jazz bar.
    ============================================================ */
 function initAudio() {
   if (!gameState.audioCtx) {
     gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  if (gameState.audioCtx && gameState.audioCtx.state === 'suspended') {
+  if (gameState.audioCtx.state === 'suspended') {
     gameState.audioCtx.resume();
   }
 }
@@ -123,77 +155,156 @@ function getCurrentEraForLevel(level) {
   return eraTimeline.find(e => level >= e.startLvl && level <= e.endLvl) || eraTimeline[0];
 }
 
-function startEraMusic(eraName) {
-  initAudio();
-  if (!gameState.preferences.sound) return;
-  if (gameState.currentTrackEra === eraName && gameState.musicInterval) return;
+// Global reverb convolver (created once, reused)
+let reverbNode = null;
+function getReverbNode(ac) {
+  if (reverbNode) return reverbNode;
 
-  stopEraMusic();
-  gameState.currentTrackEra = eraName;
-  const era = eraTimeline.find(e => e.name === eraName);
-  if (!era) return;
-
-  let step = 0;
-  const noteLen = 60 / era.tempo;
-
-  gameState.musicInterval = setInterval(() => {
-    if (!gameState.preferences.sound || !gameState.audioCtx || gameState.audioCtx.state === 'suspended') return;
-
-    const ac = gameState.audioCtx;
-    const freq = era.melody[step % era.melody.length];
-
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    const filter = ac.createBiquadFilter();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(freq, ac.currentTime);
-
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(900, ac.currentTime);
-    filter.Q.value = 0.5;
-
-    gain.gain.setValueAtTime(0.0001, ac.currentTime);
-    gain.gain.linearRampToValueAtTime(0.018, ac.currentTime + 0.6);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + noteLen * 1.4);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ac.destination);
-
-    osc.start();
-    osc.stop(ac.currentTime + noteLen * 1.4);
-
-    if (step % 2 === 0) {
-      const subOsc = ac.createOscillator();
-      const subGain = ac.createGain();
-      subOsc.type = "sine";
-      subOsc.frequency.setValueAtTime(freq / 2, ac.currentTime);
-      subGain.gain.setValueAtTime(0.0001, ac.currentTime);
-      subGain.gain.linearRampToValueAtTime(0.01, ac.currentTime + 0.5);
-      subGain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + noteLen * 1.6);
-      subOsc.connect(subGain);
-      subGain.connect(ac.destination);
-      subOsc.start();
-      subOsc.stop(ac.currentTime + noteLen * 1.6);
+  // Build a simple impulse-response reverb
+  const len     = ac.sampleRate * 3.5;
+  const impulse = ac.createBuffer(2, len, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = impulse.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2);
     }
-
-    step++;
-  }, noteLen * 1000);
+  }
+  reverbNode = ac.createConvolver();
+  reverbNode.buffer = impulse;
+  reverbNode.connect(ac.destination);
+  return reverbNode;
 }
 
-function stopEraMusic() {
-  if (gameState.musicInterval) {
-    clearInterval(gameState.musicInterval);
-    gameState.musicInterval = null;
+// Space chord set — slow, modal, dreamy intervals
+const SPACE_CHORDS = [
+  [130.81, 196.00, 246.94, 329.63],   // C3 G3 B3 E4  — open fifth + major 7
+  [146.83, 220.00, 277.18, 369.99],   // D3 A3 C#4 F#4
+  [123.47, 185.00, 246.94, 311.13],   // B2 F#3 B3 Eb4
+  [138.59, 207.65, 261.63, 349.23],   // C#3 G#3 C4 F4
+  [110.00, 164.81, 220.00, 293.66],   // A2 E3 A3 D4   — suspended
+  [116.54, 174.61, 233.08, 311.13],   // Bb2 F3 Bb3 Eb4
+];
+
+let chordIndex = 0;
+let spaceScheduleTimer = null;
+
+function startSpaceMusic() {
+  initAudio();
+  if (!gameState.preferences.sound) return;
+  if (gameState.musicSchedulerId) return;  // already running
+
+  chordIndex = 0;
+  scheduleNextChord();
+}
+
+function scheduleNextChord() {
+  if (!gameState.preferences.sound) return;
+
+  playSpaceChord(SPACE_CHORDS[chordIndex % SPACE_CHORDS.length]);
+  chordIndex++;
+
+  // Each chord lasts 7–9 seconds — very slow, hypnotic
+  const delay = 7000 + Math.random() * 2000;
+  gameState.musicSchedulerId = setTimeout(scheduleNextChord, delay);
+}
+
+function playSpaceChord(freqs) {
+  const ac = gameState.audioCtx;
+  if (!ac || ac.state === 'suspended') return;
+
+  const reverb   = getReverbNode(ac);
+  const masterGain = ac.createGain();
+  masterGain.gain.setValueAtTime(0, ac.currentTime);
+  masterGain.gain.linearRampToValueAtTime(0.055, ac.currentTime + 2.5);   // slow fade in
+  masterGain.gain.setValueAtTime(0.055, ac.currentTime + 4.5);
+  masterGain.gain.linearRampToValueAtTime(0, ac.currentTime + 7.5);       // slow fade out
+
+  masterGain.connect(reverb);
+  masterGain.connect(ac.destination);  // dry signal too
+
+  freqs.forEach((freq, i) => {
+    // Pad voice — sine through soft lowpass
+    const osc  = ac.createOscillator();
+    const filt = ac.createBiquadFilter();
+    const gain = ac.createGain();
+
+    osc.type = "sine";
+    // Slight detune per voice for that shimmer/chorus feel
+    osc.frequency.setValueAtTime(freq * (1 + (i * 0.0008)), ac.currentTime);
+
+    filt.type = "lowpass";
+    filt.frequency.setValueAtTime(600 + i * 80, ac.currentTime);
+    filt.Q.value = 0.4;
+
+    gain.gain.setValueAtTime(0.18, ac.currentTime);
+
+    osc.connect(filt);
+    filt.connect(gain);
+    gain.connect(masterGain);
+
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 8);
+
+    // Second oscillator slightly detuned — creates gentle beating
+    const osc2 = ac.createOscillator();
+    const gain2 = ac.createGain();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(freq * (1 - 0.0015), ac.currentTime);
+    gain2.gain.setValueAtTime(0.06, ac.currentTime);
+    osc2.connect(gain2);
+    gain2.connect(masterGain);
+    osc2.start(ac.currentTime);
+    osc2.stop(ac.currentTime + 8);
+  });
+
+  // Sub bass — just the root, very quiet and deep
+  const subOsc  = ac.createOscillator();
+  const subGain = ac.createGain();
+  const subFilt = ac.createBiquadFilter();
+  subOsc.type = "sine";
+  subOsc.frequency.setValueAtTime(freqs[0] / 2, ac.currentTime);
+  subFilt.type = "lowpass";
+  subFilt.frequency.setValueAtTime(120, ac.currentTime);
+  subGain.gain.setValueAtTime(0, ac.currentTime);
+  subGain.gain.linearRampToValueAtTime(0.08, ac.currentTime + 3);
+  subGain.gain.linearRampToValueAtTime(0, ac.currentTime + 7.5);
+  subOsc.connect(subFilt);
+  subFilt.connect(subGain);
+  subGain.connect(ac.destination);
+  subOsc.start(ac.currentTime);
+  subOsc.stop(ac.currentTime + 8);
+
+  // Occasional high shimmer (like stars twinkling)
+  if (Math.random() < 0.45) {
+    const shimFreq = freqs[freqs.length - 1] * 2;
+    const shim     = ac.createOscillator();
+    const shimGain = ac.createGain();
+    shim.type = "sine";
+    shim.frequency.setValueAtTime(shimFreq, ac.currentTime + 1.5);
+    shimGain.gain.setValueAtTime(0, ac.currentTime + 1.5);
+    shimGain.gain.linearRampToValueAtTime(0.022, ac.currentTime + 2.2);
+    shimGain.gain.linearRampToValueAtTime(0, ac.currentTime + 4.5);
+    shim.connect(shimGain);
+    shimGain.connect(reverb);
+    shim.start(ac.currentTime + 1.5);
+    shim.stop(ac.currentTime + 5);
+  }
+}
+
+function stopSpaceMusic() {
+  if (gameState.musicSchedulerId) {
+    clearTimeout(gameState.musicSchedulerId);
+    gameState.musicSchedulerId = null;
   }
   gameState.currentTrackEra = null;
 }
 
+// Legacy name kept so nothing breaks
+function startEraMusic()  { startSpaceMusic(); }
+function stopEraMusic()   { stopSpaceMusic();  }
+
 function triggerVibration(pattern) {
-  if (gameState.preferences.vibe && navigator.vibrate) {
-    navigator.vibrate(pattern);
-  }
+  if (gameState.preferences.vibe && navigator.vibrate) navigator.vibrate(pattern);
 }
 
 /* ============================================================
@@ -207,51 +318,32 @@ function switchView(id) {
 
 /* ============================================================
    LEVEL TRANSITION ANIMATION
-   Panels slide in from top + bottom, record spins, then level loads.
    ============================================================ */
 function playLevelTransition(callback) {
-  const screen   = document.getElementById('levelTransitionScreen');
-  const panelTop = document.getElementById('transitionPanelTop');
-  const panelBot = document.getElementById('transitionPanelBottom');
-  const center   = document.getElementById('transitionCenter');
+  const screen = document.getElementById('levelTransitionScreen');
+  if (!screen) { if (callback) callback(); return; }
 
-  // Reset state
   screen.classList.remove('panels-closed', 'show-content');
-  panelTop.style.transition = 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
-  panelBot.style.transition = 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)';
 
-  // Show the transition screen on top of everything
   document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
   screen.classList.add('active');
 
-  // Step 1: slide panels in (0ms → 550ms)
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      screen.classList.add('panels-closed');
-    });
-  });
+  // Panels slide in
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    screen.classList.add('panels-closed');
+  }));
 
-  // Step 2: panels have met — show spinning record + text (600ms)
-  setTimeout(() => {
-    screen.classList.add('show-content');
-  }, 620);
+  // Show spinner
+  setTimeout(() => screen.classList.add('show-content'), 620);
 
-  // Step 3: hold the loading moment, then fire callback (1350ms total)
+  // Open and launch
   setTimeout(() => {
-    // Hide centre content before opening
     screen.classList.remove('show-content');
-
-    // Slide panels back out
-    setTimeout(() => {
-      screen.classList.remove('panels-closed');
-    }, 120);
-
-    // After panels have retracted, show the actual gameplay
+    setTimeout(() => screen.classList.remove('panels-closed'), 120);
     setTimeout(() => {
       screen.classList.remove('active');
       if (callback) callback();
     }, 700);
-
   }, 1350);
 }
 
@@ -260,13 +352,12 @@ function playLevelTransition(callback) {
    ============================================================ */
 function loadHomepage() {
   switchView("homePage");
+  document.getElementById("livesCounter").innerText  = gameState.lives;
+  document.getElementById("profileGold").innerText   = gameState.gold;
 
-  document.getElementById("livesCounter").innerText = gameState.lives;
-  document.getElementById("profileGold").innerText = gameState.gold;
-
-  const cornerDisk = document.getElementById("mapCornerLevelDisk");
-  if (cornerDisk) cornerDisk.innerText = gameState.highestUnlockedLevel;
+  const cornerDisk  = document.getElementById("mapCornerLevelDisk");
   const cornerLives = document.getElementById("mapCornerLives");
+  if (cornerDisk)  cornerDisk.innerText  = gameState.highestUnlockedLevel;
   if (cornerLives) cornerLives.innerText = gameState.lives;
 
   const mapLayer = document.getElementById("mapLayer");
@@ -308,8 +399,7 @@ function loadHomepage() {
     }
   });
 
-  const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
-  if (currentEra) startEraMusic(currentEra.name);
+  startSpaceMusic();
 
   requestAnimationFrame(() => {
     const activeNode = mapLayer.querySelector('.level-node.active');
@@ -341,65 +431,54 @@ function toggleModal(id, open) {
 
 function confirmAndStartLevel() {
   toggleModal('levelReadyModal', false);
-
   if (gameState.lives <= 0) {
-    alert("You're out of lives! Visit the shop to refill, or wait for them to regenerate.");
+    alert("You're out of lives! Visit the shop to refill.");
     return;
   }
-
-  // Play transition animation THEN start the level
-  playLevelTransition(() => {
-    startLevelLogic(gameState.levelPendingStart);
-  });
+  playLevelTransition(() => startLevelLogic(gameState.levelPendingStart));
 }
 
 function retryCurrentLevel() {
   toggleModal('levelSuccessModal', false);
-  playLevelTransition(() => {
-    startLevelLogic(gameState.currentLevel);
-  });
+  playLevelTransition(() => startLevelLogic(gameState.currentLevel));
 }
 
 function advanceToNextLevel() {
   toggleModal('levelSuccessModal', false);
-  let next = gameState.currentLevel + 1;
+  const next = gameState.currentLevel + 1;
   if (next <= gameState.totalLevels && next <= gameState.highestUnlockedLevel) {
-    playLevelTransition(() => {
-      startLevelLogic(next);
-    });
+    playLevelTransition(() => startLevelLogic(next));
   } else {
     loadHomepage();
   }
 }
 
 /* ============================================================
-   LEVEL SETUP — progressive difficulty
+   LEVEL SETUP
    ============================================================ */
 function startLevelLogic(lvl) {
-  gameState.currentLevel = lvl;
-  gameState.isGameActive = true;
-  gameState.score = 0;
-  gameState.moves = 20;
-  gameState.selectedTile = null;
-  gameState.activeBooster = null;
+  gameState.currentLevel    = lvl;
+  gameState.isGameActive    = true;
+  gameState.score           = 0;
+  gameState.moves           = 20;
+  gameState.selectedTile    = null;
+  gameState.activeBooster   = null;
   gameState.matchExplosions = [];
+  gameState.targetScore     = 400 + (lvl * 60);
+  gameState.boosters        = { hammer: 3, bomb: 3, shuffle: 3 };
 
-  gameState.targetScore = 400 + (lvl * 60);
-  gameState.boosters = { hammer: 3, bomb: 3, shuffle: 3 };
-
-  const era = getCurrentEraForLevel(lvl);
-
-  const levelInEra = lvl - era.startLvl + 1;
-  const challengeItem = era.items[(lvl - 1) % era.items.length];
+  const era          = getCurrentEraForLevel(lvl);
+  const levelInEra   = lvl - era.startLvl + 1;
+  const challengeItem  = era.items[(lvl - 1) % era.items.length];
   const challengeCount = 8 + Math.floor(levelInEra * 1.2);
 
-  gameState.challengeTarget = { item: challengeItem, count: challengeCount };
+  gameState.challengeTarget   = { item: challengeItem, count: challengeCount };
   gameState.challengeProgress = 0;
 
-  document.getElementById("activeEraName").innerText = `Level ${lvl}`;
-  document.getElementById("movesDisplay").innerText = gameState.moves;
-  document.getElementById("targetDisplay").innerText = gameState.targetScore;
-  document.getElementById("scoreDisplay").innerText = 0;
+  document.getElementById("activeEraName").innerText   = `Level ${lvl}`;
+  document.getElementById("movesDisplay").innerText    = gameState.moves;
+  document.getElementById("targetDisplay").innerText   = gameState.targetScore;
+  document.getElementById("scoreDisplay").innerText    = 0;
 
   const banner = document.getElementById("challengeBanner");
   if (banner) banner.innerText = `Clear ${challengeCount} ${challengeItem} to pass!`;
@@ -407,9 +486,15 @@ function startLevelLogic(lvl) {
   updateBoosterUI();
 
   switchView("gamePlayScreen");
-  generateBoard(era.items);
+
+  // Resize canvas AFTER the gameplay screen is visible so dimensions are correct
+  setTimeout(() => {
+    resizeCanvas();
+    generateBoard(era.items);
+  }, 30);
 
   maybeShowEraUnlockToast(era);
+  startSpaceMusic();
 }
 
 function maybeShowEraUnlockToast(era) {
@@ -418,11 +503,10 @@ function maybeShowEraUnlockToast(era) {
     localStorage.setItem("chrono_last_era", era.name);
     showEraUnlockToast(era.name);
   }
-  startEraMusic(era.name);
 }
 
 function showEraUnlockToast(eraName) {
-  const toast = document.getElementById("eraUnlockToast");
+  const toast  = document.getElementById("eraUnlockToast");
   const nameEl = document.getElementById("eraToastName");
   if (!toast || !nameEl) return;
   nameEl.innerText = eraName;
@@ -449,60 +533,62 @@ function generateBoard(itemSet) {
 }
 
 function randomItem(itemSet) {
-  const era = getCurrentEraForLevel(gameState.currentLevel);
-  const items = itemSet || era.items;
+  const items = itemSet || getCurrentEraForLevel(gameState.currentLevel).items;
   return items[Math.floor(Math.random() * items.length)];
 }
 
 function resolveSilentMatches(itemSet) {
-  const matches = findBoardMatches();
-  matches.forEach(pos => {
+  findBoardMatches().forEach(pos => {
     gameState.grid[pos.r][pos.c] = randomItem(itemSet);
   });
 }
 
 /* ============================================================
-   RENDER LOOP — bright tile backgrounds so emojis are visible
+   RENDER LOOP
    ============================================================ */
 function updateAndDrawBoard() {
-  if (!canvas || !ctx) return;
-  ctx.clearRect(0, 0, 320, 320);
+  if (!canvas || !ctx || !gameState.isGameActive) return;
+
+  // Clear the logical area (ctx is already scaled by DPR)
+  ctx.clearRect(0, 0, CANVAS_PX, CANVAS_PX);
 
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
       const x = c * TILE_PX;
       const y = r * TILE_PX;
 
-      // Checkerboard-style alternating tile colours — both visibly bright
+      // Tile background — clearly visible teal-blue
       const isEven = (r + c) % 2 === 0;
-      ctx.fillStyle = isEven ? '#243545' : '#1e2e3c';
+      ctx.fillStyle = isEven ? '#2a4255' : '#243a4a';
       ctx.fillRect(x, y, TILE_PX, TILE_PX);
 
-      // Subtle inner highlight along top + left edges
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      ctx.fillRect(x, y, TILE_PX, 2);        // top highlight
-      ctx.fillRect(x, y, 2, TILE_PX);        // left highlight
+      // Top + left inner highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(x, y, TILE_PX, 2);
+      ctx.fillRect(x, y, 2, TILE_PX);
 
       // Grid line
-      ctx.strokeStyle = '#1a2530';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x + 0.75, y + 0.75, TILE_PX - 1.5, TILE_PX - 1.5);
+      ctx.strokeStyle = '#19303d';
+      ctx.lineWidth   = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, TILE_PX - 1, TILE_PX - 1);
 
-      // Selected tile glow overlay
-      if (gameState.selectedTile && gameState.selectedTile.r === r && gameState.selectedTile.c === c) {
-        ctx.fillStyle = 'rgba(212,175,55,0.35)';
+      // Selected highlight
+      if (gameState.selectedTile &&
+          gameState.selectedTile.r === r &&
+          gameState.selectedTile.c === c) {
+        ctx.fillStyle = 'rgba(212,175,55,0.38)';
         ctx.fillRect(x, y, TILE_PX, TILE_PX);
-        // Gold border highlight
-        ctx.strokeStyle = 'rgba(255,215,0,0.8)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x + 1, y + 1, TILE_PX - 2, TILE_PX - 2);
+        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
+        ctx.lineWidth   = 2.5;
+        ctx.strokeRect(x + 1.5, y + 1.5, TILE_PX - 3, TILE_PX - 3);
       }
 
-      // Emoji — drawn large and centred
+      // Emoji — sized relative to tile
+      const fontSize = Math.floor(TILE_PX * 0.52);
       if (gameState.grid[r] && gameState.grid[r][c]) {
-        ctx.font = '28px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        ctx.font          = `${fontSize}px Arial, sans-serif`;
+        ctx.textAlign     = 'center';
+        ctx.textBaseline  = 'middle';
         ctx.fillText(gameState.grid[r][c], x + TILE_PX / 2, y + TILE_PX / 2 + 1);
       }
     }
@@ -515,7 +601,7 @@ function updateAndDrawBoard() {
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
-    p.y += p.vy;
+    p.y    += p.vy;
     p.size *= 0.94;
     p.alpha -= 0.04;
     if (p.alpha <= 0) gameState.matchExplosions.splice(i, 1);
@@ -523,26 +609,23 @@ function updateAndDrawBoard() {
 }
 
 /* ============================================================
-   FIREWORKS (level success modal)
+   FIREWORKS
    ============================================================ */
 function spawnFireworksBurst() {
-  const colors = ['#ffd700', '#ff5e62', '#ff9966', '#00f2fe', '#4facfe', '#b19ffb'];
-  const centerX = window.innerWidth / 2;
+  const colors  = ['#ffd700','#ff5e62','#ff9966','#00f2fe','#4facfe','#b19ffb'];
+  const centerX = window.innerWidth  / 2;
   const centerY = window.innerHeight / 2;
-
   for (let b = 0; b < 2; b++) {
-    const originX = centerX + (Math.random() * 200 - 100);
-    const originY = centerY - (Math.random() * 120);
-    const particlesCount = 35;
-
-    for (let i = 0; i < particlesCount; i++) {
-      const angle = (Math.PI * 2 / particlesCount) * i + Math.random() * 0.4;
+    const ox = centerX + (Math.random() * 200 - 100);
+    const oy = centerY - (Math.random() * 120);
+    for (let i = 0; i < 35; i++) {
+      const angle = (Math.PI * 2 / 35) * i + Math.random() * 0.4;
       const speed = 2 + Math.random() * 5;
       fxParticles.push({
-        x: originX, y: originY,
+        x: ox, y: oy,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        size: 2 + Math.random() * 2,
+        size:  2 + Math.random() * 2,
         color: colors[Math.floor(Math.random() * colors.length)],
         alpha: 1,
         decay: 0.015 + Math.random() * 0.015
@@ -554,29 +637,19 @@ function spawnFireworksBurst() {
 function runFireworksLoop() {
   if (!fxCtx) return;
   fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
-
   for (let i = fxParticles.length - 1; i >= 0; i--) {
     const p = fxParticles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.04;
-    p.alpha -= p.decay;
-
+    p.x  += p.vx; p.y += p.vy; p.vy += 0.04; p.alpha -= p.decay;
     if (p.alpha <= 0) { fxParticles.splice(i, 1); continue; }
-
     fxCtx.save();
     fxCtx.globalAlpha = p.alpha;
-    fxCtx.fillStyle = p.color;
+    fxCtx.fillStyle   = p.color;
     fxCtx.beginPath();
     fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     fxCtx.fill();
     fxCtx.restore();
   }
-
-  if (Math.random() < 0.015 && fxParticles.length < 40) {
-    spawnFireworksBurst();
-  }
-
+  if (Math.random() < 0.015 && fxParticles.length < 40) spawnFireworksBurst();
   fxAnimationId = requestAnimationFrame(runFireworksLoop);
 }
 
@@ -584,48 +657,28 @@ function runFireworksLoop() {
    BOOSTERS
    ============================================================ */
 function selectBooster(type) {
-  if (!gameState.isGameActive) return;
-  if (gameState.boosters[type] <= 0) return;
-
-  if (gameState.activeBooster === type) {
-    gameState.activeBooster = null;
-  } else {
-    gameState.activeBooster = type;
-  }
+  if (!gameState.isGameActive || gameState.boosters[type] <= 0) return;
+  gameState.activeBooster = (gameState.activeBooster === type) ? null : type;
   updateBoosterUI();
-
-  if (gameState.activeBooster === 'shuffle') {
-    useShuffleBooster();
-  }
+  if (gameState.activeBooster === 'shuffle') useShuffleBooster();
 }
 
 function updateBoosterUI() {
-  const hammerBtn  = document.getElementById('boosterHammerBtn');
-  const bombBtn    = document.getElementById('boosterBombBtn');
-  const shuffleBtn = document.getElementById('boosterShuffleBtn');
-  const hammerCount  = document.getElementById('hammerCount');
-  const bombCount    = document.getElementById('bombCount');
-  const shuffleCount = document.getElementById('shuffleCount');
-
-  if (hammerCount)  hammerCount.innerText  = gameState.boosters.hammer;
-  if (bombCount)    bombCount.innerText    = gameState.boosters.bomb;
-  if (shuffleCount) shuffleCount.innerText = gameState.boosters.shuffle;
-
-  [hammerBtn, bombBtn, shuffleBtn].forEach(btn => btn && btn.classList.remove('selected'));
-
-  if (gameState.activeBooster === 'hammer' && hammerBtn)  hammerBtn.classList.add('selected');
-  if (gameState.activeBooster === 'bomb'   && bombBtn)    bombBtn.classList.add('selected');
-
-  if (hammerBtn)  hammerBtn.disabled  = gameState.boosters.hammer  <= 0;
-  if (bombBtn)    bombBtn.disabled    = gameState.boosters.bomb    <= 0;
-  if (shuffleBtn) shuffleBtn.disabled = gameState.boosters.shuffle <= 0;
+  ['hammer','bomb','shuffle'].forEach(t => {
+    const btn = document.getElementById(`booster${t.charAt(0).toUpperCase()+t.slice(1)}Btn`);
+    const cnt = document.getElementById(`${t}Count`);
+    if (cnt) cnt.innerText = gameState.boosters[t];
+    if (btn) {
+      btn.classList.toggle('selected', gameState.activeBooster === t);
+      btn.disabled = gameState.boosters[t] <= 0;
+    }
+  });
 }
 
 function useShuffleBooster() {
   if (gameState.boosters.shuffle <= 0) return;
   gameState.boosters.shuffle--;
-  const era = getCurrentEraForLevel(gameState.currentLevel);
-  generateBoard(era.items);
+  generateBoard(getCurrentEraForLevel(gameState.currentLevel).items);
   gameState.activeBooster = null;
   triggerVibration(50);
   updateBoosterUI();
@@ -634,8 +687,7 @@ function useShuffleBooster() {
 function useHammerOnTile(r, c) {
   if (gameState.boosters.hammer <= 0) return;
   gameState.boosters.hammer--;
-  const era = getCurrentEraForLevel(gameState.currentLevel);
-  destroyTile(r, c, era.items);
+  destroyTile(r, c, getCurrentEraForLevel(gameState.currentLevel).items);
   gameState.activeBooster = null;
   triggerVibration(60);
   updateBoosterUI();
@@ -646,26 +698,20 @@ function useBombOnTile(r, c) {
   if (gameState.boosters.bomb <= 0) return;
   gameState.boosters.bomb--;
   const era = getCurrentEraForLevel(gameState.currentLevel);
-
-  for (let dr = -1; dr <= 1; dr++) {
+  for (let dr = -1; dr <= 1; dr++)
     for (let dc = -1; dc <= 1; dc++) {
-      const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+      const nr = r+dr, nc = c+dc;
+      if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE)
         destroyTile(nr, nc, era.items);
-      }
     }
-  }
   gameState.activeBooster = null;
-  triggerVibration([80, 40, 80]);
+  triggerVibration([80,40,80]);
   updateBoosterUI();
   evaluateBoardAfterAction();
 }
 
 function destroyTile(r, c, itemSet) {
-  const destroyedItem = gameState.grid[r][c];
-  if (destroyedItem === gameState.challengeTarget?.item) {
-    gameState.challengeProgress++;
-  }
+  if (gameState.grid[r][c] === gameState.challengeTarget?.item) gameState.challengeProgress++;
   spawnExplosionAt(r, c);
   gameState.grid[r][c] = randomItem(itemSet);
 }
@@ -675,8 +721,7 @@ function spawnExplosionAt(r, c) {
     gameState.matchExplosions.push({
       x: (c * TILE_PX) + TILE_PX / 2,
       y: (r * TILE_PX) + TILE_PX / 2,
-      size: 7,
-      alpha: 1,
+      size: 7, alpha: 1,
       vy: -1 - Math.random() * 2
     });
   }
@@ -688,30 +733,26 @@ function evaluateBoardAfterAction() {
 }
 
 /* ============================================================
-   INPUT HANDLING
+   INPUT
    ============================================================ */
 function handleCanvasClick(e) {
   if (!gameState.isGameActive || !canvas) return;
   initAudio();
 
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const x = (e.clientX - rect.left) * scaleX;
-  const y = (e.clientY - rect.top) * scaleY;
+  const rect   = canvas.getBoundingClientRect();
+  const x      = e.clientX - rect.left;
+  const y      = e.clientY - rect.top;
 
-  const c = Math.floor(x / TILE_PX);
-  const r = Math.floor(y / TILE_PX);
+  // Scale click from CSS pixels to logical CANVAS_PX space
+  const scaleX = CANVAS_PX / rect.width;
+  const scaleY = CANVAS_PX / rect.height;
+
+  const c = Math.floor(x * scaleX / TILE_PX);
+  const r = Math.floor(y * scaleY / TILE_PX);
   if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
 
-  if (gameState.activeBooster === 'hammer') {
-    useHammerOnTile(r, c);
-    return;
-  }
-  if (gameState.activeBooster === 'bomb') {
-    useBombOnTile(r, c);
-    return;
-  }
+  if (gameState.activeBooster === 'hammer') { useHammerOnTile(r, c); return; }
+  if (gameState.activeBooster === 'bomb')   { useBombOnTile(r, c);   return; }
 
   if (!gameState.selectedTile) {
     gameState.selectedTile = { r, c };
@@ -731,10 +772,8 @@ function swapTiles(r1, c1, r2, c2) {
   const tmp = gameState.grid[r1][c1];
   gameState.grid[r1][c1] = gameState.grid[r2][c2];
   gameState.grid[r2][c2] = tmp;
-
   gameState.moves--;
   document.getElementById("movesDisplay").innerText = gameState.moves;
-
   triggerVibration(40);
   gameState.selectedTile = null;
   checkChallengeAndScore();
@@ -745,58 +784,43 @@ function swapTiles(r1, c1, r2, c2) {
    ============================================================ */
 function findBoardMatches() {
   const matches = [];
-
-  for (let r = 0; r < BOARD_SIZE; r++) {
+  for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE - 2; c++) {
       const v = gameState.grid[r][c];
-      if (v && v === gameState.grid[r][c+1] && v === gameState.grid[r][c+2]) {
-        matches.push({ r, c }, { r, c: c+1 }, { r, c: c+2 });
-      }
+      if (v && v === gameState.grid[r][c+1] && v === gameState.grid[r][c+2])
+        matches.push({r,c},{r,c:c+1},{r,c:c+2});
     }
-  }
-
-  for (let c = 0; c < BOARD_SIZE; c++) {
+  for (let c = 0; c < BOARD_SIZE; c++)
     for (let r = 0; r < BOARD_SIZE - 2; r++) {
       const v = gameState.grid[r][c];
-      if (v && v === gameState.grid[r+1][c] && v === gameState.grid[r+2][c]) {
-        matches.push({ r, c }, { r: r+1, c }, { r: r+2, c });
-      }
+      if (v && v === gameState.grid[r+1][c] && v === gameState.grid[r+2][c])
+        matches.push({r,c},{r:r+1,c},{r:r+2,c});
     }
-  }
-
   const seen = new Set();
   return matches.filter(m => {
     const key = `${m.r},${m.c}`;
     if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    seen.add(key); return true;
   });
 }
 
 function checkChallengeAndScore() {
   const matches = findBoardMatches();
-
   if (matches.length > 0) {
     gameState.score += matches.length * 50;
     document.getElementById("scoreDisplay").innerText = gameState.score;
-    triggerVibration([60, 40, 60]);
-
+    triggerVibration([60,40,60]);
     const era = getCurrentEraForLevel(gameState.currentLevel);
-
     matches.forEach(pos => {
-      const clearedItem = gameState.grid[pos.r][pos.c];
-      if (gameState.challengeTarget && clearedItem === gameState.challengeTarget.item) {
-        gameState.challengeProgress++;
-      }
+      const item = gameState.grid[pos.r][pos.c];
+      if (gameState.challengeTarget && item === gameState.challengeTarget.item) gameState.challengeProgress++;
       spawnExplosionAt(pos.r, pos.c);
       gameState.grid[pos.r][pos.c] = randomItem(era.items);
     });
-
     updateChallengeBanner();
     setTimeout(checkChallengeAndScore, 200);
     return;
   }
-
   evaluateLevelEndConditions();
 }
 
@@ -804,19 +828,14 @@ function updateChallengeBanner() {
   const banner = document.getElementById("challengeBanner");
   if (!banner || !gameState.challengeTarget) return;
   const remaining = Math.max(0, gameState.challengeTarget.count - gameState.challengeProgress);
-  if (remaining > 0) {
-    banner.innerText = `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`;
-  } else {
-    banner.innerText = `Challenge complete! ${gameState.challengeTarget.item} cleared ✓`;
-  }
+  banner.innerText = remaining > 0
+    ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
+    : `Challenge complete! ${gameState.challengeTarget.item} cleared ✓`;
 }
 
 function evaluateLevelEndConditions() {
-  const challengeMet = gameState.challengeTarget
-    ? gameState.challengeProgress >= gameState.challengeTarget.count
-    : true;
-  const scoreMet = gameState.score >= gameState.targetScore;
-
+  const challengeMet = !gameState.challengeTarget || gameState.challengeProgress >= gameState.challengeTarget.count;
+  const scoreMet     = gameState.score >= gameState.targetScore;
   if (challengeMet && scoreMet) {
     setTimeout(win, 400);
   } else if (gameState.moves <= 0) {
@@ -831,11 +850,11 @@ function evaluateLevelEndConditions() {
 }
 
 /* ============================================================
-   WIN HANDLING
+   WIN
    ============================================================ */
 function win() {
   gameState.isGameActive = false;
-  triggerVibration([100, 40, 100, 40, 300]);
+  triggerVibration([100,40,100,40,300]);
 
   const stars = gameState.score > gameState.targetScore * 1.4 ? 3
               : gameState.score > gameState.targetScore * 1.1 ? 2 : 1;
@@ -843,10 +862,9 @@ function win() {
   gameState.levelRecords[gameState.currentLevel] = stars;
   localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
 
-  gameState.boosters.hammer += 1;
-  gameState.boosters.bomb += (stars >= 2 ? 1 : 0);
+  gameState.boosters.hammer  += 1;
+  gameState.boosters.bomb    += (stars >= 2 ? 1 : 0);
   gameState.boosters.shuffle += (stars >= 3 ? 1 : 0);
-
   gameState.gold += 10 * stars;
   localStorage.setItem("chrono_gold", gameState.gold);
 
@@ -861,7 +879,7 @@ function win() {
 }
 
 /* ============================================================
-   NAVIGATION HELPERS
+   NAV HELPERS
    ============================================================ */
 function exitToHome() {
   gameState.isGameActive = false;
@@ -888,9 +906,7 @@ function triggerFlashAnimation() {
   setTimeout(() => f.classList.remove('active'), 300);
 }
 
-function openSettingsModal() {
-  toggleModal('settingsModal', true);
-}
+function openSettingsModal() { toggleModal('settingsModal', true); }
 
 /* ============================================================
    SETTINGS
@@ -898,21 +914,14 @@ function openSettingsModal() {
 function togglePreference(p) {
   gameState.preferences[p] = !gameState.preferences[p];
   localStorage.setItem("chrono_preferences", JSON.stringify(gameState.preferences));
-
-  const btn = document.getElementById(`toggle${p.charAt(0).toUpperCase() + p.slice(1)}Btn`);
+  const btn = document.getElementById(`toggle${p.charAt(0).toUpperCase()+p.slice(1)}Btn`);
   if (btn) {
     btn.classList.toggle('active', gameState.preferences[p]);
     btn.innerText = gameState.preferences[p] ? "ON" : "OFF";
   }
-
   if (p === 'sound') {
-    if (!gameState.preferences.sound) {
-      stopEraMusic();
-    } else {
-      gameState.currentTrackEra = null;
-      const era = getCurrentEraForLevel(gameState.isGameActive ? gameState.currentLevel : gameState.highestUnlockedLevel);
-      startEraMusic(era.name);
-    }
+    if (!gameState.preferences.sound) stopSpaceMusic();
+    else startSpaceMusic();
   }
 }
 
@@ -927,38 +936,16 @@ function resetGameProgress() {
    SHOP
    ============================================================ */
 function buyItem(type, cost) {
-  if (gameState.gold < cost) {
-    alert("Not enough gold! Win levels or claim free gold to earn more.");
-    return;
-  }
-
+  if (gameState.gold < cost) { alert("Not enough gold!"); return; }
   gameState.gold -= cost;
-
   switch (type) {
-    case 'lives':
-      gameState.lives = Math.min(99, gameState.lives + 5);
-      localStorage.setItem("chrono_lives", gameState.lives);
-      break;
-    case 'hammer':
-      gameState.boosters.hammer += 3;
-      break;
-    case 'bomb':
-      gameState.boosters.bomb += 3;
-      break;
-    case 'shuffle':
-      gameState.boosters.shuffle += 3;
-      break;
-    case 'moves':
-      if (gameState.isGameActive) {
-        gameState.moves += 5;
-        document.getElementById("movesDisplay").innerText = gameState.moves;
-      }
-      break;
-    case 'gold':
-      gameState.gold += 500;
-      break;
+    case 'lives':   gameState.lives = Math.min(99, gameState.lives + 5); localStorage.setItem("chrono_lives", gameState.lives); break;
+    case 'hammer':  gameState.boosters.hammer  += 3; break;
+    case 'bomb':    gameState.boosters.bomb    += 3; break;
+    case 'shuffle': gameState.boosters.shuffle += 3; break;
+    case 'moves':   if (gameState.isGameActive) { gameState.moves += 5; document.getElementById("movesDisplay").innerText = gameState.moves; } break;
+    case 'gold':    gameState.gold += 500; break;
   }
-
   localStorage.setItem("chrono_gold", gameState.gold);
   document.getElementById("profileGold").innerText = gameState.gold;
   updateBoosterUI();
@@ -971,18 +958,11 @@ function buyItem(type, cost) {
 function copyInviteLink() {
   const link = window.location.href.split('?')[0];
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(link).then(() => {
-      alert("Invite link copied! Share it with your friends.");
-    }).catch(() => {
-      alert("Couldn't copy automatically. Link: " + link);
-    });
-  } else {
-    alert("Link: " + link);
-  }
+    navigator.clipboard.writeText(link).then(() => alert("Invite link copied!")).catch(() => alert("Link: " + link));
+  } else { alert("Link: " + link); }
 }
 
 function shareToFacebook() {
   const link = encodeURIComponent(window.location.href.split('?')[0]);
-  const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${link}`;
-  window.open(shareUrl, '_blank', 'width=600,height=400');
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${link}`, '_blank', 'width=600,height=400');
 }
