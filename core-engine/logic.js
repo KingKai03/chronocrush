@@ -361,6 +361,7 @@ function loadHomepage() {
   });
 
   startSpaceMusic();
+  checkDailyBadge();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
     if (an) an.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -698,6 +699,7 @@ function win() {
     localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel);
   }
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
+  trackDailyWin();
   switchView("homePage");
   toggleModal('levelSuccessModal', true);
 }
@@ -790,4 +792,233 @@ function copyInviteLink() {
 }
 function shareToFacebook() {
   window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href.split('?')[0])}`, '_blank', 'width=600,height=400');
+}
+
+
+/* ============================================================
+   AWARDS PAGE
+   ============================================================ */
+
+// Trophy tier based on average stars across all levels in an era
+function getEraTrophy(era) {
+  const levelRecords = gameState.levelRecords;
+  let totalStars = 0;
+  let completedLevels = 0;
+
+  for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
+    if (levelRecords[lvl]) {
+      totalStars += levelRecords[lvl];
+      completedLevels++;
+    }
+  }
+
+  const totalLevels = era.endLvl - era.startLvl + 1;
+  if (completedLevels < totalLevels) return { tier: 'locked', completedLevels, totalLevels, totalStars };
+
+  const avgStars = totalStars / totalLevels;
+  if (avgStars >= 2.5) return { tier: 'gold',   completedLevels, totalLevels, totalStars };
+  if (avgStars >= 1.8) return { tier: 'silver', completedLevels, totalLevels, totalStars };
+  return                      { tier: 'bronze', completedLevels, totalLevels, totalStars };
+}
+
+const ERA_ICONS = ['🎷','🎸','☮️','🪩','🎮','📀','💿'];
+const TROPHY_ICONS = { gold: '🥇', silver: '🥈', bronze: '🥉', locked: '🔒' };
+const TROPHY_LABELS = { gold: 'GOLD', silver: 'SILVER', bronze: 'BRONZE', locked: 'LOCKED' };
+
+function openAwardsPage() {
+  const body = document.getElementById('awardsBody');
+  if (!body) return;
+
+  let html = `<p class="awards-intro">Complete all 10 levels of an era to earn a trophy.<br>Higher average stars = better trophy.</p>`;
+  html += `<div class="era-trophy-grid">`;
+
+  eraTimeline.forEach((era, idx) => {
+    const result = getEraTrophy(era);
+    const { tier, completedLevels, totalLevels, totalStars } = result;
+    const pct = Math.round((completedLevels / totalLevels) * 100);
+
+    // Star display
+    const maxStars = totalLevels * 3;
+    const starPct = tier !== 'locked' ? Math.round((totalStars / maxStars) * 100) : Math.round((completedLevels / totalLevels) * 100);
+
+    let starsHtml = '';
+    if (tier !== 'locked') {
+      const avg = totalStars / totalLevels;
+      const fullStars = Math.floor(avg);
+      starsHtml = '📀'.repeat(fullStars) + (avg % 1 >= 0.5 ? '⭐' : '') ;
+    }
+
+    html += `
+      <div class="era-trophy-card trophy-${tier}">
+        <div class="trophy-icon-wrap">${ERA_ICONS[idx]}</div>
+        <div class="trophy-info">
+          <h3>${era.name}</h3>
+          <div class="trophy-sub">Levels ${era.startLvl}–${era.endLvl}</div>
+          ${tier !== 'locked'
+            ? `<div class="trophy-stars">${starsHtml} &nbsp;<span style="font-size:0.68rem;color:var(--text-dim)">${totalStars}/${maxStars} stars</span></div>`
+            : `<div class="trophy-level-progress">
+                <span style="font-size:0.68rem;color:var(--text-dim)">${completedLevels}/${totalLevels} levels complete</span>
+                <div class="trophy-level-bar-wrap"><div class="trophy-level-bar-fill" style="width:${pct}%"></div></div>
+               </div>`
+          }
+        </div>
+        <div>
+          <div style="font-size:1.6rem;text-align:center">${TROPHY_ICONS[tier]}</div>
+          <div class="trophy-badge-label">${TROPHY_LABELS[tier]}</div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>`;
+  body.innerHTML = html;
+  switchView('awardsPage');
+}
+
+/* ============================================================
+   DAILY CHALLENGE PAGE
+   ============================================================ */
+
+// Seed daily challenges from the date so everyone gets the same ones each day
+function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+function seededRand(seed, n) {
+  // Simple LCG
+  const val = ((seed * 1664525 + 1013904223) & 0xffffffff) >>> 0;
+  return val % n;
+}
+
+function getDailyTasks() {
+  const seed = getDailySeed();
+  const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
+  const eraIdx = eraTimeline.indexOf(currentEra);
+
+  // Task 1: Complete current era (big challenge)
+  const eraResult = getEraTrophy(currentEra);
+  const eraComplete = eraResult.tier !== 'locked';
+
+  // Task 2: Win any 3 levels today
+  const dailyWinsKey = `chrono_daily_wins_${getDailySeed()}`;
+  const dailyWins = parseInt(localStorage.getItem(dailyWinsKey)) || 0;
+
+  // Task 3: Get a 3-star on a specific level (seeded to today)
+  const targetLvl = currentEra.startLvl + seededRand(seed, 10);
+  const has3Star  = (gameState.levelRecords[targetLvl] || 0) >= 3;
+
+  return [
+    {
+      id: 'complete_era',
+      icon: ERA_ICONS[eraIdx] || '🎯',
+      title: `Complete: ${currentEra.name}`,
+      desc: `Finish all 10 levels of the ${currentEra.name} era`,
+      reward: '🥇 Gold Trophy',
+      rewardKey: 'trophy',
+      done: eraComplete,
+      progress: eraResult.completedLevels,
+      total: 10
+    },
+    {
+      id: 'win_3_levels',
+      icon: '🎮',
+      title: 'Win 3 Levels Today',
+      desc: 'Complete any 3 levels before midnight',
+      reward: '🪙 +60 Gold',
+      rewardKey: 'gold_60',
+      done: dailyWins >= 3,
+      progress: Math.min(dailyWins, 3),
+      total: 3
+    },
+    {
+      id: 'three_star',
+      icon: '📀',
+      title: `3-Star Level ${targetLvl}`,
+      desc: `Score high enough to earn 3 stars on Level ${targetLvl}`,
+      reward: '🪙 +40 Gold',
+      rewardKey: 'gold_40',
+      done: has3Star,
+      progress: has3Star ? 1 : 0,
+      total: 1
+    }
+  ];
+}
+
+function msUntilMidnight() {
+  const now  = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return next - now;
+}
+
+function formatTimeLeft(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
+
+function openDailyChallenge() {
+  const body  = document.getElementById('dailyChallengeBody');
+  if (!body) return;
+
+  const tasks   = getDailyTasks();
+  const timeLeft = msUntilMidnight();
+  const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
+
+  let html = `
+    <div class="daily-hero">
+      <div class="daily-era-icon">${ERA_ICONS[eraTimeline.indexOf(currentEra)]}</div>
+      <div class="daily-title">Today's Challenge</div>
+      <div class="daily-era-name">${currentEra.name}</div>
+      <div class="daily-desc">Complete today's missions to earn trophies and gold.<br>Challenges reset daily.</div>
+    </div>
+    <div class="daily-reset-timer">Resets in <span>${formatTimeLeft(timeLeft)}</span></div>
+    <div class="daily-tasks-list">`;
+
+  tasks.forEach(task => {
+    const pct = Math.round((task.progress / task.total) * 100);
+    html += `
+      <div class="daily-task-card ${task.done ? 'task-done' : ''}">
+        <div class="task-icon">${task.icon}</div>
+        <div class="task-info">
+          <h3>${task.title}</h3>
+          <p>${task.desc}</p>
+          <div class="daily-progress-bar-wrap">
+            <div class="daily-progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+          <p style="font-size:0.65rem;margin-top:4px;color:var(--text-dim)">${task.progress} / ${task.total}</p>
+        </div>
+        <div class="task-reward">${task.reward}</div>
+      </div>`;
+  });
+
+  html += `</div>`;
+  body.innerHTML = html;
+
+  // Show/hide red dot badge on footer
+  const allDone = tasks.every(t => t.done);
+  const badge   = document.getElementById('dailyBadge');
+  if (badge) badge.style.display = allDone ? 'none' : 'block';
+
+  switchView('dailyPage');
+}
+
+// Call this after every level win to track daily wins
+function trackDailyWin() {
+  const key = `chrono_daily_wins_${getDailySeed()}`;
+  const wins = (parseInt(localStorage.getItem(key)) || 0) + 1;
+  localStorage.setItem(key, wins);
+
+  // Auto-reward gold for daily win task completion
+  if (wins === 3) {
+    gameState.gold += 60;
+    localStorage.setItem("chrono_gold", gameState.gold);
+  }
+}
+
+// Check if daily badge should show on load
+function checkDailyBadge() {
+  const tasks  = getDailyTasks();
+  const allDone = tasks.every(t => t.done);
+  const badge  = document.getElementById('dailyBadge');
+  if (badge) badge.style.display = allDone ? 'none' : 'block';
 }
