@@ -146,13 +146,36 @@ function onTileClick(e) {
   }
 }
 
-function popTileAnimation(r, c) {
+function getTile(r, c) {
   const board = document.getElementById('domBoard');
-  if (!board) return;
-  const tile = board.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+  return board ? board.querySelector(`[data-r="${r}"][data-c="${c}"]`) : null;
+}
+
+function animateMatch(r, c) {
+  const tile = getTile(r, c);
   if (!tile) return;
-  tile.classList.add('popping');
-  setTimeout(() => tile.classList.remove('popping'), 200);
+  tile.classList.remove('dropping','swapping');
+  tile.classList.add('matched');
+}
+
+function animateDrop(r, c) {
+  const tile = getTile(r, c);
+  if (!tile) return;
+  // Remove then re-add to restart animation
+  tile.classList.remove('dropping');
+  void tile.offsetWidth; // reflow
+  tile.classList.add('dropping');
+  // Clean up after done
+  setTimeout(() => tile.classList.remove('dropping'), 360);
+}
+
+function animateSwap(r, c) {
+  const tile = getTile(r, c);
+  if (!tile) return;
+  tile.classList.remove('swapping');
+  void tile.offsetWidth;
+  tile.classList.add('swapping');
+  setTimeout(() => tile.classList.remove('swapping'), 160);
 }
 
 /* ============================================================
@@ -489,11 +512,12 @@ function useShuffleBooster() {
 function useHammerOnTile(r, c) {
   if (gameState.boosters.hammer <= 0) return;
   gameState.boosters.hammer--;
-  destroyTile(r, c, getCurrentEraForLevel(gameState.currentLevel).items);
+  const era = getCurrentEraForLevel(gameState.currentLevel);
+  destroyTile(r, c, era.items);
   gameState.activeBooster = null;
   triggerVibration(60);
   updateBoosterUI();
-  afterMatch();
+  setTimeout(() => cascadeColumns(era.items), 270);
 }
 
 function useBombOnTile(r, c) {
@@ -509,13 +533,13 @@ function useBombOnTile(r, c) {
   gameState.activeBooster = null;
   triggerVibration([80,40,80]);
   updateBoosterUI();
-  afterMatch();
+  setTimeout(() => cascadeColumns(era.items), 270);
 }
 
 function destroyTile(r, c, itemSet) {
   if (gameState.grid[r][c] === gameState.challengeTarget?.item) gameState.challengeProgress++;
-  popTileAnimation(r, c);
-  setTimeout(() => { gameState.grid[r][c] = randomItem(itemSet); renderBoard(); }, 200);
+  animateMatch(r, c);
+  gameState.grid[r][c] = null;
 }
 
 /* ============================================================
@@ -530,7 +554,9 @@ function swapTiles(r1, c1, r2, c2) {
   triggerVibration(40);
   gameState.selectedTile = null;
   renderBoard();
-  setTimeout(checkChallengeAndScore, 120);
+  animateSwap(r1, c1);
+  animateSwap(r2, c2);
+  setTimeout(checkChallengeAndScore, 180);
 }
 
 function findBoardMatches() {
@@ -555,27 +581,81 @@ function findBoardMatches() {
   });
 }
 
+/* ── Core cascade loop ────────────────────────────────────────────────────
+   1. Find matches → flash them gold → shrink to nothing  (250ms)
+   2. Drop existing tiles down to fill gaps               (320ms)
+   3. Drop new tiles in from above                        (320ms)
+   4. Check for new matches (chain reaction)              (loop)
+   ──────────────────────────────────────────────────────────────────── */
 function checkChallengeAndScore() {
   const matches = findBoardMatches();
-  if (matches.length > 0) {
-    gameState.score += matches.length * 50;
-    document.getElementById("scoreDisplay").innerText = gameState.score;
-    triggerVibration([60,40,60]);
-    const era = getCurrentEraForLevel(gameState.currentLevel);
-    matches.forEach(pos => {
-      if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
-        gameState.challengeProgress++;
-      popTileAnimation(pos.r, pos.c);
-    });
-    updateChallengeBanner();
-    setTimeout(() => {
-      matches.forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(era.items); });
-      renderBoard();
-      setTimeout(checkChallengeAndScore, 150);
-    }, 200);
-    return;
+  if (matches.length === 0) { evaluateLevelEndConditions(); return; }
+
+  // Score + challenge tracking
+  gameState.score += matches.length * 50;
+  document.getElementById("scoreDisplay").innerText = gameState.score;
+  triggerVibration([60, 40, 60]);
+
+  const era = getCurrentEraForLevel(gameState.currentLevel);
+  const matchedSet = new Set();
+
+  matches.forEach(pos => {
+    const key = `${pos.r},${pos.c}`;
+    if (matchedSet.has(key)) return;
+    matchedSet.add(key);
+    if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
+      gameState.challengeProgress++;
+    // 1. Flash + shrink animation
+    animateMatch(pos.r, pos.c);
+    // Mark grid cell as empty
+    gameState.grid[pos.r][pos.c] = null;
+  });
+
+  updateChallengeBanner();
+
+  // 2. After match animation: cascade columns down, then refill from top
+  setTimeout(() => {
+    cascadeColumns(era.items);
+  }, 270);
+}
+
+function cascadeColumns(itemSet) {
+  // For each column, compact non-null tiles to the bottom, fill top with new
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    // Collect surviving tiles bottom-up
+    const surviving = [];
+    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      if (gameState.grid[r][c] !== null) surviving.push(gameState.grid[r][c]);
+    }
+    // How many new tiles needed
+    const needed = BOARD_SIZE - surviving.length;
+    // Fill from bottom: surviving first, then new items on top
+    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      const idx = BOARD_SIZE - 1 - r; // 0 = bottom row
+      if (idx < surviving.length) {
+        gameState.grid[r][c] = surviving[idx];
+      } else {
+        gameState.grid[r][c] = randomItem(itemSet);
+      }
+    }
   }
-  evaluateLevelEndConditions();
+
+  // Render the new grid state, then play drop animations on changed tiles
+  renderBoard();
+
+  // Animate every tile with a staggered drop — feels like they fall from above
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const tile = getTile(r, c);
+      if (!tile) continue;
+      // Stagger by row (top rows fall furthest, slight delay per row)
+      const delay = r * 28;
+      setTimeout(() => animateDrop(r, c), delay);
+    }
+  }
+
+  // Check for chain matches after tiles have settled
+  setTimeout(checkChallengeAndScore, 420);
 }
 
 function afterMatch() {
