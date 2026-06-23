@@ -178,6 +178,20 @@
   </div>
 
   <!-- ============================================================
+       LEVEL TRANSITION SCREEN
+       Two panels slide in from top + bottom and meet in the middle,
+       then a record spins with "LOADING!" text, then level starts.
+       ============================================================ -->
+  <div id="levelTransitionScreen" class="full-screen-view level-transition-screen">
+    <div class="transition-panel-top" id="transitionPanelTop"></div>
+    <div class="transition-panel-bottom" id="transitionPanelBottom"></div>
+    <div class="transition-center-content" id="transitionCenter">
+      <div class="transition-record" id="transitionRecord">💿</div>
+      <div class="transition-loading-text">LOADING<span class="transition-exclaim">!</span></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        GAMEPLAY SCREEN
        ============================================================ -->
   <div id="gamePlayScreen" class="full-screen-view">
