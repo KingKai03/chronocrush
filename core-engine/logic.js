@@ -98,26 +98,19 @@ function boot() {
 }
 
 /* ============================================================
-   CANVAS RESIZE — keeps internal resolution matching CSS size
-   so emoji render at the correct position and scale.
+   CANVAS RESIZE
+   Fixed 360x360 logical buffer. CSS stretches it to fill the
+   wrapper. No DPR scaling — it stacks on repeated calls and
+   shrinks emojis into invisibility.
    ============================================================ */
 function resizeCanvas() {
   if (!canvas) return;
-
-  const wrapper = canvas.parentElement;
-  const size    = wrapper ? Math.min(wrapper.clientWidth - 16, 380) : 320;
-
-  CANVAS_PX = size;
-  TILE_PX   = CANVAS_PX / BOARD_SIZE;
-
-  // Set the actual pixel buffer to match display size (avoids DPI blur)
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width  = Math.round(CANVAS_PX * dpr);
-  canvas.height = Math.round(CANVAS_PX * dpr);
-  canvas.style.width  = CANVAS_PX + "px";
-  canvas.style.height = CANVAS_PX + "px";
-
-  if (ctx) ctx.scale(dpr, dpr);
+  CANVAS_PX    = 360;
+  TILE_PX      = CANVAS_PX / BOARD_SIZE;  // 60px per tile
+  canvas.width  = CANVAS_PX;
+  canvas.height = CANVAS_PX;
+  // Re-acquire context — resizing the buffer resets it
+  ctx = canvas.getContext("2d");
 }
 
 function syncSettingsUI() {
@@ -549,47 +542,53 @@ function resolveSilentMatches(itemSet) {
 function updateAndDrawBoard() {
   if (!canvas || !ctx || !gameState.isGameActive) return;
 
-  // Clear the logical area (ctx is already scaled by DPR)
   ctx.clearRect(0, 0, CANVAS_PX, CANVAS_PX);
 
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const x = c * TILE_PX;
-      const y = r * TILE_PX;
+      const x = Math.round(c * TILE_PX);
+      const y = Math.round(r * TILE_PX);
+      const w = Math.round(TILE_PX);
 
-      // Tile background — clearly visible teal-blue
+      // Tile background — solid, bright enough to see emojis
       const isEven = (r + c) % 2 === 0;
-      ctx.fillStyle = isEven ? '#2a4255' : '#243a4a';
-      ctx.fillRect(x, y, TILE_PX, TILE_PX);
+      ctx.fillStyle = isEven ? '#2e4f65' : '#284758';
+      ctx.fillRect(x, y, w, w);
 
-      // Top + left inner highlight
-      ctx.fillStyle = 'rgba(255,255,255,0.06)';
-      ctx.fillRect(x, y, TILE_PX, 2);
-      ctx.fillRect(x, y, 2, TILE_PX);
+      // Subtle top-left highlight edge
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.fillRect(x, y, w, 2);
+      ctx.fillRect(x, y, 2, w);
 
       // Grid line
-      ctx.strokeStyle = '#19303d';
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
       ctx.lineWidth   = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, TILE_PX - 1, TILE_PX - 1);
+      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, w - 1);
 
-      // Selected highlight
+      // Selected tile glow
       if (gameState.selectedTile &&
           gameState.selectedTile.r === r &&
           gameState.selectedTile.c === c) {
-        ctx.fillStyle = 'rgba(212,175,55,0.38)';
-        ctx.fillRect(x, y, TILE_PX, TILE_PX);
-        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
-        ctx.lineWidth   = 2.5;
-        ctx.strokeRect(x + 1.5, y + 1.5, TILE_PX - 3, TILE_PX - 3);
+        ctx.fillStyle = 'rgba(212,175,55,0.40)';
+        ctx.fillRect(x, y, w, w);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth   = 3;
+        ctx.strokeRect(x + 1.5, y + 1.5, w - 3, w - 3);
       }
 
-      // Emoji — sized relative to tile
-      const fontSize = Math.floor(TILE_PX * 0.52);
+      // Emoji — large, centred, with no extra transforms
       if (gameState.grid[r] && gameState.grid[r][c]) {
-        ctx.font          = `${fontSize}px Arial, sans-serif`;
+        const fontSize = Math.floor(w * 0.56);
+        ctx.font          = `${fontSize}px serif`;
         ctx.textAlign     = 'center';
         ctx.textBaseline  = 'middle';
-        ctx.fillText(gameState.grid[r][c], x + TILE_PX / 2, y + TILE_PX / 2 + 1);
+        ctx.shadowColor   = 'rgba(0,0,0,0)';  // no shadow — keep crisp
+        ctx.shadowBlur    = 0;
+        ctx.fillText(
+          gameState.grid[r][c],
+          x + w / 2,
+          y + w / 2 + 1
+        );
       }
     }
   }
