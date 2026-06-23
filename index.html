@@ -2,12 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 </head>
 <body onclick="initAudio()">
 
+  <!-- ============================================================
+       COSMIC BACKDROP — navy starfield + drifting clouds
+       Sits behind every screen via z-index: 0
+       ============================================================ -->
+  <div id="cosmicBackdrop">
+    <div id="starLayer"></div>
+    <div class="cloud-drift cloud1"></div>
+    <div class="cloud-drift cloud2"></div>
+    <div class="cloud-drift cloud3"></div>
+    <div class="cloud-drift cloud4"></div>
+  </div>
+
+  <!-- ============================================================
+       LOADING SCREEN
+       ============================================================ -->
   <div id="loadingScreen" class="full-screen-view active">
     <div class="loader-content">
       <div class="spinning-record">💿</div>
@@ -15,6 +30,9 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       AUTH SCREEN
+       ============================================================ -->
   <div id="authScreen" class="full-screen-view">
     <div class="auth-card">
       <h1 class="game-brand-title">CHRONOCRUSH</h1>
@@ -25,6 +43,9 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       WELCOME SCREEN
+       ============================================================ -->
   <div id="welcomeScreen" class="full-screen-view">
     <div class="welcome-card">
       <h1 class="game-brand-title">CHRONOCRUSH</h1>
@@ -33,14 +54,10 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       HOME / MAP PAGE
+       ============================================================ -->
   <div id="homePage" class="full-screen-view">
-    <div class="cloud-layer">
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
-      <div class="cloud">☁️</div>
-    </div>
-    
     <header class="app-status-bar">
       <div class="header-left-status">
         <div class="status-indicator-pill lives-pill">❤️ <span id="livesCounter">5</span></div>
@@ -50,47 +67,165 @@
     </header>
 
     <main class="map-scroll-viewport">
+      <!-- Top-left corner badge: black record disk showing current/next level + lives -->
+      <div class="map-corner-badge">
+        <div class="mini-record-disk" id="mapCornerLevelDisk">1</div>
+        <span class="badge-lives">❤️ <span id="mapCornerLives">5</span></span>
+      </div>
+
       <div class="zig-zag-map" id="mapLayer"></div>
     </main>
 
     <footer class="app-footer-navigation">
-      <button class="footer-tab-btn" onclick="switchView('shopPage')">🛒 Shop</button>
-      <button class="footer-tab-btn" onclick="switchView('friendsPage')">👥 Add Friends</button>
+      <button class="footer-tab-btn" onclick="switchView('shopPage')">
+        <span class="tab-icon">🛒</span><span>Shop</span>
+      </button>
+      <button class="footer-tab-btn" onclick="switchView('friendsPage')">
+        <span class="tab-icon">👥</span><span>Friends</span>
+      </button>
+      <button class="footer-tab-btn locked" onclick="switchView('awardsPage')">
+        <span class="tab-icon">🏆</span><span>Awards</span>
+      </button>
     </footer>
   </div>
 
+  <!-- ============================================================
+       SHOP PAGE
+       ============================================================ -->
   <div id="shopPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>TIME SHOP</h2></header>
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>TIME SHOP</h2>
+    </header>
     <div class="subpage-body scrollable-content">
-      <div class="shop-item-card"><h3>❤️ Extra Lives</h3><button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button></div>
+      <div class="shop-grid">
+
+        <div class="shop-item-card">
+          <div class="shop-icon">❤️</div>
+          <h3>5 Extra Lives</h3>
+          <p>Refill your lives instantly</p>
+          <button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-icon">🔨</div>
+          <h3>Hammer x3</h3>
+          <p>Smash any single tile</p>
+          <button class="buy-btn" onclick="buyItem('hammer', 40)">🪙 40</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-icon">💣</div>
+          <h3>Time Bomb x3</h3>
+          <p>Clears a 3x3 area</p>
+          <button class="buy-btn" onclick="buyItem('bomb', 60)">🪙 60</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-icon">🔀</div>
+          <h3>Shuffle x3</h3>
+          <p>Reshuffles the whole board</p>
+          <button class="buy-btn" onclick="buyItem('shuffle', 30)">🪙 30</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-icon">➕</div>
+          <h3>+5 Moves</h3>
+          <p>Extra moves for this level</p>
+          <button class="buy-btn" onclick="buyItem('moves', 35)">🪙 35</button>
+        </div>
+
+        <div class="shop-item-card">
+          <div class="shop-icon">🪙</div>
+          <h3>500 Gold</h3>
+          <p>Top up your gold pouch</p>
+          <button class="buy-btn" onclick="buyItem('gold', 0)">FREE</button>
+        </div>
+
+      </div>
     </div>
   </div>
 
+  <!-- ============================================================
+       FRIENDS PAGE
+       ============================================================ -->
   <div id="friendsPage" class="full-screen-view generic-subpage">
-    <header class="subpage-header"><button class="btn-back" onclick="loadHomepage()">◀ Back</button><h2>ADD FRIENDS</h2></header>
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>ADD FRIENDS</h2>
+    </header>
     <div class="subpage-body center-content">
-      <button class="social-action-btn link-green" onclick="alert('Link Copied!')">🔗 Copy Invite Link</button>
+      <div class="coming-soon-art">👥</div>
+      <p class="coming-soon-text">Invite friends and travel through time together!</p>
+      <button class="social-action-btn link-green" onclick="copyInviteLink()">🔗 Copy Invite Link</button>
+      <button class="social-action-btn link-facebook" onclick="shareToFacebook()">📘 Share on Facebook</button>
     </div>
   </div>
 
+  <!-- ============================================================
+       AWARDS PAGE (Coming Soon)
+       ============================================================ -->
+  <div id="awardsPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>AWARDS</h2>
+    </header>
+    <div class="subpage-body center-content">
+      <div class="coming-soon-art">🏆</div>
+      <h2 style="color: var(--gold-bright); letter-spacing: 1px;">Coming Soon</h2>
+      <p class="coming-soon-text">Trophies and achievements are on their way through the timeline.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GAMEPLAY SCREEN
+       ============================================================ -->
   <div id="gamePlayScreen" class="full-screen-view">
     <header class="gameplay-header">
       <button class="btn-back" onclick="exitToHome()">◀ Leave</button>
       <div class="current-era-title" id="activeEraName">Level 1</div>
+      <div style="width: 70px;"></div>
     </header>
-    
+
     <div class="gameplay-core-layout">
       <div class="gameplay-stats-panel">
-        <div class="mini-stat-card"><span class="label">MOVES</span><span id="movesDisplay" class="val">22</span></div>
+        <div class="mini-stat-card"><span class="label">MOVES</span><span id="movesDisplay" class="val">20</span></div>
         <div class="mini-stat-card"><span class="label">TARGET</span><span id="targetDisplay" class="val">500</span></div>
         <div class="mini-stat-card"><span class="label">SCORE</span><span id="scoreDisplay" class="val">0</span></div>
       </div>
+
+      <div class="challenge-banner" id="challengeBanner">Clear 10 📻 Radios to pass!</div>
+
+      <div class="booster-tray">
+        <button class="booster-btn" id="boosterHammerBtn" onclick="selectBooster('hammer')">
+          <span class="booster-icon">🔨</span><span class="booster-count" id="hammerCount">3</span>
+        </button>
+        <button class="booster-btn" id="boosterBombBtn" onclick="selectBooster('bomb')">
+          <span class="booster-icon">💣</span><span class="booster-count" id="bombCount">3</span>
+        </button>
+        <button class="booster-btn" id="boosterShuffleBtn" onclick="selectBooster('shuffle')">
+          <span class="booster-icon">🔀</span><span class="booster-count" id="shuffleCount">3</span>
+        </button>
+      </div>
+
       <div class="canvas-board-wrapper">
         <canvas id="gameCanvas" width="320" height="320"></canvas>
       </div>
     </div>
   </div>
 
+  <!-- ============================================================
+       ERA UNLOCK TOAST
+       ============================================================ -->
+  <div id="eraUnlockToast">
+    <div class="toast-icon">🌀</div>
+    <div class="toast-label">New Era Unlocked</div>
+    <div class="toast-era-name" id="eraToastName">1950s Rockabilly</div>
+  </div>
+
+  <!-- ============================================================
+       LEVEL READY MODAL — record disc, do not change structure
+       ============================================================ -->
   <div id="levelReadyModal" class="modal-overlay">
     <div class="record-modal-disc">
       <div class="record-center-label">
@@ -103,6 +238,9 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       LEVEL SUCCESS MODAL — record disc + fireworks, do not change
+       ============================================================ -->
   <div id="levelSuccessModal" class="modal-overlay">
     <canvas id="fireworksCanvas"></canvas>
     <div class="record-modal-disc gold-disc">
@@ -119,6 +257,9 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       SETTINGS MODAL
+       ============================================================ -->
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-window">
       <button class="modal-close-x" onclick="toggleModal('settingsModal', false)">✕</button>
