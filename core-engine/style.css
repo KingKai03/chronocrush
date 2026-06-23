@@ -604,33 +604,64 @@ body {
 .booster-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ============================================================
-   CANVAS BOARD WRAPPER
+   DOM BOARD GRID — replaces canvas entirely
    ============================================================ */
-.canvas-board-wrapper {
-  background: #1a2a35;
+.dom-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px;
+  background: #111e26;
   border: 3px solid var(--border-color);
   border-radius: 14px;
   padding: 8px;
   margin: 0 auto;
+  width: calc(100% - 20px);
+  max-width: 380px;
+  aspect-ratio: 1 / 1;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+}
+
+.board-tile {
+  background: #2e4f65;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 20px);
-  max-width: 380px;
+  font-size: clamp(20px, 5vw, 36px);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s ease, background 0.08s ease;
+  border: 2px solid transparent;
+  position: relative;
+  aspect-ratio: 1 / 1;
+  line-height: 1;
 }
 
-/* Canvas: JS sets width/height attributes (360x360).
-   CSS scales it to fill the wrapper without distorting
-   click-coord math — we use getBoundingClientRect() scaling. */
-canvas {
-  display: block;
-  border-radius: 6px;
-  background: #243545;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1 / 1;
-  image-rendering: pixelated;
+.board-tile:nth-child(odd) {
+  background: #284758;
+}
+
+.board-tile:active {
+  transform: scale(0.88);
+}
+
+.board-tile.selected {
+  background: rgba(212,175,55,0.38) !important;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255,215,0,0.5);
+  transform: scale(1.06);
+}
+
+.board-tile.popping {
+  animation: tilePop 0.18s ease forwards;
+}
+
+@keyframes tilePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  100% { transform: scale(0); opacity: 0; }
 }
 
 /* ============================================================
