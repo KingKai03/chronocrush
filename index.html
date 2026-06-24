@@ -77,7 +77,7 @@
     </main>
 
     <footer class="app-footer-navigation">
-      <button class="footer-tab-btn" onclick="switchView('shopPage')">
+      <button class="footer-tab-btn" onclick="openShopPage()">
         <span class="tab-icon">🛒</span><span>Shop</span>
       </button>
       <button class="footer-tab-btn" onclick="openDailyChallenge()">
@@ -103,54 +103,122 @@
   <div id="shopPage" class="full-screen-view generic-subpage">
     <header class="subpage-header">
       <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
-      <h2>TIME SHOP</h2>
+      <h2>🛒 TIME SHOP</h2>
     </header>
     <div class="subpage-body scrollable-content">
+
+      <!-- Gold balance banner -->
+      <div class="shop-balance-bar">
+        <span class="shop-balance-label">Your Balance</span>
+        <span class="shop-balance-amount">🪙 <span id="shopGoldDisplay">0</span></span>
+      </div>
+
+      <!-- ── Section 1: Spend gold ──────────────────────────────── -->
+      <div class="shop-section-label">⚡ Power-Ups  <span>spend your gold</span></div>
       <div class="shop-grid">
 
         <div class="shop-item-card">
           <div class="shop-icon">❤️</div>
           <h3>5 Extra Lives</h3>
           <p>Refill your lives instantly</p>
-          <button class="buy-btn" onclick="buyItem('lives', 50)">🪙 50</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('lives', 50)">🪙 50</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">🔨</div>
-          <h3>Hammer x3</h3>
+          <h3>Hammer ×3</h3>
           <p>Smash any single tile</p>
-          <button class="buy-btn" onclick="buyItem('hammer', 40)">🪙 40</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('hammer', 40)">🪙 40</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">💣</div>
-          <h3>Time Bomb x3</h3>
-          <p>Clears a 3x3 area</p>
-          <button class="buy-btn" onclick="buyItem('bomb', 60)">🪙 60</button>
+          <h3>Time Bomb ×3</h3>
+          <p>Clears a 3×3 area instantly</p>
+          <button class="buy-btn gold-buy" onclick="buyItem('bomb', 60)">🪙 60</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">🔀</div>
-          <h3>Shuffle x3</h3>
+          <h3>Shuffle ×3</h3>
           <p>Reshuffles the whole board</p>
-          <button class="buy-btn" onclick="buyItem('shuffle', 30)">🪙 30</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('shuffle', 30)">🪙 30</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">➕</div>
           <h3>+5 Moves</h3>
-          <p>Extra moves for this level</p>
-          <button class="buy-btn" onclick="buyItem('moves', 35)">🪙 35</button>
+          <p>Bonus moves for this level</p>
+          <button class="buy-btn gold-buy" onclick="buyItem('moves', 35)">🪙 35</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">🪙</div>
-          <h3>500 Gold</h3>
-          <p>Top up your gold pouch</p>
-          <button class="buy-btn" onclick="buyItem('gold', 0)">FREE</button>
+          <div class="shop-icon">🛡️</div>
+          <h3>Life Shield</h3>
+          <p>Don't lose a life on your next fail</p>
+          <button class="buy-btn gold-buy" onclick="buyItem('shield', 80)">🪙 80</button>
         </div>
 
       </div>
+
+      <!-- ── Section 2: Buy gold with real money ────────────────── -->
+      <div class="shop-section-label">💎 Buy Gold  <span>top up with real money</span></div>
+      <p class="shop-iap-note">Secure payments via PayFast · South African Rand (ZAR)</p>
+
+      <div class="shop-iap-grid">
+
+        <div class="shop-iap-card">
+          <div class="iap-coins">🪙 500</div>
+          <div class="iap-label">Starter Pouch</div>
+          <div class="iap-price">R 50</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('500gold', 50, 500)">Buy Now</button>
+        </div>
+
+        <div class="shop-iap-card iap-popular">
+          <div class="iap-popular-badge">BEST VALUE</div>
+          <div class="iap-coins">🪙 1,000</div>
+          <div class="iap-label">Gold Pouch</div>
+          <div class="iap-price">R 100</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 100, 1000)">Buy Now</button>
+        </div>
+
+        <div class="shop-iap-card">
+          <div class="iap-coins">🪙 2,500</div>
+          <div class="iap-label">Gold Chest</div>
+          <div class="iap-price">R 200</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('2500gold', 200, 2500)">Buy Now</button>
+        </div>
+
+        <div class="shop-iap-card">
+          <div class="iap-coins">🪙 6,000</div>
+          <div class="iap-label">Gold Vault</div>
+          <div class="iap-price">R 400</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('6000gold', 400, 6000)">Buy Now</button>
+        </div>
+
+      </div>
+
+      <p class="shop-legal-note">Purchases are non-refundable. Gold is consumed in-game only and has no cash value. By purchasing you agree to our terms of service.</p>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAYMENT MODAL — PayFast redirect confirmation
+       ============================================================ -->
+  <div id="paymentModal" class="modal-overlay">
+    <div class="modal-window payment-modal-window">
+      <button class="modal-close-x" onclick="toggleModal('paymentModal', false)">✕</button>
+      <div class="payment-modal-icon">🪙</div>
+      <h2 id="paymentModalTitle">Buy 1,000 Gold</h2>
+      <p id="paymentModalDesc" class="payment-modal-desc">You'll receive <strong id="paymentGoldAmt">1,000</strong> gold coins added to your account.</p>
+      <div class="payment-modal-price-box">
+        <span class="payment-modal-price-label">Total</span>
+        <span class="payment-modal-price-amt" id="paymentModalPrice">R 100</span>
+      </div>
+      <p class="payment-modal-secure">🔒 Secure payment via PayFast</p>
+      <button class="payment-confirm-btn" id="paymentConfirmBtn" onclick="confirmPayment()">Pay with PayFast</button>
+      <button class="payment-cancel-btn" onclick="toggleModal('paymentModal', false)">Cancel</button>
     </div>
   </div>
 
