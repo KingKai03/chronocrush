@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.chronocrush.game",
+        "sha256_cert_fingerprints": ["2F:67:02:E7:8A:0A:17:89:6F:A7:36:55:82:62:2E:E7:04:67:F8:8F:BE:47:5F:02:1C:13:65:FD:05:22:03:D2"]
+      }
+    }]
