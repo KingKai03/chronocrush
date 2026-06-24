@@ -96,43 +96,61 @@ function buildDomBoard() {
       tile.className = 'board-tile';
       tile.dataset.r = r;
       tile.dataset.c = c;
-      attachTileSwipe(tile);
       board.appendChild(tile);
     }
   }
+  // Single handler on the board — works for both touch and mouse
+  initBoardInput(board);
   renderBoard();
 }
 
-function attachTileSwipe(tile) {
-  // Each tile tracks its own drag start, direction resolved on release
-  tile.addEventListener('touchstart', (e) => {
-    if (!gameState.isGameActive) return;
-    e.preventDefault();
-    const t = e.touches[0];
-    swipeOrigin = {
-      r: parseInt(tile.dataset.r),
-      c: parseInt(tile.dataset.c),
-      x: t.clientX, y: t.clientY
-    };
-    highlightTile(swipeOrigin.r, swipeOrigin.c);
-  }, { passive: false });
+function initBoardInput(board) {
+  // ── Touch ─────────────────────────────────────────────────────────────────
+  board.addEventListener('touchstart', onBoardTouchStart, { passive: false });
+  board.addEventListener('touchend',   onBoardTouchEnd,   { passive: true  });
+  board.addEventListener('touchcancel',() => { swipeOrigin = null; clearHighlight(); });
+  // ── Mouse ──────────────────────────────────────────────────────────────────
+  board.addEventListener('mousedown', onBoardMouseDown);
+  // mouseup on window catches releases outside the board
+  window.addEventListener('mouseup',  onWindowMouseUp);
+}
 
-  tile.addEventListener('touchend', (e) => {
-    if (!swipeOrigin || !gameState.isGameActive) return;
-    const t = e.changedTouches[0];
-    handleSwipeEnd(t.clientX, t.clientY);
-  }, { passive: true });
+function getTileFromEvent(clientX, clientY) {
+  // Use document.elementFromPoint — the browser knows exactly which element is there
+  const el = document.elementFromPoint(clientX, clientY);
+  if (!el) return null;
+  const tile = el.closest('.board-tile');
+  if (!tile) return null;
+  return { r: parseInt(tile.dataset.r), c: parseInt(tile.dataset.c) };
+}
 
-  tile.addEventListener('mousedown', (e) => {
-    if (!gameState.isGameActive) return;
-    e.preventDefault();
-    swipeOrigin = {
-      r: parseInt(tile.dataset.r),
-      c: parseInt(tile.dataset.c),
-      x: e.clientX, y: e.clientY
-    };
-    highlightTile(swipeOrigin.r, swipeOrigin.c);
-  });
+function onBoardTouchStart(e) {
+  if (!gameState.isGameActive) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const pos = getTileFromEvent(t.clientX, t.clientY);
+  if (!pos) return;
+  swipeOrigin = { ...pos, x: t.clientX, y: t.clientY };
+  highlightTile(pos.r, pos.c);
+}
+
+function onBoardTouchEnd(e) {
+  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
+  const t = e.changedTouches[0];
+  resolveSwipe(t.clientX, t.clientY);
+}
+
+function onBoardMouseDown(e) {
+  if (!gameState.isGameActive) return;
+  const pos = getTileFromEvent(e.clientX, e.clientY);
+  if (!pos) return;
+  swipeOrigin = { ...pos, x: e.clientX, y: e.clientY };
+  highlightTile(pos.r, pos.c);
+}
+
+function onWindowMouseUp(e) {
+  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
+  resolveSwipe(e.clientX, e.clientY);
 }
 
 /* ── Swipe / drag handler ───────────────────────────────────────────────────
@@ -141,15 +159,6 @@ function attachTileSwipe(tile) {
    A tap (no movement) still works for booster targeting.
 ──────────────────────────────────────────────────────────────────────────── */
 let swipeOrigin = null; // { r, c, x, y }
-
-// Global mouseup — catches releases outside the originating tile
-(function() {
-  window.addEventListener('mouseup', (e) => {
-    if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
-    handleSwipeEnd(e.clientX, e.clientY);
-  });
-  window.addEventListener('touchcancel', () => { swipeOrigin = null; clearHighlight(); });
-})();
 
 function highlightTile(r, c) {
   clearHighlight();
@@ -163,7 +172,7 @@ function clearHighlight() {
   swipeOrigin = null;
 }
 
-function handleSwipeEnd(endX, endY) {
+function resolveSwipe(endX, endY) {
   if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
   initAudio();
 
@@ -171,32 +180,33 @@ function handleSwipeEnd(endX, endY) {
   swipeOrigin = null;
   clearHighlight();
 
-  const dx = endX - startX;
-  const dy = endY - startY;
+  const dx    = endX - startX;
+  const dy    = endY - startY;
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
-  const SWIPE_THRESHOLD = 18; // px — minimum movement to count as a swipe
 
-  // Booster tap (no meaningful movement)
-  if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
+  // Booster tap — tiny or no movement
+  if (absDx < 10 && absDy < 10) {
     if (gameState.activeBooster === 'hammer') { useHammerOnTile(r, c); return; }
     if (gameState.activeBooster === 'bomb')   { useBombOnTile(r, c);   return; }
-    return; // plain tap — no action without a booster
+    return;
   }
 
-  // Determine swipe direction
+  // Dominant axis decides direction
   let tr = r, tc = c;
-  if (absDx > absDy) {
-    tc = dx > 0 ? c + 1 : c - 1; // horizontal
+  if (absDx >= absDy) {
+    tc = dx > 0 ? c + 1 : c - 1;
   } else {
-    tr = dy > 0 ? r + 1 : r - 1; // vertical
+    tr = dy > 0 ? r + 1 : r - 1;
   }
 
-  // Bounds check
   if (tr < 0 || tr >= BOARD_SIZE || tc < 0 || tc >= BOARD_SIZE) return;
 
   swapTiles(r, c, tr, tc);
 }
+
+// Keep old name as alias in case anything calls it
+function handleSwipeEnd(x, y) { resolveSwipe(x, y); }
 
 function renderBoard() {
   const board = document.getElementById('domBoard');
