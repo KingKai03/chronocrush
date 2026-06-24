@@ -554,7 +554,7 @@ function startLevelLogic(lvl) {
   document.getElementById("targetDisplay").innerText = gameState.targetScore;
   document.getElementById("scoreDisplay").innerText  = 0;
   const banner = document.getElementById("challengeBanner");
-  if (banner) banner.innerText = `Clear ${challengeCount} ${challengeItem} to pass!`;
+  if (banner) banner.innerText = `Clear ${diff.challengeCount} ${challengeItem} to pass!`;
 
   updateBoosterUI();
   switchView("gamePlayScreen");
