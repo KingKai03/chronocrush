@@ -208,6 +208,8 @@ function initAudio() {
     gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (gameState.audioCtx.state === 'suspended') gameState.audioCtx.resume();
+  // Start MP3 music on first user interaction (browser autoplay policy)
+  resumeMusicAfterInteraction();
 }
 
 function getCurrentEraForLevel(level) {
@@ -215,171 +217,82 @@ function getCurrentEraForLevel(level) {
 }
 
 /* ============================================================
-   SPACE AMBIENT MUSIC ENGINE v3
-   Deep, mysterious, comfortable. Layers:
-   1. Slow drone — a single held note that fades in and out
-   2. Pad chord — 3-4 voices, detuned, run through convolution reverb
-   3. Melody shimmer — single high note that wanders softly every few bars
-   4. Sub pulse — barely audible low throb like a distant engine
-   All notes are tuned to a minor pentatonic scale to guarantee
-   nothing clashes and everything sounds haunting and beautiful.
+   BACKGROUND MUSIC — MP3 player
+   Replaces the Web Audio synth engine.
+   File: audio/background.mp3
    ============================================================ */
 
-// Reverb — long, spacious tail
-let reverbNode    = null;
-let masterGain    = null;
+let _bgAudio       = null;
+let _bgFadeTimer   = null;
 
-function buildReverb(ac) {
-  if (reverbNode) return reverbNode;
-  const dur     = ac.sampleRate * 6;   // 6-second tail
-  const buf     = ac.createBuffer(2, dur, ac.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
-    for (let i = 0; i < dur; i++) {
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / dur, 1.8);
-    }
-  }
-  reverbNode = ac.createConvolver();
-  reverbNode.buffer = buf;
-  reverbNode.connect(ac.destination);
-  return reverbNode;
+function _getBgAudio() {
+  if (_bgAudio) return _bgAudio;
+  _bgAudio = new Audio('audio/background.mp3');
+  _bgAudio.loop   = true;
+  _bgAudio.volume = 0;   // start silent, fade in
+  _bgAudio.preload = 'auto';
+  // If the browser blocks autoplay, retry on next user interaction
+  _bgAudio.addEventListener('error', (e) => {
+    console.warn('Audio load error:', e);
+  });
+  return _bgAudio;
 }
-
-function getMaster(ac) {
-  if (masterGain) return masterGain;
-  masterGain = ac.createGain();
-  masterGain.gain.setValueAtTime(0.7, ac.currentTime);
-  masterGain.connect(ac.destination);
-  return masterGain;
-}
-
-// Minor pentatonic root freqs (A minor pent: A C D E G across octaves)
-const PENT = {
-  sub:    [55.00, 65.41],               // A1, C2
-  drone:  [110.00, 130.81, 146.83],     // A2, C3, D3
-  pad:    [220.00, 261.63, 293.66, 329.63, 392.00], // A3 C4 D4 E4 G4
-  melody: [440.00, 523.25, 587.33, 659.25, 783.99]  // A4 C5 D5 E5 G5
-};
-
-let musicLoopId   = null;
-let musicBeat     = 0;
-const BEAT_MS     = 4200;  // one "beat" = 4.2 seconds, very slow
 
 function startSpaceMusic() {
-  initAudio();
   if (!gameState.preferences.sound) return;
-  if (musicLoopId) return;
-  musicBeat = 0;
-  runMusicBeat();
-}
+  const audio = _getBgAudio();
 
-function runMusicBeat() {
-  if (!gameState.preferences.sound || !gameState.audioCtx) return;
-  const ac  = gameState.audioCtx;
-  if (ac.state === 'suspended') { ac.resume(); }
-  const rev = buildReverb(ac);
-  const mst = getMaster(ac);
-  const now = ac.currentTime;
+  // Already playing — nothing to do
+  if (!audio.paused) return;
 
-  // ── 1. Sub pulse (every beat, very quiet) ──────────────────
-  if (musicBeat % 2 === 0) {
-    const sub  = ac.createOscillator();
-    const subG = ac.createGain();
-    const subF = ac.createBiquadFilter();
-    sub.type = 'sine';
-    sub.frequency.setValueAtTime(PENT.sub[musicBeat % PENT.sub.length], now);
-    subF.type = 'lowpass';
-    subF.frequency.setValueAtTime(90, now);
-    subG.gain.setValueAtTime(0, now);
-    subG.gain.linearRampToValueAtTime(0.06, now + 1.5);
-    subG.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 1.8);
-    sub.connect(subF); subF.connect(subG); subG.connect(mst);
-    sub.start(now); sub.stop(now + BEAT_MS / 1000 * 2);
-  }
-
-  // ── 2. Drone (every 2 beats) ────────────────────────────────
-  if (musicBeat % 2 === 0) {
-    const droneFreq = PENT.drone[Math.floor(musicBeat / 2) % PENT.drone.length];
-    [1, 2.005, 0.997].forEach((detune, i) => {
-      const osc  = ac.createOscillator();
-      const gain = ac.createGain();
-      const filt = ac.createBiquadFilter();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(droneFreq * detune, now);
-      filt.type = 'lowpass';
-      filt.frequency.setValueAtTime(400 + i * 60, now);
-      filt.Q.value = 0.3;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.04, now + 2);
-      gain.gain.setValueAtTime(0.04, now + BEAT_MS / 1000 * 1.5);
-      gain.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 2.1);
-      osc.connect(filt); filt.connect(gain);
-      gain.connect(rev);                 // mostly wet
-      gain.connect(mst);                 // tiny dry
-      osc.start(now); osc.stop(now + BEAT_MS / 1000 * 2.2);
+  // Resume AudioContext if needed (browser autoplay policy)
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(() => {
+      // Autoplay blocked — will start on next user tap (initAudio handles this)
     });
   }
 
-  // ── 3. Pad chord (every 3 beats — overlaps for continuity) ──
-  if (musicBeat % 3 === 0) {
-    const rootIdx = Math.floor(musicBeat / 3) % PENT.pad.length;
-    // Pick 3 voices from pad array starting at rootIdx
-    const voices = [0, 2, 4].map(offset => PENT.pad[(rootIdx + offset) % PENT.pad.length]);
-    voices.forEach((freq, i) => {
-      const osc  = ac.createOscillator();
-      const gain = ac.createGain();
-      const filt = ac.createBiquadFilter();
-      osc.type = 'sine';
-      // Gentle vibrato via slight LFO effect from tiny frequency wander
-      osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.linearRampToValueAtTime(freq * 1.002, now + BEAT_MS / 1000 * 1.5);
-      osc.frequency.linearRampToValueAtTime(freq, now + BEAT_MS / 1000 * 3);
-      filt.type = 'lowpass';
-      filt.frequency.setValueAtTime(700 + i * 120, now);
-      filt.Q.value = 0.5;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.028 - i * 0.004, now + 2.5);
-      gain.gain.setValueAtTime(0.028 - i * 0.004, now + BEAT_MS / 1000 * 2.5);
-      gain.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 3.2);
-      osc.connect(filt); filt.connect(gain);
-      gain.connect(rev);
-      osc.start(now); osc.stop(now + BEAT_MS / 1000 * 3.3);
-    });
-  }
-
-  // ── 4. Melody shimmer (random, sparse — every 4–7 beats) ────
-  if (musicBeat % 5 === 0 || (musicBeat % 7 === 0)) {
-    const mFreq = PENT.melody[Math.floor(Math.random() * PENT.melody.length)];
-    const shimmerDelay = Math.random() * 1.5;
-    const osc  = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(mFreq, now + shimmerDelay);
-    gain.gain.setValueAtTime(0, now + shimmerDelay);
-    gain.gain.linearRampToValueAtTime(0.018, now + shimmerDelay + 0.8);
-    gain.gain.linearRampToValueAtTime(0, now + shimmerDelay + 2.5);
-    osc.connect(gain);
-    gain.connect(rev);  // pure reverb tail, no dry
-    osc.start(now + shimmerDelay);
-    osc.stop(now + shimmerDelay + 3);
-  }
-
-  musicBeat++;
-  musicLoopId = setTimeout(runMusicBeat, BEAT_MS);
+  // Fade in from 0 to 0.45 over 2 seconds
+  _fadeVolume(0, 0.45, 2000);
 }
 
 function stopSpaceMusic() {
-  if (musicLoopId) { clearTimeout(musicLoopId); musicLoopId = null; }
-  if (masterGain)  { masterGain = null; }  // let it fade naturally
+  if (!_bgAudio || _bgAudio.paused) return;
+  // Fade out then pause
+  _fadeVolume(_bgAudio.volume, 0, 1000, () => {
+    _bgAudio.pause();
+    _bgAudio.currentTime = 0;
+  });
   gameState.musicSchedulerId = null;
 }
 
-// Keep old schedulerId reference in sync
-Object.defineProperty(gameState, 'musicSchedulerId', {
-  get: () => musicLoopId,
-  set: (v) => { if (!v) stopSpaceMusic(); },
-  configurable: true
-});
+function _fadeVolume(from, to, durationMs, onDone) {
+  if (_bgFadeTimer) clearInterval(_bgFadeTimer);
+  const steps    = 40;
+  const interval = durationMs / steps;
+  const delta    = (to - from) / steps;
+  let   current  = from;
+  let   step     = 0;
+
+  _bgFadeTimer = setInterval(() => {
+    step++;
+    current = Math.min(Math.max(current + delta, 0), 1);
+    if (_bgAudio) _bgAudio.volume = current;
+    if (step >= steps) {
+      clearInterval(_bgFadeTimer);
+      _bgFadeTimer = null;
+      if (onDone) onDone();
+    }
+  }, interval);
+}
+
+// Called by initAudio() on first user tap — starts music if not already playing
+function resumeMusicAfterInteraction() {
+  if (gameState.preferences.sound && _bgAudio && _bgAudio.paused) {
+    startSpaceMusic();
+  }
+}
 
 function startEraMusic() { startSpaceMusic(); }
 function stopEraMusic()  { stopSpaceMusic();  }
