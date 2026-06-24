@@ -362,6 +362,7 @@ function loadHomepage() {
 
   startSpaceMusic();
   checkDailyBadge();
+  checkNewsBadge();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
     if (an) an.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -700,8 +701,20 @@ function win() {
   }
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
   trackDailyWin();
+
+  // Check if this win just completed an entire era — show trophy modal after success
+  const justCompletedEra = checkEraCompletion(gameState.currentLevel);
+
   switchView("homePage");
   toggleModal('levelSuccessModal', true);
+
+  // If era completed, queue the trophy reveal after a short delay so success modal shows first
+  if (justCompletedEra) {
+    setTimeout(() => {
+      toggleModal('levelSuccessModal', false);
+      showEraTrophyModal(justCompletedEra);
+    }, 2200);
+  }
 }
 
 /* ============================================================
@@ -1021,4 +1034,224 @@ function checkDailyBadge() {
   const allDone = tasks.every(t => t.done);
   const badge  = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'block';
+}
+
+/* ============================================================
+   ERA TROPHY MODAL
+   ============================================================ */
+
+// Returns the era object if completing `level` just finished that era, else null
+function checkEraCompletion(level) {
+  const era = getCurrentEraForLevel(level);
+  if (!era) return null;
+  // Only fires when the player just completed the LAST level of the era
+  if (level !== era.endLvl) return null;
+  // Verify all levels in era now have a record
+  for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
+    if (!gameState.levelRecords[lvl]) return null;
+  }
+  return era;
+}
+
+let trophyFxCanvas = null, trophyFxCtx = null, trophyFxId = null, trophyFxParticles = [];
+
+function showEraTrophyModal(era) {
+  const result = getEraTrophy(era);
+  const { tier, totalStars } = result;
+  const maxStars = (era.endLvl - era.startLvl + 1) * 3;
+  const eraIdx   = eraTimeline.indexOf(era);
+
+  const trophyIcon = { gold: '🥇', silver: '🥈', bronze: '🥉' }[tier] || '🏆';
+  const tierLabel  = { gold: 'GOLD TROPHY', silver: 'SILVER TROPHY', bronze: 'BRONZE TROPHY' }[tier] || 'TROPHY';
+  const tierMsg    = {
+    gold:   'Incredible! A flawless run through the era — you\'ve earned gold!',
+    silver: 'Well played! A solid performance across the entire era earns you silver!',
+    bronze: 'You did it! Every level conquered earns you the bronze trophy!'
+  }[tier] || 'Era complete!';
+
+  const starDisplay = '📀'.repeat(Math.floor(totalStars / (era.endLvl - era.startLvl + 1)));
+
+  // Update modal content
+  const card = document.getElementById('eraTrophyCard');
+  card.className = `era-trophy-modal-card card-${tier}`;
+  document.getElementById('eraTrophyIcon').textContent  = trophyIcon;
+  document.getElementById('eraTrophyTier').textContent  = tierLabel;
+  document.getElementById('eraTrophyEra').textContent   = era.name;
+  document.getElementById('eraTrophyMsg').textContent   = tierMsg;
+  document.getElementById('eraTrophyStars').textContent = `${starDisplay}  ${totalStars}/${maxStars} stars`;
+
+  // Setup fireworks canvas
+  trophyFxCanvas = document.getElementById('trophyFireworksCanvas');
+  if (trophyFxCanvas) {
+    trophyFxCanvas.width  = window.innerWidth;
+    trophyFxCanvas.height = window.innerHeight;
+    trophyFxCtx = trophyFxCanvas.getContext('2d');
+  }
+
+  toggleModal('eraTrophyModal', true);
+  triggerVibration([150, 60, 150, 60, 400]);
+
+  // Start trophy fireworks
+  trophyFxParticles = [];
+  spawnTrophyBurst(tier);
+  runTrophyFireworks();
+}
+
+function closeTrophyModal() {
+  toggleModal('eraTrophyModal', false);
+  cancelAnimationFrame(trophyFxId);
+  trophyFxParticles = [];
+  loadHomepage();
+}
+
+function spawnTrophyBurst(tier) {
+  const colorMap = {
+    gold:   ['#ffd700','#ffe066','#fff0a0','#d4af37','#ffec6e'],
+    silver: ['#b8c0cc','#d8e0e8','#8a9da8','#ffffff','#c0d0dc'],
+    bronze: ['#cd7f32','#e8a060','#a05828','#f0b878','#d09050']
+  };
+  const colors = colorMap[tier] || colorMap.gold;
+  const cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
+
+  for (let b = 0; b < 4; b++) {
+    const ox = cx + (Math.random() * 260 - 130);
+    const oy = cy + (Math.random() * 120 - 60);
+    for (let i = 0; i < 45; i++) {
+      const angle = (Math.PI * 2 / 45) * i + Math.random() * 0.3;
+      const speed = 1.5 + Math.random() * 6;
+      trophyFxParticles.push({
+        x: ox, y: oy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        size:  1.5 + Math.random() * 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1,
+        decay: 0.012 + Math.random() * 0.012
+      });
+    }
+  }
+}
+
+function runTrophyFireworks() {
+  if (!trophyFxCtx) return;
+  trophyFxCtx.clearRect(0, 0, trophyFxCanvas.width, trophyFxCanvas.height);
+  for (let i = trophyFxParticles.length - 1; i >= 0; i--) {
+    const p = trophyFxParticles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= p.decay;
+    if (p.alpha <= 0) { trophyFxParticles.splice(i, 1); continue; }
+    trophyFxCtx.save();
+    trophyFxCtx.globalAlpha = p.alpha;
+    trophyFxCtx.fillStyle   = p.color;
+    trophyFxCtx.beginPath();
+    trophyFxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    trophyFxCtx.fill();
+    trophyFxCtx.restore();
+  }
+  // Respawn bursts periodically while modal is open
+  if (Math.random() < 0.025 && trophyFxParticles.length < 80) {
+    const modal = document.getElementById('eraTrophyModal');
+    if (modal && modal.classList.contains('visible')) {
+      const tier = document.getElementById('eraTrophyCard').className.includes('gold') ? 'gold'
+                 : document.getElementById('eraTrophyCard').className.includes('silver') ? 'silver' : 'bronze';
+      spawnTrophyBurst(tier);
+    }
+  }
+  trophyFxId = requestAnimationFrame(runTrophyFireworks);
+}
+
+/* ============================================================
+   ANNOUNCEMENTS PAGE
+   ============================================================ */
+
+// Hardcoded announcements — update this array as the game evolves
+const ANNOUNCEMENTS = [
+  {
+    id: 'ann_001',
+    tag: 'feature',
+    tagLabel: 'NEW FEATURE',
+    title: '🏆 Era Trophies Are Live!',
+    body: 'Complete all 10 levels of any era to earn a Gold, Silver, or Bronze trophy. The higher your average stars, the shinier your reward. Check your trophy cabinet in the Awards tab.',
+    date: 'June 2025',
+    isNew: true
+  },
+  {
+    id: 'ann_002',
+    tag: 'feature',
+    tagLabel: 'NEW FEATURE',
+    title: '⚡ Daily Challenges Added',
+    body: 'A fresh set of 3 daily missions resets every midnight. Complete them to earn gold and special trophies. Find them in the Daily tab at the bottom of the screen.',
+    date: 'June 2025',
+    isNew: true
+  },
+  {
+    id: 'ann_003',
+    tag: 'tip',
+    tagLabel: 'TIP',
+    title: '💣 Booster Combos',
+    body: 'Use a Time Bomb first to clear a 3×3 area, then follow up with a Hammer to take out a stubborn tile. Boosters refill when you win levels — the more stars, the more you earn back.',
+    date: 'June 2025',
+    isNew: false
+  },
+  {
+    id: 'ann_004',
+    tag: 'update',
+    tagLabel: 'UPDATE',
+    title: '🌌 Space Music Update',
+    body: 'We replaced the background music with a soft ambient space soundtrack — gentle pads and deep bass that won\'t drive you crazy during long sessions. Toggle it off in Settings if you prefer silence.',
+    date: 'June 2025',
+    isNew: false
+  },
+  {
+    id: 'ann_005',
+    tag: 'event',
+    tagLabel: 'COMING SOON',
+    title: '🌍 7 Eras, 70 Levels Await',
+    body: 'Travel from the smoky 1940s Noir all the way to the chaotic 2000s Y2K Pop. Each era has unique gadget tiles and its own soundtrack vibe. How far through the timeline can you go?',
+    date: 'June 2025',
+    isNew: false
+  }
+];
+
+function openAnnouncementsPage() {
+  const body = document.getElementById('announcementsBody');
+  if (!body) return;
+
+  // Track which announcements the player has seen
+  const seenKey  = 'chrono_seen_announcements';
+  const seen     = JSON.parse(localStorage.getItem(seenKey) || '[]');
+  const newIds   = ANNOUNCEMENTS.filter(a => a.isNew && !seen.includes(a.id)).map(a => a.id);
+
+  // Mark all as seen now that player opened the page
+  const allSeen  = [...new Set([...seen, ...ANNOUNCEMENTS.map(a => a.id)])];
+  localStorage.setItem(seenKey, JSON.stringify(allSeen));
+
+  // Hide news badge
+  const badge = document.getElementById('newsBadge');
+  if (badge) badge.style.display = 'none';
+
+  const tagClass = { update: 'ann-tag-update', feature: 'ann-tag-feature', event: 'ann-tag-event', tip: 'ann-tag-tip' };
+
+  let html = '';
+  ANNOUNCEMENTS.forEach(ann => {
+    const isUnseen = newIds.includes(ann.id);
+    html += `
+      <div class="announcement-card ${isUnseen ? 'ann-new' : ''}">
+        <div class="ann-tag ${tagClass[ann.tag] || 'ann-tag-update'}">${ann.tagLabel}</div>
+        <div class="ann-title">${ann.title}</div>
+        <div class="ann-body">${ann.body}</div>
+        <div class="ann-date">${ann.date}</div>
+      </div>`;
+  });
+
+  body.innerHTML = html;
+  switchView('announcementsPage');
+}
+
+// Show red dot on News tab if there are unread announcements
+function checkNewsBadge() {
+  const seenKey = 'chrono_seen_announcements';
+  const seen    = JSON.parse(localStorage.getItem(seenKey) || '[]');
+  const hasNew  = ANNOUNCEMENTS.some(a => a.isNew && !seen.includes(a.id));
+  const badge   = document.getElementById('newsBadge');
+  if (badge) badge.style.display = hasNew ? 'block' : 'none';
 }
