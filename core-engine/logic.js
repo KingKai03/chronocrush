@@ -22,6 +22,8 @@ const gameState = {
   audioCtx: null,
   musicSchedulerId: null,
   authProvider: 'Guest',
+  authDisplayName: '',
+  authEmail: '',
   boosters: { hammer: 3, bomb: 3, shuffle: 3 },
   activeBooster: null,
   challengeTarget: null,
@@ -895,36 +897,113 @@ function transitionToMap() { initAudio(); triggerFlashAnimation(); loadHomepage(
    AUTH + NOTIFICATION FLOW
    ============================================================ */
 
-function handleSocialAuth(provider) {
-  initAudio();
-  // Save the chosen provider label for display
-  const names = { google: 'Google', facebook: 'Facebook' };
-  gameState.authProvider = names[provider] || 'Guest';
-  localStorage.setItem('chrono_auth_provider', gameState.authProvider);
-
-  // In a real app: trigger OAuth flow here.
-  // For now we proceed directly — same as guest but with a name attached.
-  // Google: use Firebase Auth / Google Identity Services
-  // Facebook: use Facebook Login SDK
+// Called by Firebase module (index.html) once sign-in succeeds
+window.afterFirebaseAuth = function(user) {
+  if (!user) return;
+  gameState.authProvider = user.providerData[0]
+    ? 'Google'
+    : 'Social';
+  gameState.authDisplayName  = user.displayName  || '';
+  gameState.authEmail        = user.email        || '';
+  gameState.authPhotoURL     = user.photoURL     || '';
+  localStorage.setItem('chrono_auth_provider',     gameState.authProvider);
+  localStorage.setItem('chrono_auth_display_name', gameState.authDisplayName);
+  localStorage.setItem('chrono_auth_email',        gameState.authEmail);
   afterAuthSuccess();
+};
+
+function setAuthBtnLoading(btnId, loading, originalHTML) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) {
+    btn.dataset.original = btn.innerHTML;
+    btn.innerHTML = '<span class="auth-social-icon">⏳</span> Signing in…';
+    btn.style.opacity = '0.7';
+  } else {
+    btn.innerHTML = originalHTML || btn.dataset.original || btn.innerHTML;
+    btn.style.opacity = '';
+  }
+}
+
+async function handleSocialAuth(provider) {
+  initAudio();
+
+  // ── Firebase is configured — do real OAuth ───────────────────
+  if (window._firebaseReady) {
+    const btnId = 'googleSignInBtn';
+    setAuthBtnLoading(btnId, true);
+
+    try {
+      let user = null;
+      if (provider === 'google') {
+        user = await window.firebaseSignInGoogle();
+      }
+
+      setAuthBtnLoading(btnId, false);
+
+      if (user) {
+        window.afterFirebaseAuth(user);
+      } else {
+        // Popup closed or cancelled — show friendly message
+        showAuthError('Sign-in was cancelled. Please try again.');
+      }
+    } catch(err) {
+      setAuthBtnLoading(btnId, false);
+      showAuthError('Something went wrong. Please try again.');
+    }
+    return;
+  }
+
+  // ── Firebase NOT configured yet — show setup notice ──────────
+  showAuthSetupNotice(provider);
+}
+
+function showAuthError(msg) {
+  let el = document.getElementById('authErrorMsg');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'authErrorMsg';
+    el.style.cssText = 'color:#ff6b81;font-size:0.75rem;text-align:center;margin-top:-4px;';
+    const card = document.querySelector('.auth-card');
+    const guestBtn = document.querySelector('.auth-guest-btn');
+    if (card && guestBtn) card.insertBefore(el, guestBtn.parentNode || guestBtn);
+  }
+  el.textContent = msg;
+  setTimeout(() => { if (el) el.textContent = ''; }, 4000);
+}
+
+function showAuthSetupNotice(provider) {
+  // Firebase not configured — show a modal explaining what's needed
+  const providerName = 'Google';
+  let el = document.getElementById('authErrorMsg');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'authErrorMsg';
+    el.style.cssText = 'color:var(--gold-bright);font-size:0.72rem;text-align:center;margin-top:-4px;line-height:1.5;';
+    const card = document.querySelector('.auth-card');
+    const orDiv = document.querySelector('.auth-or-divider');
+    if (card && orDiv) card.insertBefore(el, orDiv);
+  }
+  el.textContent = 'Google sign-in requires Firebase setup. Use Play as Guest for now.';
+  setTimeout(() => { if (el) el.textContent = ''; }, 5000);
 }
 
 function handleAuth(mode) {
   initAudio();
-  gameState.authProvider = 'Guest';
+  gameState.authProvider    = 'Guest';
+  gameState.authDisplayName = 'Guest';
+  gameState.authEmail       = '';
   localStorage.setItem('chrono_auth_provider', 'Guest');
   afterAuthSuccess();
 }
 
 function afterAuthSuccess() {
-  // Check if we've already asked about notifications this install
   const askedBefore = localStorage.getItem('chrono_notif_asked');
   if (askedBefore) {
-    // Skip straight to welcome screen
     triggerFlashAnimation();
     switchView('welcomeScreen');
   } else {
-    // Show notification permission popup
     toggleModal('notifModal', true);
   }
 }
