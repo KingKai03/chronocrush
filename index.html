@@ -425,7 +425,87 @@
       <div class="toggle-control-item"><span>Music</span><button id="toggleSoundBtn" class="setting-toggle-btn active" onclick="togglePreference('sound')">ON</button></div>
       <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
       <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
+      <button class="menu-action-btn how-to-play-btn" onclick="openHowToPlay()">❓ How to Play?</button>
       <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Progress</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HOW TO PLAY MODAL
+       ============================================================ -->
+  <div id="howToPlayModal" class="modal-overlay">
+    <div class="modal-window htp-window">
+      <button class="modal-close-x" onclick="toggleModal('howToPlayModal', false)">✕</button>
+      <div class="htp-header">
+        <div class="htp-icon">🎮</div>
+        <h2>How to Play</h2>
+        <p class="htp-subtitle">CHRONOCRUSH: The Era Odyssey</p>
+      </div>
+
+      <div class="htp-steps">
+
+        <div class="htp-step">
+          <div class="htp-step-num">1</div>
+          <div class="htp-step-body">
+            <h3>Tap to Select</h3>
+            <p>Tap any tile on the grid to select it — it glows gold. Then tap an <strong>adjacent tile</strong> (up, down, left or right) to swap them.</p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">2</div>
+          <div class="htp-step-body">
+            <h3>Match 3 in a Row</h3>
+            <p>Line up <strong>3 or more identical tiles</strong> in a row or column. They flash gold and vanish — new tiles drop in to replace them!</p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">3</div>
+          <div class="htp-step-body">
+            <h3>Beat the Challenge</h3>
+            <p>Each level has a <strong>tile challenge</strong> (e.g. "Clear 9 📻 Radios") AND a <strong>score target</strong>. Hit both before your 20 moves run out to win!</p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">4</div>
+          <div class="htp-step-body">
+            <h3>Earn Stars &amp; Gold</h3>
+            <p>Finish a level to earn <strong>1–3 📀 stars</strong> based on your score. Stars earn you 🪙 gold coins to spend in the shop.</p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">5</div>
+          <div class="htp-step-body">
+            <h3>Use Boosters</h3>
+            <p>Stuck? Use your boosters:<br>
+              🔨 <strong>Hammer</strong> — smashes any single tile<br>
+              💣 <strong>Time Bomb</strong> — clears a 3×3 area<br>
+              🔀 <strong>Shuffle</strong> — reshuffles the whole board</p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">6</div>
+          <div class="htp-step-body">
+            <h3>Conquer the Eras</h3>
+            <p>There are <strong>7 musical eras</strong> — from 1940s Noir to 2000s Y2K Pop — each with 10 levels and unique tiles. Complete an era to earn a <strong>🥇 Gold, 🥈 Silver, or 🥉 Bronze Trophy!</strong></p>
+          </div>
+        </div>
+
+        <div class="htp-step">
+          <div class="htp-step-num">7</div>
+          <div class="htp-step-body">
+            <h3>Watch your Lives ❤️</h3>
+            <p>You start with <strong>5 lives</strong>. Running out of moves without completing a level costs 1 life. Refill lives in the 🛒 Shop using gold coins.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="htp-close-btn" onclick="toggleModal('howToPlayModal', false)">Let's Play! 🚀</button>
     </div>
   </div>
 
