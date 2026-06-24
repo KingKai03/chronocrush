@@ -67,6 +67,26 @@
     window.firebaseSignOut = async function() {
       if (auth) await signOut(auth);
     };
+
+    // Delete the Firebase Auth account entirely (called on deactivation)
+    window.firebaseDeleteAccount = async function() {
+      if (!auth || !auth.currentUser) return;
+      // Import deleteUser inline
+      const { deleteUser } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+      try {
+        await deleteUser(auth.currentUser);
+      } catch(err) {
+        if (err.code === 'auth/requires-recent-login') {
+          // Re-authenticate with Google then retry
+          const { GoogleAuthProvider, reauthenticateWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+          const provider = new GoogleAuthProvider();
+          await reauthenticateWithPopup(auth.currentUser, provider);
+          await deleteUser(auth.currentUser);
+        } else {
+          throw err;
+        }
+      }
+    };
   </script>
 </head>
 <body onclick="initAudio()">
@@ -131,7 +151,7 @@
         Play as Guest
       </button>
 
-      <p class="auth-terms-note">By continuing you agree to our Terms of Service.<br>Guest progress is saved on this device only.</p>
+      <p class="auth-terms-note">By continuing you agree to our <a class="auth-link" onclick="openTermsPage()">Terms of Service</a> and <a class="auth-link" onclick="openPrivacyPage()">Privacy Policy</a>.<br>Guest progress is saved on this device only.</p>
 
     </div>
   </div>
@@ -480,6 +500,9 @@
       <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
       <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
       <button class="menu-action-btn how-to-play-btn" onclick="openHowToPlay()">❓ How to Play?</button>
+      <button class="menu-action-btn terms-btn" onclick="openTermsPage()">📄 Terms of Service</button>
+      <button class="menu-action-btn terms-btn" onclick="openPrivacyPage()">🔒 Privacy Policy</button>
+      <button class="menu-action-btn deactivate-btn" onclick="confirmDeactivateAccount()">🗑️ Deactivate Account</button>
       <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Progress</button>
     </div>
   </div>
@@ -622,6 +645,142 @@
       <button class="daily-reward-skip" onclick="toggleModal('dailyRewardModal', false)">
         Maybe Later
       </button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TERMS OF SERVICE PAGE
+       ============================================================ -->
+  <div id="termsPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="closeTermsOrPrivacy()">◀ Back</button>
+      <h2>📄 Terms of Service</h2>
+    </header>
+    <div class="subpage-body scrollable-content legal-body">
+
+      <p class="legal-updated">Last updated: June 2025</p>
+
+      <h3>1. Acceptance of Terms</h3>
+      <p>By accessing or playing CHRONOCRUSH: The Era Odyssey ("the Game"), you agree to be bound by these Terms of Service. If you do not agree, please do not use the Game.</p>
+
+      <h3>2. About the Game</h3>
+      <p>CHRONOCRUSH is a match-3 puzzle game developed and operated by the CHRONOCRUSH team. The Game is provided free to play, with optional in-app purchases available.</p>
+
+      <h3>3. User Accounts</h3>
+      <p>You may play as a guest or sign in with your Google account. When signing in with Google, you authorise us to access your basic profile information (name, email address, profile photo) for the purpose of identifying your account. You are responsible for maintaining the security of your account.</p>
+
+      <h3>4. In-App Purchases</h3>
+      <p>The Game offers virtual currency ("Gold Coins") and virtual items for purchase using real money. All purchases are final and non-refundable except where required by applicable law. Virtual currency and items have no real-world monetary value and cannot be transferred, sold, or exchanged outside the Game.</p>
+
+      <h3>5. Acceptable Use</h3>
+      <p>You agree not to: (a) use cheats, exploits, or unauthorised third-party software; (b) attempt to reverse-engineer or modify the Game; (c) harass or harm other users; (d) use the Game for any unlawful purpose.</p>
+
+      <h3>6. Intellectual Property</h3>
+      <p>All content in the Game, including graphics, music, code, and game design, is owned by the CHRONOCRUSH team and protected by copyright law. You may not reproduce, distribute, or create derivative works without express written permission.</p>
+
+      <h3>7. Disclaimer of Warranties</h3>
+      <p>The Game is provided "as is" without warranties of any kind. We do not guarantee that the Game will be uninterrupted, error-free, or free of viruses. We reserve the right to modify, suspend, or discontinue the Game at any time.</p>
+
+      <h3>8. Limitation of Liability</h3>
+      <p>To the maximum extent permitted by law, the CHRONOCRUSH team shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Game, including loss of virtual items or progress.</p>
+
+      <h3>9. Account Termination</h3>
+      <p>We reserve the right to suspend or terminate accounts that violate these Terms. You may deactivate your account at any time through the Settings menu. Upon deactivation, your account data will be permanently deleted.</p>
+
+      <h3>10. Changes to Terms</h3>
+      <p>We may update these Terms from time to time. Continued use of the Game after changes constitutes acceptance of the new Terms. We will notify users of significant changes via the in-game Announcements page.</p>
+
+      <h3>11. Governing Law</h3>
+      <p>These Terms are governed by the laws of the Republic of South Africa. Any disputes shall be resolved in the courts of South Africa.</p>
+
+      <h3>12. Contact</h3>
+      <p>For any questions regarding these Terms, please contact us through the Game's official channels.</p>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PRIVACY POLICY PAGE
+       ============================================================ -->
+  <div id="privacyPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="closeTermsOrPrivacy()">◀ Back</button>
+      <h2>🔒 Privacy Policy</h2>
+    </header>
+    <div class="subpage-body scrollable-content legal-body">
+
+      <p class="legal-updated">Last updated: June 2025</p>
+
+      <h3>1. Introduction</h3>
+      <p>CHRONOCRUSH: The Era Odyssey ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.</p>
+
+      <h3>2. Information We Collect</h3>
+      <p><strong>If you play as a Guest:</strong> We collect no personal information. All game progress is stored locally on your device only and never transmitted to our servers.</p>
+      <p><strong>If you sign in with Google:</strong> We receive from Google your display name, email address, and profile photo URL. This information is used solely to identify your account and personalise your experience.</p>
+      <p><strong>Game data:</strong> We store your game progress, gold balance, level records, booster inventory, and daily streak information.</p>
+
+      <h3>3. How We Use Your Information</h3>
+      <p>We use your information to: (a) maintain and identify your game account; (b) save and sync your game progress; (c) process in-app purchases; (d) send notifications you have opted into; (e) improve the Game based on usage patterns.</p>
+
+      <h3>4. Data Storage</h3>
+      <p>Guest player data is stored exclusively on your device using browser localStorage. Signed-in player data may be stored on secure Firebase servers operated by Google LLC. Firebase's data centres comply with international security standards.</p>
+
+      <h3>5. Third-Party Services</h3>
+      <p>We use the following third-party services: <strong>Firebase (Google LLC)</strong> — authentication and data storage; <strong>Google Sign-In</strong> — account authentication. These services have their own privacy policies which we encourage you to review.</p>
+
+      <h3>6. Data Sharing</h3>
+      <p>We do not sell, trade, or rent your personal information to third parties. We do not share your data with advertisers. Your information is only shared with service providers necessary to operate the Game (e.g. Firebase).</p>
+
+      <h3>7. Push Notifications</h3>
+      <p>If you grant notification permission, we may send you notifications about daily challenges, rewards, and game updates. You can withdraw this permission at any time through your device settings or in the Game settings.</p>
+
+      <h3>8. Children's Privacy</h3>
+      <p>The Game is not directed at children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent and believe your child has provided us with personal information, please contact us to have it removed.</p>
+
+      <h3>9. Your Rights</h3>
+      <p>You have the right to: (a) access the personal data we hold about you; (b) correct inaccurate data; (c) request deletion of your data; (d) withdraw consent at any time. To exercise these rights, use the "Deactivate Account" option in Settings, which will permanently delete all your data.</p>
+
+      <h3>10. Data Retention</h3>
+      <p>We retain your data for as long as your account is active. Upon account deactivation, all personal data associated with your account is permanently and irreversibly deleted within 30 days.</p>
+
+      <h3>11. Cookies and Local Storage</h3>
+      <p>The Game uses browser localStorage to save your preferences and game progress locally on your device. This is essential for the Game to function and cannot be disabled without affecting gameplay.</p>
+
+      <h3>12. Changes to This Policy</h3>
+      <p>We may update this Privacy Policy from time to time. We will notify you of significant changes via the in-game Announcements page. Continued use of the Game after changes constitutes acceptance.</p>
+
+      <h3>13. Contact Us</h3>
+      <p>For any privacy-related questions or to exercise your data rights, please contact us through the Game's official channels.</p>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DEACTIVATE ACCOUNT MODAL
+       ============================================================ -->
+  <div id="deactivateModal" class="modal-overlay">
+    <div class="modal-window deactivate-window">
+      <button class="modal-close-x" onclick="toggleModal('deactivateModal', false)">✕</button>
+      <div class="deactivate-icon">⚠️</div>
+      <h2 class="deactivate-title">Deactivate Account</h2>
+      <p class="deactivate-body">This will <strong>permanently delete</strong> all your game progress, gold, items, and account data. This action <strong>cannot be undone</strong>.</p>
+      <div class="deactivate-checklist">
+        <div class="deactivate-check-item">❌ All level progress deleted</div>
+        <div class="deactivate-check-item">❌ All gold coins deleted</div>
+        <div class="deactivate-check-item">❌ All boosters deleted</div>
+        <div class="deactivate-check-item">❌ Account sign-in removed</div>
+        <div class="deactivate-check-item">❌ Cannot be recovered</div>
+      </div>
+      <div class="deactivate-confirm-wrap">
+        <label class="deactivate-confirm-label">
+          <input type="checkbox" id="deactivateConfirmCheck" onchange="toggleDeactivateBtn()">
+          I understand this is permanent and cannot be undone
+        </label>
+      </div>
+      <button class="deactivate-confirm-btn" id="deactivateConfirmBtn" disabled onclick="executeDeactivation()">
+        Delete My Account
+      </button>
+      <button class="deactivate-cancel-btn" onclick="toggleModal('deactivateModal', false)">Cancel — Keep My Account</button>
     </div>
   </div>
 
