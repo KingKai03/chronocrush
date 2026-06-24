@@ -84,6 +84,10 @@
         <span class="tab-icon">⚡</span><span>Daily</span>
         <span class="daily-badge" id="dailyBadge" style="display:none"></span>
       </button>
+      <button class="footer-tab-btn" onclick="openAnnouncementsPage()">
+        <span class="tab-icon">📢</span><span>News</span>
+        <span class="daily-badge" id="newsBadge" style="display:none"></span>
+      </button>
       <button class="footer-tab-btn" onclick="switchView('friendsPage')">
         <span class="tab-icon">👥</span><span>Friends</span>
       </button>
@@ -295,6 +299,35 @@
       <div class="toggle-control-item"><span>SFX</span><button id="toggleSfxBtn" class="setting-toggle-btn active" onclick="togglePreference('sfx')">ON</button></div>
       <div class="toggle-control-item"><span>Vibrate</span><button id="toggleVibeBtn" class="setting-toggle-btn active" onclick="togglePreference('vibe')">ON</button></div>
       <button class="menu-action-btn destructive" onclick="resetGameProgress()">Reset Progress</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ERA TROPHY MODAL — shown when player completes a full era
+       ============================================================ -->
+  <div id="eraTrophyModal" class="modal-overlay">
+    <canvas id="trophyFireworksCanvas"></canvas>
+    <div class="era-trophy-modal-card" id="eraTrophyCard">
+      <div class="era-trophy-modal-shine"></div>
+      <div class="era-trophy-modal-icon" id="eraTrophyIcon">🥇</div>
+      <div class="era-trophy-modal-tier" id="eraTrophyTier">GOLD TROPHY</div>
+      <div class="era-trophy-modal-era"  id="eraTrophyEra">1940s Noir</div>
+      <div class="era-trophy-modal-msg"  id="eraTrophyMsg">Outstanding! You mastered every level of this era!</div>
+      <div class="era-trophy-modal-stars" id="eraTrophyStars"></div>
+      <button class="era-trophy-modal-btn" onclick="closeTrophyModal()">CLAIM TROPHY ✨</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ANNOUNCEMENTS PAGE
+       ============================================================ -->
+  <div id="announcementsPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>📢 ANNOUNCEMENTS</h2>
+    </header>
+    <div class="subpage-body scrollable-content" id="announcementsBody">
+      <!-- Populated by JS -->
     </div>
   </div>
 
