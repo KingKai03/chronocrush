@@ -888,6 +888,11 @@ function triggerFlashAnimation() {
 }
 function openSettingsModal() { toggleModal('settingsModal', true); }
 
+function openHowToPlay() {
+  toggleModal('settingsModal', false);   // close settings first
+  toggleModal('howToPlayModal', true);
+}
+
 /* ============================================================
    SETTINGS
    ============================================================ */
