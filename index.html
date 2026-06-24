@@ -538,6 +538,39 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       DAILY REWARD POPUP
+       ============================================================ -->
+  <div id="dailyRewardModal" class="modal-overlay">
+    <div class="daily-reward-card">
+      <div class="daily-reward-glow"></div>
+
+      <div class="daily-reward-header">
+        <div class="daily-reward-title">🎁 Daily Reward!</div>
+        <div class="daily-reward-subtitle">Come back every day for bigger rewards</div>
+      </div>
+
+      <!-- 7-day streak strip -->
+      <div class="daily-streak-strip" id="dailyStreakStrip">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Today's reward showcase -->
+      <div class="daily-reward-showcase" id="dailyRewardShowcase">
+        <div class="daily-reward-icon" id="dailyRewardIcon">🪙</div>
+        <div class="daily-reward-amount" id="dailyRewardAmount">+100 Gold</div>
+        <div class="daily-reward-desc" id="dailyRewardDesc">Your Day 1 reward</div>
+      </div>
+
+      <button class="daily-reward-claim-btn" onclick="claimDailyReward()">
+        Claim Reward ✨
+      </button>
+      <button class="daily-reward-skip" onclick="toggleModal('dailyRewardModal', false)">
+        Maybe Later
+      </button>
+    </div>
+  </div>
+
   <div id="portalFlash"></div>
   <script src="core-engine/logic.js"></script>
 </body>
