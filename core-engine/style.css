@@ -1070,6 +1070,182 @@ body {
 .trophy-locked .trophy-level-bar-fill { background: rgba(255,255,255,0.2); }
 
 /* ============================================================
+   ERA TROPHY MODAL
+   ============================================================ */
+#eraTrophyModal {
+  z-index: 200;
+}
+
+#trophyFireworksCanvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 201;
+}
+
+.era-trophy-modal-card {
+  position: relative;
+  z-index: 205;
+  background: linear-gradient(160deg, #0e1a2e 0%, #060a18 100%);
+  border-radius: 24px;
+  padding: 36px 28px 28px;
+  text-align: center;
+  width: 88vw;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  animation: trophyCardIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Gold / Silver / Bronze card borders */
+.era-trophy-modal-card.card-gold   { border: 2px solid #ffd700; box-shadow: 0 0 40px rgba(212,175,55,0.5), 0 16px 40px rgba(0,0,0,0.7); }
+.era-trophy-modal-card.card-silver { border: 2px solid #b8c0cc; box-shadow: 0 0 30px rgba(184,192,204,0.4), 0 16px 40px rgba(0,0,0,0.7); }
+.era-trophy-modal-card.card-bronze { border: 2px solid #cd7f32; box-shadow: 0 0 30px rgba(205,127,50,0.35), 0 16px 40px rgba(0,0,0,0.7); }
+
+@keyframes trophyCardIn {
+  0%   { transform: scale(0.5) translateY(60px); opacity: 0; }
+  100% { transform: scale(1)   translateY(0);    opacity: 1; }
+}
+
+/* Animated shine sweep across card */
+.era-trophy-modal-shine {
+  position: absolute;
+  top: -60%; left: -40%;
+  width: 60%; height: 220%;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
+  animation: shineSwipe 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shineSwipe {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(300%); }
+  100% { transform: translateX(300%); }
+}
+
+.era-trophy-modal-icon {
+  font-size: 5rem;
+  line-height: 1;
+  animation: trophyBounce 0.6s 0.4s cubic-bezier(0.175,0.885,0.32,1.4) both;
+  filter: drop-shadow(0 0 20px rgba(255,215,0,0.6));
+}
+@keyframes trophyBounce {
+  0%   { transform: scale(0) rotate(-20deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.era-trophy-modal-tier {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.card-gold   .era-trophy-modal-tier { color: #ffd700; }
+.card-silver .era-trophy-modal-tier { color: #b8c0cc; }
+.card-bronze .era-trophy-modal-tier { color: #cd7f32; }
+
+.era-trophy-modal-era {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--text-color);
+  letter-spacing: 1px;
+}
+
+.era-trophy-modal-msg {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+.era-trophy-modal-stars {
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  margin: 4px 0;
+}
+
+.era-trophy-modal-btn {
+  margin-top: 8px;
+  padding: 14px 36px;
+  border-radius: 30px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  cursor: pointer;
+  width: 100%;
+  transition: transform 0.1s ease;
+}
+.era-trophy-modal-btn:active { transform: scale(0.96); }
+.card-gold   .era-trophy-modal-btn { background: linear-gradient(135deg, #d4af37, #ffe066); color: #1a1300; }
+.card-silver .era-trophy-modal-btn { background: linear-gradient(135deg, #8a9da8, #b8c0cc); color: #111; }
+.card-bronze .era-trophy-modal-btn { background: linear-gradient(135deg, #a0622a, #cd7f32); color: #fff; }
+
+/* ============================================================
+   ANNOUNCEMENTS PAGE
+   ============================================================ */
+.announcement-card {
+  background: rgba(17,23,26,0.85);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 18px 16px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.announcement-card.ann-new {
+  border-color: rgba(212,175,55,0.5);
+  background: rgba(212,175,55,0.06);
+}
+.announcement-card.ann-new::before {
+  content: 'NEW';
+  position: absolute;
+  top: 12px; right: 14px;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: var(--gold);
+  color: #1a1300;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.ann-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.ann-tag-update  { background: rgba(45,106,79,0.3);  color: #52c48a; border: 1px solid rgba(45,106,79,0.5); }
+.ann-tag-feature { background: rgba(74,116,191,0.3); color: #7aabff; border: 1px solid rgba(74,116,191,0.5); }
+.ann-tag-event   { background: rgba(212,175,55,0.2); color: #ffd700; border: 1px solid rgba(212,175,55,0.4); }
+.ann-tag-tip     { background: rgba(180,90,200,0.2); color: #d87fff; border: 1px solid rgba(180,90,200,0.4); }
+
+.ann-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-color);
+  margin-bottom: 6px;
+  padding-right: 40px;
+}
+.ann-body {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.ann-date {
+  font-size: 0.62rem;
+  color: rgba(138,157,168,0.6);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
    PORTAL FLASH
    ============================================================ */
 #portalFlash {
