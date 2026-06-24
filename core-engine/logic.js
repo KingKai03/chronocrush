@@ -96,12 +96,43 @@ function buildDomBoard() {
       tile.className = 'board-tile';
       tile.dataset.r = r;
       tile.dataset.c = c;
+      attachTileSwipe(tile);
       board.appendChild(tile);
     }
   }
-  // Attach swipe handler to the board container (one handler, not 36)
-  attachSwipeHandler(board);
   renderBoard();
+}
+
+function attachTileSwipe(tile) {
+  // Each tile tracks its own drag start, direction resolved on release
+  tile.addEventListener('touchstart', (e) => {
+    if (!gameState.isGameActive) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    swipeOrigin = {
+      r: parseInt(tile.dataset.r),
+      c: parseInt(tile.dataset.c),
+      x: t.clientX, y: t.clientY
+    };
+    highlightTile(swipeOrigin.r, swipeOrigin.c);
+  }, { passive: false });
+
+  tile.addEventListener('touchend', (e) => {
+    if (!swipeOrigin || !gameState.isGameActive) return;
+    const t = e.changedTouches[0];
+    handleSwipeEnd(t.clientX, t.clientY);
+  }, { passive: true });
+
+  tile.addEventListener('mousedown', (e) => {
+    if (!gameState.isGameActive) return;
+    e.preventDefault();
+    swipeOrigin = {
+      r: parseInt(tile.dataset.r),
+      c: parseInt(tile.dataset.c),
+      x: e.clientX, y: e.clientY
+    };
+    highlightTile(swipeOrigin.r, swipeOrigin.c);
+  });
 }
 
 /* ── Swipe / drag handler ───────────────────────────────────────────────────
@@ -109,69 +140,16 @@ function buildDomBoard() {
    mouseup works out the swipe direction and triggers the swap.
    A tap (no movement) still works for booster targeting.
 ──────────────────────────────────────────────────────────────────────────── */
-let swipeOrigin = null;   // { r, c, x, y }
-let _mouseMoveHandler = null;
-let _mouseUpHandler   = null;
+let swipeOrigin = null; // { r, c, x, y }
 
-function attachSwipeHandler(board) {
-  // Remove any previously attached handlers to prevent stacking
-  board.onmousedown  = null;
-  board.ontouchstart = null;
-  board.ontouchend   = null;
-  board.ontouchcancel = null;
-  if (_mouseUpHandler)   { window.removeEventListener('mouseup',   _mouseUpHandler);   _mouseUpHandler   = null; }
-
-  // ── Touch ────────────────────────────────────────────────────────────────
-  board.addEventListener('touchstart', (e) => {
-    if (!gameState.isGameActive) return;
-    const touch = e.touches[0];
-    const tile  = tileFromPoint(touch.clientX, touch.clientY);
-    if (!tile) return;
-    e.preventDefault(); // prevent ghost mouse events on mobile
-    swipeOrigin = { r: tile.r, c: tile.c, x: touch.clientX, y: touch.clientY };
-    highlightTile(tile.r, tile.c);
-  }, { passive: false });
-
-  board.addEventListener('touchend', (e) => {
-    if (!gameState.isGameActive || !swipeOrigin) return;
-    const touch = e.changedTouches[0];
-    handleSwipeEnd(touch.clientX, touch.clientY);
-  }, { passive: true });
-
-  board.addEventListener('touchcancel', () => { swipeOrigin = null; clearHighlight(); });
-
-  // ── Mouse (desktop) ──────────────────────────────────────────────────────
-  board.addEventListener('mousedown', (e) => {
-    if (!gameState.isGameActive) return;
-    const tile = tileFromPoint(e.clientX, e.clientY);
-    if (!tile) return;
-    swipeOrigin = { r: tile.r, c: tile.c, x: e.clientX, y: e.clientY };
-    highlightTile(tile.r, tile.c);
-    e.preventDefault();
-  });
-
-  // mouseup on window so drags that leave the board still register
-  _mouseUpHandler = (e) => {
-    if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; return; }
+// Global mouseup — catches releases outside the originating tile
+(function() {
+  window.addEventListener('mouseup', (e) => {
+    if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
     handleSwipeEnd(e.clientX, e.clientY);
-  };
-  window.addEventListener('mouseup', _mouseUpHandler);
-}
-
-function tileFromPoint(clientX, clientY) {
-  const board = document.getElementById('domBoard');
-  if (!board) return null;
-  const rect  = board.getBoundingClientRect();
-  const gap   = 3; // matches CSS gap
-  const cellW = (rect.width  - 16 - gap * (BOARD_SIZE - 1)) / BOARD_SIZE;
-  const cellH = (rect.height - 16 - gap * (BOARD_SIZE - 1)) / BOARD_SIZE;
-  const relX  = clientX - rect.left - 8;
-  const relY  = clientY - rect.top  - 8;
-  const c = Math.floor(relX / (cellW + gap));
-  const r = Math.floor(relY / (cellH + gap));
-  if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return null;
-  return { r, c };
-}
+  });
+  window.addEventListener('touchcancel', () => { swipeOrigin = null; clearHighlight(); });
+})();
 
 function highlightTile(r, c) {
   clearHighlight();
