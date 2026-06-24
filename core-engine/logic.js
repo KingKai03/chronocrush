@@ -96,61 +96,38 @@ function buildDomBoard() {
       tile.className = 'board-tile';
       tile.dataset.r = r;
       tile.dataset.c = c;
+      tile.addEventListener('click', onTileClick);
       board.appendChild(tile);
     }
   }
-  // Single handler on the board — works for both touch and mouse
-  initBoardInput(board);
   renderBoard();
 }
 
-function initBoardInput(board) {
-  // ── Touch ─────────────────────────────────────────────────────────────────
-  board.addEventListener('touchstart', onBoardTouchStart, { passive: false });
-  board.addEventListener('touchend',   onBoardTouchEnd,   { passive: true  });
-  board.addEventListener('touchcancel',() => { swipeOrigin = null; clearHighlight(); });
-  // ── Mouse ──────────────────────────────────────────────────────────────────
-  board.addEventListener('mousedown', onBoardMouseDown);
-  // mouseup on window catches releases outside the board
-  window.addEventListener('mouseup',  onWindowMouseUp);
-}
-
-function getTileFromEvent(clientX, clientY) {
-  // Use document.elementFromPoint — the browser knows exactly which element is there
-  const el = document.elementFromPoint(clientX, clientY);
-  if (!el) return null;
-  const tile = el.closest('.board-tile');
-  if (!tile) return null;
-  return { r: parseInt(tile.dataset.r), c: parseInt(tile.dataset.c) };
-}
-
-function onBoardTouchStart(e) {
+function onTileClick(e) {
   if (!gameState.isGameActive) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const pos = getTileFromEvent(t.clientX, t.clientY);
-  if (!pos) return;
-  swipeOrigin = { ...pos, x: t.clientX, y: t.clientY };
-  highlightTile(pos.r, pos.c);
-}
+  initAudio();
+  const tile = e.currentTarget;
+  const r = parseInt(tile.dataset.r);
+  const c = parseInt(tile.dataset.c);
 
-function onBoardTouchEnd(e) {
-  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
-  const t = e.changedTouches[0];
-  resolveSwipe(t.clientX, t.clientY);
-}
+  if (gameState.activeBooster === 'hammer') { useHammerOnTile(r, c); return; }
+  if (gameState.activeBooster === 'bomb')   { useBombOnTile(r, c);   return; }
 
-function onBoardMouseDown(e) {
-  if (!gameState.isGameActive) return;
-  const pos = getTileFromEvent(e.clientX, e.clientY);
-  if (!pos) return;
-  swipeOrigin = { ...pos, x: e.clientX, y: e.clientY };
-  highlightTile(pos.r, pos.c);
-}
-
-function onWindowMouseUp(e) {
-  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
-  resolveSwipe(e.clientX, e.clientY);
+  if (!gameState.selectedTile) {
+    gameState.selectedTile = { r, c };
+    triggerVibration(25);
+    renderBoard();
+  } else {
+    const dr = Math.abs(gameState.selectedTile.r - r);
+    const dc = Math.abs(gameState.selectedTile.c - c);
+    if (dr + dc === 1) {
+      swapTiles(gameState.selectedTile.r, gameState.selectedTile.c, r, c);
+    } else {
+      gameState.selectedTile = { r, c };
+      triggerVibration(25);
+      renderBoard();
+    }
+  }
 }
 
 /* ── Swipe / drag handler ───────────────────────────────────────────────────
@@ -158,55 +135,12 @@ function onWindowMouseUp(e) {
    mouseup works out the swipe direction and triggers the swap.
    A tap (no movement) still works for booster targeting.
 ──────────────────────────────────────────────────────────────────────────── */
-let swipeOrigin = null; // { r, c, x, y }
-
-function highlightTile(r, c) {
-  clearHighlight();
-  const tile = getTile(r, c);
-  if (tile) tile.classList.add('selected');
-}
-
 function clearHighlight() {
   const board = document.getElementById('domBoard');
   if (board) board.querySelectorAll('.board-tile.selected').forEach(t => t.classList.remove('selected'));
-  swipeOrigin = null;
 }
 
-function resolveSwipe(endX, endY) {
-  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
-  initAudio();
 
-  const { r, c, x: startX, y: startY } = swipeOrigin;
-  swipeOrigin = null;
-  clearHighlight();
-
-  const dx    = endX - startX;
-  const dy    = endY - startY;
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-
-  // Booster tap — tiny or no movement
-  if (absDx < 10 && absDy < 10) {
-    if (gameState.activeBooster === 'hammer') { useHammerOnTile(r, c); return; }
-    if (gameState.activeBooster === 'bomb')   { useBombOnTile(r, c);   return; }
-    return;
-  }
-
-  // Dominant axis decides direction
-  let tr = r, tc = c;
-  if (absDx >= absDy) {
-    tc = dx > 0 ? c + 1 : c - 1;
-  } else {
-    tr = dy > 0 ? r + 1 : r - 1;
-  }
-
-  if (tr < 0 || tr >= BOARD_SIZE || tc < 0 || tc >= BOARD_SIZE) return;
-
-  swapTiles(r, c, tr, tc);
-}
-
-// Keep old name as alias in case anything calls it
-function handleSwipeEnd(x, y) { resolveSwipe(x, y); }
 
 function renderBoard() {
   const board = document.getElementById('domBoard');
@@ -486,34 +420,32 @@ function advanceToNextLevel() {
 /* ============================================================
    LEVEL SETUP
    ============================================================ */
-/* ── Difficulty curve ────────────────────────────────────────────────────────
-   Levels  1–9  : Tutorial-easy.  Generous moves, low targets, tiny challenge.
-   Levels 10–49 : Easy→Medium.    Gradually tighten moves & raise score target.
-   Levels 50–70 : Medium→Hard.    Fewer moves, much higher targets, bigger challenge.
+/* ── Difficulty curve ──────────────────────────────────────────────────────
+   All levels: 20 moves, no exceptions.
+   Score target and challenge count scale up across levels.
+   Easy (1–9), Easy-Medium (10–49), Hard (50–70).
 ──────────────────────────────────────────────────────────────────────────── */
 function getDifficulty(lvl) {
   if (lvl <= 9) {
     return {
-      moves:          28,
-      targetScore:    300 + lvl * 30,          // 330 – 570
-      challengeCount: 5 + Math.floor(lvl * 0.5), // 5 – 9
+      moves:          20,
+      targetScore:    300 + lvl * 30,
+      challengeCount: 5 + Math.floor(lvl * 0.5),
       boosters:       { hammer: 5, bomb: 4, shuffle: 4 }
     };
   }
   if (lvl <= 49) {
-    // Linear ramp: moves 25→18, target 600→2400, challenge 10→18
-    const t = (lvl - 10) / 39; // 0→1
+    const t = (lvl - 10) / 39;
     return {
-      moves:          Math.round(25 - t * 7),
-      targetScore:    Math.round(600  + t * 1800),
-      challengeCount: Math.round(10   + t * 8),
+      moves:          20,
+      targetScore:    Math.round(600 + t * 1800),
+      challengeCount: Math.round(10  + t * 8),
       boosters:       { hammer: 3, bomb: 3, shuffle: 3 }
     };
   }
-  // Hard (50–70): moves 17→12, target 2600→5000, challenge 19→28
-  const t = (lvl - 50) / 20; // 0→1
+  const t = (lvl - 50) / 20;
   return {
-    moves:          Math.round(17 - t * 5),
+    moves:          20,
     targetScore:    Math.round(2600 + t * 2400),
     challengeCount: Math.round(19   + t * 9),
     boosters:       { hammer: 2, bomb: 2, shuffle: 2 }
