@@ -130,7 +130,7 @@
       <div class="auth-divider-label">Sign in to save your progress</div>
 
       <!-- Google -->
-      <button class="auth-social-btn auth-google-btn" id="googleSignInBtn" onclick="handleSocialAuth('google')">
+      <button class="auth-social-btn auth-google-btn" id="googleSignInBtn" onclick="handleSocialAuth('google')" disabled>
         <span class="auth-social-icon">
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -146,12 +146,18 @@
       <div class="auth-or-divider"><span>or</span></div>
 
       <!-- Guest -->
-      <button class="auth-social-btn auth-guest-btn" onclick="handleAuth('guest')">
+      <button class="auth-social-btn auth-guest-btn" id="guestSignInBtn" onclick="handleAuth('guest')" disabled>
         <span class="auth-social-icon">👤</span>
         Play as Guest
       </button>
 
-      <p class="auth-terms-note">By continuing you agree to our <a class="auth-link" onclick="openTermsPage()">Terms of Service</a> and <a class="auth-link" onclick="openPrivacyPage()">Privacy Policy</a>.<br>Guest progress is saved on this device only.</p>
+      <div class="auth-terms-agree">
+        <label class="auth-agree-label">
+          <input type="checkbox" id="termsAgreeCheck" onchange="toggleAuthButtons()">
+          <span>I have read and agree to the <a class="auth-link" onclick="openTermsPage()">Terms of Service</a> and <a class="auth-link" onclick="openPrivacyPage()">Privacy Policy</a></span>
+        </label>
+      </div>
+      <p class="auth-terms-note">Guest progress is saved on this device only.</p>
 
     </div>
   </div>
