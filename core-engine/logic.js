@@ -1897,6 +1897,14 @@ checkDailyBadge = function() {
 
 let _termsCalledFrom = 'settings'; // track where to go back to
 
+function toggleAuthButtons() {
+  const checked = document.getElementById('termsAgreeCheck')?.checked;
+  ['googleSignInBtn', 'guestSignInBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !checked;
+  });
+}
+
 function openTermsPage() {
   _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
   toggleModal('settingsModal', false);
