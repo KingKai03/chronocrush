@@ -227,12 +227,7 @@ body {
 }
 .auth-google-btn:hover { background: #f8f8f8; }
 
-.auth-facebook-btn {
-  background: #1877f2;
-  color: #ffffff;
-  border-color: #1877f2;
-}
-.auth-facebook-btn:hover { background: #166fe5; }
+
 
 .auth-or-divider {
   width: 100%;
@@ -263,6 +258,11 @@ body {
   text-align: center;
   line-height: 1.5;
   margin-top: 4px;
+}
+
+.auth-social-btn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ============================================================
