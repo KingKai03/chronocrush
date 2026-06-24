@@ -6,7 +6,7 @@ const BOARD_SIZE = 6;
 
 const gameState = {
   lives: 5,
-  gold: 150,
+  gold: 100,
   currentLevel: 1,
   highestUnlockedLevel: 1,
   totalLevels: 70,
@@ -53,9 +53,9 @@ function boot() {
   gameState.highestUnlockedLevel = parseInt(localStorage.getItem("chrono_highest_level")) || 1;
   gameState.levelRecords  = JSON.parse(localStorage.getItem("chrono_level_records"))  || {};
   gameState.preferences   = JSON.parse(localStorage.getItem("chrono_preferences"))    || { sound: true, sfx: true, vibe: true };
-  gameState.gold  = parseInt(localStorage.getItem("chrono_gold"))  || 150;
+  gameState.gold  = parseInt(localStorage.getItem("chrono_gold"))  || 100;
   gameState.lives = parseInt(localStorage.getItem("chrono_lives")) || 5;
-  if (isNaN(gameState.gold))  gameState.gold  = 150;
+  if (isNaN(gameState.gold))  gameState.gold  = 100;
   if (isNaN(gameState.lives)) gameState.lives = 5;
   gameState.lifeShield = localStorage.getItem("chrono_shield") === "1";
   gameState.lastSeenEraName = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
@@ -879,10 +879,19 @@ function buyItem(type, cost) {
       localStorage.setItem("chrono_shield", "1");
       showShopToast("🛡️ Life Shield active!");
       break;
-    case 'gold':
-      gameState.gold += 500;
-      showShopToast("🪙 +500 Gold added!");
+    case 'gold': {
+      // Free daily claim — once per day only
+      const todayKey = 'chrono_free_gold_' + new Date().toDateString();
+      if (localStorage.getItem(todayKey)) {
+        showShopToast('Already claimed today! Come back tomorrow.', 'error');
+        gameState.gold += cost; // refund since we deducted 0 but just in case
+      } else {
+        gameState.gold += 50;
+        localStorage.setItem(todayKey, '1');
+        showShopToast('🪙 +50 Free Gold claimed! Come back tomorrow.');
+      }
       break;
+    }
   }
 
   localStorage.setItem("chrono_gold", gameState.gold);
