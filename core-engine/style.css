@@ -1348,13 +1348,27 @@ body {
 /* ============================================================
    DAILY CHALLENGE PAGE
    ============================================================ */
-.daily-badge {
+/* Old dot badge — replaced */
+.daily-badge { display: none !important; }
+
+/* Gold coin flicker badge — shown on Daily, News, Awards */
+.gold-flicker-badge {
   position: absolute;
-  top: 4px; right: 6px;
-  width: 8px; height: 8px;
-  background: #ff4757;
-  border-radius: 50%;
-  border: 2px solid var(--bg-navy);
+  top: -4px;
+  right: 0px;
+  font-size: 0.75rem;
+  line-height: 1;
+  animation: goldFlicker 1.4s ease-in-out infinite alternate;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(255,215,0,0.9));
+  z-index: 5;
+}
+
+@keyframes goldFlicker {
+  0%   { transform: scale(0.85) rotate(-8deg); opacity: 0.6; filter: drop-shadow(0 0 3px rgba(255,215,0,0.5)); }
+  35%  { transform: scale(1.15) rotate(4deg);  opacity: 1;   filter: drop-shadow(0 0 8px rgba(255,215,0,1));   }
+  65%  { transform: scale(0.95) rotate(-3deg); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(255,215,0,0.7)); }
+  100% { transform: scale(1.1)  rotate(6deg);  opacity: 1;   filter: drop-shadow(0 0 10px rgba(255,215,0,1));  }
 }
 
 .daily-hero {
