@@ -260,9 +260,51 @@ body {
   margin-top: 4px;
 }
 
+/* ── Terms agree checkbox ───────────────────────────────── */
+.auth-terms-agree {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.auth-agree-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.auth-agree-label input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  accent-color: var(--gold-bright);
+  cursor: pointer;
+}
+
+/* Buttons locked until terms ticked */
 .auth-social-btn:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* Subtle shake animation when they try to click without agreeing */
+@keyframes authShake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.auth-card.shake {
+  animation: authShake 0.4s ease;
 }
 
 /* ============================================================
