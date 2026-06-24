@@ -57,6 +57,7 @@ function boot() {
   gameState.lives = parseInt(localStorage.getItem("chrono_lives")) || 5;
   if (isNaN(gameState.gold))  gameState.gold  = 150;
   if (isNaN(gameState.lives)) gameState.lives = 5;
+  gameState.lifeShield = localStorage.getItem("chrono_shield") === "1";
   gameState.lastSeenEraName = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
 
   syncSettingsUI();
@@ -67,6 +68,7 @@ function boot() {
 
   switchView("loadingScreen");
   setTimeout(() => switchView("authScreen"), 900);
+  checkPaymentReturn();
 }
 
 function syncSettingsUI() {
@@ -718,9 +720,15 @@ function evaluateLevelEndConditions() {
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
-      gameState.lives = Math.max(0, gameState.lives - 1);
-      localStorage.setItem("chrono_lives", gameState.lives);
-      alert("Out of moves! You lost a life.");
+      if (gameState.lifeShield) {
+        gameState.lifeShield = false;
+        localStorage.removeItem("chrono_shield");
+        showShopToast("🛡️ Life Shield saved you!");
+      } else {
+        gameState.lives = Math.max(0, gameState.lives - 1);
+        localStorage.setItem("chrono_lives", gameState.lives);
+        alert("Out of moves! You lost a life.");
+      }
       loadHomepage();
     }, 500);
   }
@@ -825,20 +833,204 @@ function resetGameProgress() {
 /* ============================================================
    SHOP
    ============================================================ */
+function openShopPage() {
+  // Sync gold display when opening shop
+  const disp = document.getElementById('shopGoldDisplay');
+  if (disp) disp.textContent = gameState.gold.toLocaleString();
+  switchView('shopPage');
+}
+
 function buyItem(type, cost) {
-  if (gameState.gold < cost) { alert("Not enough gold!"); return; }
-  gameState.gold -= cost;
-  switch(type) {
-    case 'lives':   gameState.lives=Math.min(99,gameState.lives+5); localStorage.setItem("chrono_lives",gameState.lives); break;
-    case 'hammer':  gameState.boosters.hammer+=3; break;
-    case 'bomb':    gameState.boosters.bomb+=3; break;
-    case 'shuffle': gameState.boosters.shuffle+=3; break;
-    case 'moves':   if(gameState.isGameActive){gameState.moves+=5;document.getElementById("movesDisplay").innerText=gameState.moves;} break;
-    case 'gold':    gameState.gold+=500; break;
+  if (gameState.gold < cost) {
+    showShopToast("Not enough gold! 🪙 Buy more below.", 'error');
+    return;
   }
-  localStorage.setItem("chrono_gold",gameState.gold);
-  document.getElementById("profileGold").innerText=gameState.gold;
-  updateBoosterUI(); triggerVibration(40);
+  gameState.gold -= cost;
+
+  switch(type) {
+    case 'lives':
+      gameState.lives = Math.min(99, gameState.lives + 5);
+      localStorage.setItem("chrono_lives", gameState.lives);
+      showShopToast("❤️ +5 Lives added!");
+      break;
+    case 'hammer':
+      gameState.boosters.hammer += 3;
+      showShopToast("🔨 Hammer ×3 added!");
+      break;
+    case 'bomb':
+      gameState.boosters.bomb += 3;
+      showShopToast("💣 Time Bomb ×3 added!");
+      break;
+    case 'shuffle':
+      gameState.boosters.shuffle += 3;
+      showShopToast("🔀 Shuffle ×3 added!");
+      break;
+    case 'moves':
+      if (gameState.isGameActive) {
+        gameState.moves += 5;
+        document.getElementById("movesDisplay").innerText = gameState.moves;
+      }
+      showShopToast("➕ +5 Moves added!");
+      break;
+    case 'shield':
+      gameState.lifeShield = true;
+      localStorage.setItem("chrono_shield", "1");
+      showShopToast("🛡️ Life Shield active!");
+      break;
+    case 'gold':
+      gameState.gold += 500;
+      showShopToast("🪙 +500 Gold added!");
+      break;
+  }
+
+  localStorage.setItem("chrono_gold", gameState.gold);
+  const profileGold = document.getElementById("profileGold");
+  if (profileGold) profileGold.innerText = gameState.gold;
+  const shopDisp = document.getElementById("shopGoldDisplay");
+  if (shopDisp) shopDisp.textContent = gameState.gold.toLocaleString();
+  updateBoosterUI();
+  triggerVibration(40);
+}
+
+/* ── Shop toast notification ────────────────────────────────── */
+function showShopToast(msg, type) {
+  let toast = document.getElementById('shopToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'shopToast';
+    toast.style.cssText = `
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      background:rgba(17,23,26,0.97); border:1px solid rgba(212,175,55,0.4);
+      color:#eef1f2; padding:12px 22px; border-radius:30px;
+      font-size:0.85rem; font-weight:700; z-index:999;
+      transition:opacity 0.3s; pointer-events:none; white-space:nowrap;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.style.borderColor = type === 'error' ? 'rgba(163,42,42,0.7)' : 'rgba(212,175,55,0.4)';
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+}
+
+/* ============================================================
+   PAYFAST PAYMENT FLOW
+   ============================================================ */
+// ⚠️  SETUP REQUIRED: Replace these with your real PayFast credentials
+// Get them at https://www.payfast.co.za after creating a merchant account
+const PAYFAST_CONFIG = {
+  merchant_id:  'YOUR_MERCHANT_ID',      // e.g. '10000100'
+  merchant_key: 'YOUR_MERCHANT_KEY',     // e.g. 'q1cd2rdny4a53'
+  sandbox:      true,                    // set false when going live
+  return_url:   window.location.origin + window.location.pathname + '?payment=success',
+  cancel_url:   window.location.origin + window.location.pathname + '?payment=cancel',
+  notify_url:   '',  // Optional: your server ITN webhook URL
+};
+
+let pendingPayment = null; // { packageId, amountZAR, goldCoins }
+
+function initiatePayment(packageId, amountZAR, goldCoins) {
+  pendingPayment = { packageId, amountZAR, goldCoins };
+
+  const labels = {
+    '500gold':  'Starter Pouch — 500 Gold',
+    '1000gold': 'Gold Pouch — 1,000 Gold',
+    '2500gold': 'Gold Chest — 2,500 Gold',
+    '6000gold': 'Gold Vault — 6,000 Gold',
+  };
+
+  document.getElementById('paymentModalTitle').textContent = labels[packageId] || 'Buy Gold';
+  document.getElementById('paymentGoldAmt').textContent    = goldCoins.toLocaleString();
+  document.getElementById('paymentModalPrice').textContent = `R ${amountZAR}`;
+
+  toggleModal('paymentModal', true);
+}
+
+function confirmPayment() {
+  if (!pendingPayment) return;
+
+  const { packageId, amountZAR, goldCoins } = pendingPayment;
+
+  // If credentials not set yet, show setup message
+  if (PAYFAST_CONFIG.merchant_id === 'YOUR_MERCHANT_ID') {
+    alert('⚠️ PayFast not configured yet.
+
+To enable real payments:
+1. Sign up at payfast.co.za
+2. Get your Merchant ID & Key
+3. Update PAYFAST_CONFIG in logic.js
+
+For now we'll add the gold directly for testing.');
+    // DEV MODE: add gold directly so you can test the flow
+    gameState.gold += goldCoins;
+    localStorage.setItem("chrono_gold", gameState.gold);
+    const profileGold = document.getElementById("profileGold");
+    if (profileGold) profileGold.innerText = gameState.gold;
+    const shopDisp = document.getElementById("shopGoldDisplay");
+    if (shopDisp) shopDisp.textContent = gameState.gold.toLocaleString();
+    showShopToast(`🪙 +${goldCoins.toLocaleString()} Gold added! (Test mode)`);
+    toggleModal('paymentModal', false);
+    pendingPayment = null;
+    return;
+  }
+
+  // Build PayFast form and auto-submit
+  const host = PAYFAST_CONFIG.sandbox
+    ? 'https://sandbox.payfast.co.za/eng/process'
+    : 'https://www.payfast.co.za/eng/process';
+
+  const itemName = `CHRONOCRUSH ${goldCoins.toLocaleString()} Gold Coins`;
+
+  const params = {
+    merchant_id:  PAYFAST_CONFIG.merchant_id,
+    merchant_key: PAYFAST_CONFIG.merchant_key,
+    return_url:   PAYFAST_CONFIG.return_url,
+    cancel_url:   PAYFAST_CONFIG.cancel_url,
+    amount:       amountZAR.toFixed(2),
+    item_name:    itemName,
+    item_description: `${goldCoins} gold coins for CHRONOCRUSH`,
+    custom_str1:  packageId,
+    custom_str2:  String(goldCoins),
+  };
+
+  if (PAYFAST_CONFIG.notify_url) params.notify_url = PAYFAST_CONFIG.notify_url;
+
+  // Create a hidden form and submit it
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = host;
+
+  Object.entries(params).forEach(([key, val]) => {
+    const inp = document.createElement('input');
+    inp.type  = 'hidden';
+    inp.name  = key;
+    inp.value = val;
+    form.appendChild(inp);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// Check for payment return from PayFast
+function checkPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('payment');
+  if (result === 'success') {
+    // PayFast returned — in production, rely on ITN webhook for gold credit.
+    // For now show a friendly message.
+    setTimeout(() => {
+      showShopToast('✅ Payment received! Your gold will arrive shortly.');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }, 800);
+  } else if (result === 'cancel') {
+    setTimeout(() => {
+      showShopToast('Payment cancelled.', 'error');
+      window.history.replaceState({}, '', window.location.pathname);
+    }, 800);
+  }
 }
 
 /* ============================================================
