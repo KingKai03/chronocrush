@@ -6,6 +6,16 @@
   <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
 
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#060a18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CHRONOCRUSH">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
   <!-- ══ Firebase SDK ══════════════════════════════════════════
        1. Go to https://console.firebase.google.com
        2. Create a project → Add a Web App → copy the firebaseConfig
@@ -792,5 +802,16 @@
 
   <div id="portalFlash"></div>
   <script src="core-engine/logic.js"></script>
+
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/chronocrush/sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>
