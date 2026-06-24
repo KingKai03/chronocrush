@@ -383,6 +383,7 @@ function loadHomepage() {
   startSpaceMusic();
   checkDailyBadge();
   checkNewsBadge();
+  maybeShowDailyReward();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
     if (an) an.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -1575,4 +1576,109 @@ function checkNewsBadge() {
   const hasNew  = ANNOUNCEMENTS.some(a => a.isNew && !seen.includes(a.id));
   const badge   = document.getElementById('newsBadge');
   if (badge) badge.style.display = hasNew ? 'block' : 'none';
+}
+
+/* ============================================================
+   DAILY REWARD SYSTEM
+   ============================================================ */
+
+// 7-day reward cycle — loops back after day 7
+const DAILY_REWARDS = [
+  { day: 1, icon: '🪙', label: 'Gold',       desc: 'Day 1 reward',  type: 'gold',    amount: 100  },
+  { day: 2, icon: '❤️', label: '+3 Lives',   desc: 'Day 2 reward',  type: 'lives',   amount: 3    },
+  { day: 3, icon: '🪙', label: 'Gold',        desc: 'Day 3 reward',  type: 'gold',    amount: 150  },
+  { day: 4, icon: '🔨', label: 'Hammer ×2',  desc: 'Day 4 reward',  type: 'hammer',  amount: 2    },
+  { day: 5, icon: '🪙', label: 'Gold',        desc: 'Day 5 reward',  type: 'gold',    amount: 200  },
+  { day: 6, icon: '💣', label: 'Bomb ×2',    desc: 'Day 6 reward',  type: 'bomb',    amount: 2    },
+  { day: 7, icon: '🎁', label: '500 Gold',   desc: 'Weekly jackpot!',type: 'gold',   amount: 500  },
+];
+
+function getDayKey(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + (offsetDays || 0));
+  return d.toDateString();
+}
+
+function getDailyRewardState() {
+  const lastClaim  = localStorage.getItem('chrono_daily_reward_date');
+  const streak     = parseInt(localStorage.getItem('chrono_daily_reward_streak')) || 0;
+  const todayKey   = getDayKey(0);
+  const alreadyClaimedToday = lastClaim === todayKey;
+  // Which day of the 7-cycle are we on (0-indexed)
+  const dayIndex = streak % 7;
+  return { alreadyClaimedToday, streak, dayIndex, todayKey };
+}
+
+function maybeShowDailyReward() {
+  const { alreadyClaimedToday } = getDailyRewardState();
+  if (alreadyClaimedToday) return; // already claimed today — don't show
+  // Small delay so the map loads first, then popup slides up
+  setTimeout(showDailyRewardModal, 800);
+}
+
+function showDailyRewardModal() {
+  const { streak, dayIndex } = getDailyRewardState();
+  const reward = DAILY_REWARDS[dayIndex];
+
+  // Update reward showcase
+  document.getElementById('dailyRewardIcon').textContent   = reward.icon;
+  document.getElementById('dailyRewardAmount').textContent = '+' + (reward.amount > 1 ? reward.amount + ' ' : '') + reward.label;
+  document.getElementById('dailyRewardDesc').textContent   = reward.desc;
+
+  // Build the 7-day streak strip
+  const strip = document.getElementById('dailyStreakStrip');
+  if (strip) {
+    strip.innerHTML = '';
+    const DAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    DAILY_REWARDS.forEach((r, i) => {
+      const div = document.createElement('div');
+      let cls = 'streak-day';
+      if (i < dayIndex)      cls += ' claimed';
+      else if (i === dayIndex) cls += ' today';
+      else                    cls += ' locked';
+      div.className = cls;
+      div.innerHTML = `<span class="streak-day-icon">${r.icon}</span><span>Day ${r.day}</span>`;
+      strip.appendChild(div);
+    });
+  }
+
+  toggleModal('dailyRewardModal', true);
+}
+
+function claimDailyReward() {
+  const { streak, dayIndex, todayKey } = getDailyRewardState();
+  const reward = DAILY_REWARDS[dayIndex];
+
+  // Apply the reward
+  switch (reward.type) {
+    case 'gold':
+      gameState.gold += reward.amount;
+      localStorage.setItem('chrono_gold', gameState.gold);
+      const pg = document.getElementById('profileGold');
+      if (pg) pg.innerText = gameState.gold;
+      break;
+    case 'lives':
+      gameState.lives = Math.min(99, gameState.lives + reward.amount);
+      localStorage.setItem('chrono_lives', gameState.lives);
+      const lc = document.getElementById('livesCounter');
+      if (lc) lc.innerText = gameState.lives;
+      break;
+    case 'hammer':
+      gameState.boosters.hammer += reward.amount;
+      break;
+    case 'bomb':
+      gameState.boosters.bomb += reward.amount;
+      break;
+    case 'shuffle':
+      gameState.boosters.shuffle += reward.amount;
+      break;
+  }
+
+  // Save claim date and increment streak
+  localStorage.setItem('chrono_daily_reward_date',   todayKey);
+  localStorage.setItem('chrono_daily_reward_streak', streak + 1);
+
+  toggleModal('dailyRewardModal', false);
+  showShopToast('🎁 ' + reward.icon + ' ' + reward.label + ' claimed! Come back tomorrow.');
+  triggerVibration([80, 40, 120]);
 }
