@@ -1741,6 +1741,185 @@ body {
 }
 
 /* ============================================================
+   DAILY REWARD MODAL
+   ============================================================ */
+#dailyRewardModal {
+  z-index: 300;
+  align-items: flex-end;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.daily-reward-card {
+  position: relative;
+  background: linear-gradient(160deg, #0e1e30 0%, #060a18 100%);
+  border: 1px solid rgba(212,175,55,0.4);
+  border-radius: 28px 28px 0 0;
+  padding: 28px 22px 32px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  animation: slideUpSheet 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  box-shadow: 0 -12px 50px rgba(0,0,0,0.6);
+}
+@keyframes slideUpSheet {
+  0%   { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* Animated golden shimmer behind the card */
+.daily-reward-glow {
+  position: absolute;
+  top: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%);
+  pointer-events: none;
+  animation: rewardGlowPulse 2s ease-in-out infinite alternate;
+}
+@keyframes rewardGlowPulse {
+  0%   { opacity: 0.5; transform: translateX(-50%) scale(0.9); }
+  100% { opacity: 1;   transform: translateX(-50%) scale(1.1); }
+}
+
+.daily-reward-header { text-align: center; }
+.daily-reward-title {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--gold-bright);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.daily-reward-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+/* ── 7-day streak strip ─────────────────────────────────── */
+.daily-streak-strip {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
+}
+
+.streak-day {
+  flex: 1;
+  max-width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 4px 6px;
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.streak-day-icon { font-size: 1.1rem; line-height: 1; }
+
+.streak-day.claimed {
+  background: rgba(45,106,79,0.2);
+  border-color: #2d6a4f;
+  color: #52c48a;
+}
+.streak-day.claimed::after {
+  content: '✓';
+  position: absolute;
+  top: -6px; right: -5px;
+  background: #2d6a4f;
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 900;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--bg-navy);
+}
+
+.streak-day.today {
+  background: rgba(212,175,55,0.15);
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(212,175,55,0.3);
+}
+
+.streak-day.locked { opacity: 0.4; }
+
+/* ── Today's reward showcase ────────────────────────────── */
+.daily-reward-showcase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212,175,55,0.06);
+  border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 16px;
+  padding: 20px 30px;
+  width: 100%;
+}
+
+.daily-reward-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  animation: rewardIconBounce 0.7s 0.3s cubic-bezier(0.175,0.885,0.32,1.4) both;
+}
+@keyframes rewardIconBounce {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+
+.daily-reward-amount {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--gold-bright);
+  letter-spacing: 0.5px;
+}
+
+.daily-reward-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.daily-reward-claim-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #d4af37, #ffe066);
+  color: #1a1300;
+  border: none;
+  border-radius: 14px;
+  font-weight: 900;
+  font-size: 1rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: transform 0.1s;
+  box-shadow: 0 6px 20px rgba(212,175,55,0.35);
+}
+.daily-reward-claim-btn:active { transform: scale(0.97); }
+
+.daily-reward-skip {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ============================================================
    PORTAL FLASH
    ============================================================ */
 #portalFlash {
