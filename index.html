@@ -5,6 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
   <link rel="stylesheet" href="core-engine/style.css">
+
+  <!-- ══ Firebase SDK ══════════════════════════════════════════
+       1. Go to https://console.firebase.google.com
+       2. Create a project → Add a Web App → copy the firebaseConfig
+       3. Enable Authentication → Sign-in methods → Google
+       4. Replace the firebaseConfig object below with your own values
+       ═══════════════════════════════════════════════════════════ -->
+  <script type="module">
+    import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithPopup, signOut,
+             GoogleAuthProvider,
+             onAuthStateChanged }               from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAIyC6iW6RTOSMDECz-cGs37fn35UQZ9QY",
+      authDomain:        "chronocrush-8d001.firebaseapp.com",
+      projectId:         "chronocrush-8d001",
+      storageBucket:     "chronocrush-8d001.firebasestorage.app",
+      messagingSenderId: "141039557626",
+      appId:             "1:141039557626:web:31ded9bf8827702806a243"
+    };
+
+    // Only initialise if config is filled in
+    const FIREBASE_READY = true; // Firebase configured ✓
+
+    let auth = null;
+    if (FIREBASE_READY) {
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+
+      // If player is already signed in, skip straight to game
+      onAuthStateChanged(auth, user => {
+        if (user && document.getElementById('authScreen').classList.contains('active')) {
+          window._firebaseUser = user;
+          window.afterFirebaseAuth(user);
+        }
+      });
+    }
+
+    // Expose sign-in functions to global scope so logic.js can call them
+    window._firebaseReady = FIREBASE_READY;
+
+    window.firebaseSignInGoogle = async function() {
+      if (!FIREBASE_READY) return null;
+      const provider = new GoogleAuthProvider();
+      provider.addScope('email');
+      provider.addScope('profile');
+      try {
+        const result = await signInWithPopup(auth, provider);
+        return result.user;
+      } catch(err) {
+        if (err.code !== 'auth/popup-closed-by-user') {
+          console.error('Google sign-in error:', err.message);
+        }
+        return null;
+      }
+    };
+
+
+    window.firebaseSignOut = async function() {
+      if (auth) await signOut(auth);
+    };
+  </script>
 </head>
 <body onclick="initAudio()">
 
@@ -47,7 +110,7 @@
       <div class="auth-divider-label">Sign in to save your progress</div>
 
       <!-- Google -->
-      <button class="auth-social-btn auth-google-btn" onclick="handleSocialAuth('google')">
+      <button class="auth-social-btn auth-google-btn" id="googleSignInBtn" onclick="handleSocialAuth('google')">
         <span class="auth-social-icon">
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -58,16 +121,6 @@
           </svg>
         </span>
         Continue with Google
-      </button>
-
-      <!-- Facebook -->
-      <button class="auth-social-btn auth-facebook-btn" onclick="handleSocialAuth('facebook')">
-        <span class="auth-social-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-        </span>
-        Continue with Facebook
       </button>
 
       <div class="auth-or-divider"><span>or</span></div>
