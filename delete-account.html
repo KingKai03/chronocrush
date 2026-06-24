@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Account — CHRONOCRUSH: The Era Odyssey</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #060a18;
+      color: #eef1f2;
+      padding: 32px 20px 60px;
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+    .logo { font-size: 1.5rem; font-weight: 900; color: #ffd700; letter-spacing: 2px; margin-bottom: 4px; }
+    .subtitle { font-size: 0.85rem; color: #8a9da8; margin-bottom: 32px; }
+    h1 { font-size: 1.6rem; font-weight: 900; color: #ffd700; margin-bottom: 8px; }
+    .updated { font-size: 0.75rem; color: #8a9da8; font-style: italic; margin-bottom: 32px; }
+    h2 { font-size: 1rem; font-weight: 800; color: #ffd700; margin: 28px 0 8px; }
+    p { font-size: 0.88rem; color: #8a9da8; margin-bottom: 10px; }
+    p strong { color: #eef1f2; }
+    ul { margin: 8px 0 12px 20px; }
+    ul li { font-size: 0.88rem; color: #8a9da8; margin-bottom: 6px; }
+    ul li strong { color: #eef1f2; }
+    .steps {
+      counter-reset: steps;
+      list-style: none;
+      margin: 12px 0 20px 0;
+      padding: 0;
+    }
+    .steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      font-size: 0.88rem;
+      color: #8a9da8;
+    }
+    .steps li::before {
+      content: counter(steps);
+      background: #ffd700;
+      color: #1a1300;
+      font-weight: 900;
+      font-size: 0.78rem;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .warning-box {
+      background: rgba(163,42,42,0.12);
+      border: 1px solid rgba(163,42,42,0.3);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 20px 0;
+    }
+    .warning-box p { color: #ff6b81; margin: 0; }
+    .warning-box strong { color: #ff6b81; }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 0.82rem;
+    }
+    .data-table th {
+      background: rgba(212,175,55,0.15);
+      color: #ffd700;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 800;
+      border-bottom: 1px solid rgba(212,175,55,0.2);
+    }
+    .data-table td {
+      padding: 10px 14px;
+      color: #8a9da8;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .deleted { color: #ff6b81 !important; }
+    .kept { color: #52c48a !important; }
+    .play-btn {
+      display: inline-block;
+      margin-top: 20px;
+      background: linear-gradient(135deg, #d4af37, #ffe066);
+      color: #1a1300;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 28px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #eef1f2;
+      padding: 8px 18px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.82rem;
+    }
+    hr { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+  </style>
+</head>
+<body>
+  <div class="logo">CHRONOCRUSH</div>
+  <div class="subtitle">The Era Odyssey</div>
+  <a class="back-btn" href="/chronocrush/">◀ Back to Game</a>
+
+  <h1>🗑️ Delete Your Account</h1>
+  <p class="updated">Last updated: June 2025</p>
+
+  <p>You can permanently delete your CHRONOCRUSH account and all associated data at any time. This page explains how to request deletion and what data is removed.</p>
+
+  <div class="warning-box">
+    <p><strong>⚠️ Account deletion is permanent and cannot be undone.</strong> All your game progress, gold coins, trophies, and account information will be permanently deleted and cannot be recovered.</p>
+  </div>
+
+  <h2>How to Delete Your Account</h2>
+  <p>Account deletion is done directly inside the CHRONOCRUSH app in a few simple steps:</p>
+
+  <ol class="steps">
+    <li>Open the CHRONOCRUSH app on your device</li>
+    <li>From the main map screen, tap the <strong>⚙️ Settings</strong> icon in the top-right corner</li>
+    <li>Scroll down and tap <strong>"🗑️ Deactivate Account"</strong></li>
+    <li>Read the warning carefully — it lists everything that will be deleted</li>
+    <li>Tick the confirmation checkbox: <em>"I understand this is permanent and cannot be undone"</em></li>
+    <li>Tap <strong>"Delete My Account"</strong> — you may be asked to re-authenticate with Google for security</li>
+    <li>Your account and all data will be permanently deleted immediately</li>
+  </ol>
+
+  <a class="play-btn" href="/chronocrush/">Open CHRONOCRUSH to Delete Account</a>
+
+  <h2>What Data Is Deleted</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Data Type</th>
+        <th>Action</th>
+        <th>Timeframe</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Google account sign-in</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Display name &amp; email address</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Game progress &amp; level records</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Gold coins &amp; booster inventory</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Daily reward streak</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Trophy &amp; awards records</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Device preferences (sound/vibrate)</td>
+        <td class="deleted">Permanently deleted</td>
+        <td>Immediately</td>
+      </tr>
+      <tr>
+        <td>Purchase transaction records</td>
+        <td class="kept">Retained for legal/tax compliance</td>
+        <td>Up to 7 years (legal requirement)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Guest Players</h2>
+  <p>If you played as a Guest (no Google Sign-In), all your data is stored locally on your device only. To delete it simply:</p>
+  <ul>
+    <li>Clear your browser/app data in your device settings, <strong>or</strong></li>
+    <li>Open Settings in the game → tap <strong>"Reset Progress"</strong> to wipe all local data</li>
+  </ul>
+  <p>Guest players have no account on our servers — there is nothing to delete remotely.</p>
+
+  <h2>Need Help?</h2>
+  <p>If you are unable to access the app to delete your account, or if you have any questions about data deletion, please contact us and we will manually process your deletion request within 30 days.</p>
+  <p>Contact: <a href="mailto:privacy@chronocrush.game" style="color:#ffd700">privacy@chronocrush.game</a></p>
+
+  <hr>
+  <p style="font-size:0.72rem;text-align:center;">© 2025 CHRONOCRUSH: The Era Odyssey. All rights reserved.</p>
+</body>
+</html>
