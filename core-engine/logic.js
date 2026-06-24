@@ -67,8 +67,10 @@ function boot() {
   window.addEventListener("resize", resizeFireworksCanvas);
 
   switchView("loadingScreen");
-  setTimeout(() => switchView("authScreen"), 900);
-  checkPaymentReturn();
+  setTimeout(() => {
+    switchView("authScreen");
+    checkPaymentReturn();
+  }, 900);
 }
 
 function syncSettingsUI() {
@@ -919,14 +921,22 @@ function showShopToast(msg, type) {
    ============================================================ */
 // ⚠️  SETUP REQUIRED: Replace these with your real PayFast credentials
 // Get them at https://www.payfast.co.za after creating a merchant account
+// PayFast config — update merchant_id and merchant_key before going live
+// Sign up at https://www.payfast.co.za to get your credentials
 const PAYFAST_CONFIG = {
-  merchant_id:  'YOUR_MERCHANT_ID',      // e.g. '10000100'
-  merchant_key: 'YOUR_MERCHANT_KEY',     // e.g. 'q1cd2rdny4a53'
-  sandbox:      true,                    // set false when going live
-  return_url:   window.location.origin + window.location.pathname + '?payment=success',
-  cancel_url:   window.location.origin + window.location.pathname + '?payment=cancel',
-  notify_url:   '',  // Optional: your server ITN webhook URL
+  merchant_id:  'YOUR_MERCHANT_ID',
+  merchant_key: 'YOUR_MERCHANT_KEY',
+  sandbox:      true,
+  notify_url:   ''
 };
+// return/cancel URLs built at runtime to always match current domain
+function getPayfastUrls() {
+  const base = window.location.origin + window.location.pathname;
+  return {
+    return_url: base + '?payment=success',
+    cancel_url: base + '?payment=cancel'
+  };
+}
 
 let pendingPayment = null; // { packageId, amountZAR, goldCoins }
 
@@ -985,8 +995,8 @@ For now we'll add the gold directly for testing.');
   const params = {
     merchant_id:  PAYFAST_CONFIG.merchant_id,
     merchant_key: PAYFAST_CONFIG.merchant_key,
-    return_url:   PAYFAST_CONFIG.return_url,
-    cancel_url:   PAYFAST_CONFIG.cancel_url,
+    return_url:   getPayfastUrls().return_url,
+    cancel_url:   getPayfastUrls().cancel_url,
     amount:       amountZAR.toFixed(2),
     item_name:    itemName,
     item_description: `${goldCoins} gold coins for CHRONOCRUSH`,
