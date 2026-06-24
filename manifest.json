@@ -1,18 +1,26 @@
 {
+  "id": "/chronocrush/",
   "name": "CHRONOCRUSH: The Era Odyssey",
   "short_name": "CHRONOCRUSH",
   "description": "Match tiles across 7 musical eras — from 1940s Noir to 2000s Y2K Pop. Earn trophies, claim daily rewards, and conquer the timeline!",
   "start_url": "/chronocrush/",
   "scope": "/chronocrush/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#060a18",
-  "theme_color": "#060a18",
+  "theme_color": "#d4af37",
   "categories": [
     "games",
-    "puzzle"
+    "puzzle",
+    "entertainment"
   ],
   "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-72.png",
@@ -27,24 +35,6 @@
       "purpose": "any"
     },
     {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -55,12 +45,6 @@
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
     },
     {
       "src": "icons/icon-512.png",
@@ -81,22 +65,63 @@
       "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "CHRONOCRUSH gameplay"
+      "label": "CHRONOCRUSH — Match tiles across musical eras"
+    },
+    {
+      "src": "screenshots/screen2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "CHRONOCRUSH — Level map and era progression"
+    },
+    {
+      "src": "screenshots/screen3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "CHRONOCRUSH — Daily challenges and rewards"
+    },
+    {
+      "src": "screenshots/screen4.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "CHRONOCRUSH — Awards and trophies"
+    },
+    {
+      "src": "screenshots/screen5.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "CHRONOCRUSH — Shop and power-ups"
     }
   ],
   "shortcuts": [
     {
       "name": "Daily Challenge",
       "short_name": "Daily",
-      "description": "Jump to today's daily challenge",
+      "description": "Jump straight to today's daily challenge",
       "url": "/chronocrush/?shortcut=daily",
       "icons": [
         {
           "src": "icons/icon-96.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Awards",
+      "short_name": "Awards",
+      "description": "View your era trophies",
+      "url": "/chronocrush/?shortcut=awards",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
-  ],
-  "id": "/chronocrush/"
+  ]
 }
