@@ -21,6 +21,7 @@ const gameState = {
   preferences: { sound: true, sfx: true, vibe: true },
   audioCtx: null,
   musicSchedulerId: null,
+  authProvider: 'Guest',
   boosters: { hammer: 3, bomb: 3, shuffle: 3 },
   activeBooster: null,
   challengeTarget: null,
@@ -58,7 +59,8 @@ function boot() {
   if (isNaN(gameState.gold))  gameState.gold  = 100;
   if (isNaN(gameState.lives)) gameState.lives = 5;
   gameState.lifeShield = localStorage.getItem("chrono_shield") === "1";
-  gameState.lastSeenEraName = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
+  gameState.lastSeenEraName  = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
+  gameState.authProvider     = localStorage.getItem("chrono_auth_provider") || "Guest";
 
   syncSettingsUI();
 
@@ -808,7 +810,76 @@ function runFireworksLoop() {
    ============================================================ */
 function exitToHome() { gameState.isGameActive=false; gameState.activeBooster=null; loadHomepage(); }
 function transitionToMap() { initAudio(); triggerFlashAnimation(); loadHomepage(); }
-function handleAuth() { initAudio(); triggerFlashAnimation(); switchView("welcomeScreen"); }
+/* ============================================================
+   AUTH + NOTIFICATION FLOW
+   ============================================================ */
+
+function handleSocialAuth(provider) {
+  initAudio();
+  // Save the chosen provider label for display
+  const names = { google: 'Google', facebook: 'Facebook' };
+  gameState.authProvider = names[provider] || 'Guest';
+  localStorage.setItem('chrono_auth_provider', gameState.authProvider);
+
+  // In a real app: trigger OAuth flow here.
+  // For now we proceed directly — same as guest but with a name attached.
+  // Google: use Firebase Auth / Google Identity Services
+  // Facebook: use Facebook Login SDK
+  afterAuthSuccess();
+}
+
+function handleAuth(mode) {
+  initAudio();
+  gameState.authProvider = 'Guest';
+  localStorage.setItem('chrono_auth_provider', 'Guest');
+  afterAuthSuccess();
+}
+
+function afterAuthSuccess() {
+  // Check if we've already asked about notifications this install
+  const askedBefore = localStorage.getItem('chrono_notif_asked');
+  if (askedBefore) {
+    // Skip straight to welcome screen
+    triggerFlashAnimation();
+    switchView('welcomeScreen');
+  } else {
+    // Show notification permission popup
+    toggleModal('notifModal', true);
+  }
+}
+
+function handleNotifPermission(allow) {
+  toggleModal('notifModal', false);
+  localStorage.setItem('chrono_notif_asked', '1');
+
+  if (allow && 'Notification' in window) {
+    Notification.requestPermission().then(perm => {
+      localStorage.setItem('chrono_notif_perm', perm);
+      if (perm === 'granted') {
+        scheduleWelcomeNotification();
+      }
+    });
+  } else {
+    localStorage.setItem('chrono_notif_perm', 'denied');
+  }
+
+  triggerFlashAnimation();
+  switchView('welcomeScreen');
+}
+
+function scheduleWelcomeNotification() {
+  // Show a welcome notification after 3 seconds if permission granted
+  if (Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        new Notification('CHRONOCRUSH: The Era Odyssey 🎵', {
+          body: 'Your adventure through time begins now. Good luck, time traveller!',
+          icon: '/favicon.ico'
+        });
+      } catch(e) {}
+    }, 3000);
+  }
+}
 function triggerFlashAnimation() {
   const f = document.getElementById("portalFlash");
   if (!f) return;
