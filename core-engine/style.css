@@ -1943,6 +1943,150 @@ body {
 }
 #portalFlash.active { opacity: 0.8; }
 
+/* ============================================================
+   LEGAL PAGES — Terms & Privacy
+   ============================================================ */
+.legal-body {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.legal-updated {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+.legal-body h3 {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--gold-bright);
+  margin: 18px 0 6px;
+  letter-spacing: 0.3px;
+}
+.legal-body p {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 6px;
+}
+.legal-body p strong { color: var(--text-color); }
+
+/* Auth screen links */
+.auth-link {
+  color: var(--gold-bright);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Settings extra buttons */
+.menu-action-btn.terms-btn {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-dim);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.menu-action-btn.deactivate-btn {
+  background: rgba(163,42,42,0.12);
+  color: #ff6b81;
+  border: 1px solid rgba(163,42,42,0.3);
+}
+
+/* ============================================================
+   DEACTIVATE ACCOUNT MODAL
+   ============================================================ */
+.deactivate-window {
+  max-width: 340px;
+}
+.deactivate-icon {
+  font-size: 2.8rem;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.deactivate-title {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ff6b81;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.deactivate-body {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.deactivate-body strong { color: #ff6b81; }
+
+.deactivate-checklist {
+  background: rgba(163,42,42,0.08);
+  border: 1px solid rgba(163,42,42,0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.deactivate-check-item {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.deactivate-confirm-wrap {
+  margin-bottom: 14px;
+  width: 100%;
+}
+.deactivate-confirm-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.deactivate-confirm-label input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: #ff6b81;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.deactivate-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 900;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.5px;
+}
+.deactivate-confirm-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.deactivate-confirm-btn:not(:disabled):active { transform: scale(0.97); }
+
+.deactivate-cancel-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgba(45,106,79,0.2);
+  color: #52c48a;
+  border: 1px solid rgba(45,106,79,0.4);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 /* Scrollbar polish (webkit) */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.4); border-radius: 3px; }
