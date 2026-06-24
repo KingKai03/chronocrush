@@ -110,18 +110,27 @@ function buildDomBoard() {
    A tap (no movement) still works for booster targeting.
 ──────────────────────────────────────────────────────────────────────────── */
 let swipeOrigin = null;   // { r, c, x, y }
+let _mouseMoveHandler = null;
+let _mouseUpHandler   = null;
 
 function attachSwipeHandler(board) {
+  // Remove any previously attached handlers to prevent stacking
+  board.onmousedown  = null;
+  board.ontouchstart = null;
+  board.ontouchend   = null;
+  board.ontouchcancel = null;
+  if (_mouseUpHandler)   { window.removeEventListener('mouseup',   _mouseUpHandler);   _mouseUpHandler   = null; }
+
   // ── Touch ────────────────────────────────────────────────────────────────
   board.addEventListener('touchstart', (e) => {
     if (!gameState.isGameActive) return;
     const touch = e.touches[0];
     const tile  = tileFromPoint(touch.clientX, touch.clientY);
     if (!tile) return;
+    e.preventDefault(); // prevent ghost mouse events on mobile
     swipeOrigin = { r: tile.r, c: tile.c, x: touch.clientX, y: touch.clientY };
-    // Highlight origin tile immediately
     highlightTile(tile.r, tile.c);
-  }, { passive: true });
+  }, { passive: false });
 
   board.addEventListener('touchend', (e) => {
     if (!gameState.isGameActive || !swipeOrigin) return;
@@ -138,12 +147,15 @@ function attachSwipeHandler(board) {
     if (!tile) return;
     swipeOrigin = { r: tile.r, c: tile.c, x: e.clientX, y: e.clientY };
     highlightTile(tile.r, tile.c);
+    e.preventDefault();
   });
 
-  window.addEventListener('mouseup', (e) => {
-    if (!swipeOrigin) return;
+  // mouseup on window so drags that leave the board still register
+  _mouseUpHandler = (e) => {
+    if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; return; }
     handleSwipeEnd(e.clientX, e.clientY);
-  });
+  };
+  window.addEventListener('mouseup', _mouseUpHandler);
 }
 
 function tileFromPoint(clientX, clientY) {
@@ -168,11 +180,13 @@ function highlightTile(r, c) {
 }
 
 function clearHighlight() {
-  document.querySelectorAll('.board-tile.selected').forEach(t => t.classList.remove('selected'));
+  const board = document.getElementById('domBoard');
+  if (board) board.querySelectorAll('.board-tile.selected').forEach(t => t.classList.remove('selected'));
+  swipeOrigin = null;
 }
 
 function handleSwipeEnd(endX, endY) {
-  if (!swipeOrigin) return;
+  if (!swipeOrigin || !gameState.isGameActive) { swipeOrigin = null; clearHighlight(); return; }
   initAudio();
 
   const { r, c, x: startX, y: startY } = swipeOrigin;
