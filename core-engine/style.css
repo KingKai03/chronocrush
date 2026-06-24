@@ -637,13 +637,19 @@ body {
   align-items: center;
   justify-content: center;
   font-size: clamp(20px, 5vw, 36px);
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;          /* prevent scroll hijack during swipe */
   transition: transform 0.08s ease, background 0.08s ease;
   border: 2px solid transparent;
   position: relative;
   aspect-ratio: 1 / 1;
   line-height: 1;
+}
+
+.board-tile:active {
+  cursor: grabbing;
 }
 
 .board-tile:nth-child(odd) {
@@ -657,8 +663,18 @@ body {
 .board-tile.selected {
   background: rgba(212,175,55,0.38) !important;
   border-color: #ffd700;
-  box-shadow: 0 0 10px rgba(255,215,0,0.5);
-  transform: scale(1.06);
+  box-shadow: 0 0 12px rgba(255,215,0,0.6), 0 0 24px rgba(255,215,0,0.2);
+  transform: scale(1.08);
+  z-index: 3;
+}
+
+/* Subtle pulse on the highlighted tile to invite a swipe */
+.board-tile.selected {
+  animation: tileSelectedPulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes tileSelectedPulse {
+  0%   { box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  100% { box-shadow: 0 0 20px rgba(255,215,0,0.9), 0 0 36px rgba(255,215,0,0.3); }
 }
 
 /* ── Match animations ───────────────────────────────────── */
