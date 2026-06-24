@@ -962,66 +962,54 @@ function confirmPayment() {
 
   const { packageId, amountZAR, goldCoins } = pendingPayment;
 
-  // If credentials not set yet, show setup message
+  // No credentials yet — dev mode: add gold directly for testing
   if (PAYFAST_CONFIG.merchant_id === 'YOUR_MERCHANT_ID') {
-    alert('⚠️ PayFast not configured yet.
-
-To enable real payments:
-1. Sign up at payfast.co.za
-2. Get your Merchant ID & Key
-3. Update PAYFAST_CONFIG in logic.js
-
-For now we'll add the gold directly for testing.');
-    // DEV MODE: add gold directly so you can test the flow
+    const msg = 'PayFast not configured yet. Gold added in test mode.';
     gameState.gold += goldCoins;
-    localStorage.setItem("chrono_gold", gameState.gold);
-    const profileGold = document.getElementById("profileGold");
-    if (profileGold) profileGold.innerText = gameState.gold;
-    const shopDisp = document.getElementById("shopGoldDisplay");
-    if (shopDisp) shopDisp.textContent = gameState.gold.toLocaleString();
-    showShopToast(`🪙 +${goldCoins.toLocaleString()} Gold added! (Test mode)`);
+    localStorage.setItem('chrono_gold', gameState.gold);
+    const pg = document.getElementById('profileGold');
+    if (pg) pg.innerText = gameState.gold;
+    const sd = document.getElementById('shopGoldDisplay');
+    if (sd) sd.textContent = gameState.gold.toLocaleString();
+    showShopToast('🪙 +' + goldCoins.toLocaleString() + ' Gold added! (Test mode)');
     toggleModal('paymentModal', false);
     pendingPayment = null;
     return;
   }
 
-  // Build PayFast form and auto-submit
+  // Build PayFast hosted payment form and submit
   const host = PAYFAST_CONFIG.sandbox
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
 
-  const itemName = `CHRONOCRUSH ${goldCoins.toLocaleString()} Gold Coins`;
-
+  const urls   = getPayfastUrls();
   const params = {
-    merchant_id:  PAYFAST_CONFIG.merchant_id,
-    merchant_key: PAYFAST_CONFIG.merchant_key,
-    return_url:   getPayfastUrls().return_url,
-    cancel_url:   getPayfastUrls().cancel_url,
-    amount:       amountZAR.toFixed(2),
-    item_name:    itemName,
-    item_description: `${goldCoins} gold coins for CHRONOCRUSH`,
-    custom_str1:  packageId,
-    custom_str2:  String(goldCoins),
+    merchant_id:      PAYFAST_CONFIG.merchant_id,
+    merchant_key:     PAYFAST_CONFIG.merchant_key,
+    return_url:       urls.return_url,
+    cancel_url:       urls.cancel_url,
+    amount:           amountZAR.toFixed(2),
+    item_name:        'CHRONOCRUSH ' + goldCoins.toLocaleString() + ' Gold Coins',
+    item_description: goldCoins + ' gold coins for CHRONOCRUSH',
+    custom_str1:      packageId,
+    custom_str2:      String(goldCoins)
   };
-
   if (PAYFAST_CONFIG.notify_url) params.notify_url = PAYFAST_CONFIG.notify_url;
 
-  // Create a hidden form and submit it
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = host;
-
-  Object.entries(params).forEach(([key, val]) => {
-    const inp = document.createElement('input');
+  Object.entries(params).forEach(function(entry) {
+    var inp = document.createElement('input');
     inp.type  = 'hidden';
-    inp.name  = key;
-    inp.value = val;
+    inp.name  = entry[0];
+    inp.value = entry[1];
     form.appendChild(inp);
   });
-
   document.body.appendChild(form);
   form.submit();
 }
+
 
 // Check for payment return from PayFast
 function checkPaymentReturn() {
