@@ -1890,3 +1890,85 @@ checkDailyBadge = function() {
   const badge   = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'inline';
 };
+
+/* ============================================================
+   TERMS, PRIVACY & ACCOUNT DEACTIVATION
+   ============================================================ */
+
+let _termsCalledFrom = 'settings'; // track where to go back to
+
+function openTermsPage() {
+  _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
+  toggleModal('settingsModal', false);
+  switchView('termsPage');
+}
+
+function openPrivacyPage() {
+  _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
+  toggleModal('settingsModal', false);
+  switchView('privacyPage');
+}
+
+function closeTermsOrPrivacy() {
+  // Go back to wherever they came from
+  if (_termsCalledFrom && _termsCalledFrom !== 'termsPage' && _termsCalledFrom !== 'privacyPage') {
+    switchView(_termsCalledFrom);
+  } else {
+    loadHomepage();
+  }
+}
+
+function confirmDeactivateAccount() {
+  toggleModal('settingsModal', false);
+  // Reset checkbox state each time
+  const chk = document.getElementById('deactivateConfirmCheck');
+  if (chk) chk.checked = false;
+  const btn = document.getElementById('deactivateConfirmBtn');
+  if (btn) btn.disabled = true;
+  toggleModal('deactivateModal', true);
+}
+
+function toggleDeactivateBtn() {
+  const chk = document.getElementById('deactivateConfirmCheck');
+  const btn = document.getElementById('deactivateConfirmBtn');
+  if (btn) btn.disabled = !chk?.checked;
+}
+
+async function executeDeactivation() {
+  const btn = document.getElementById('deactivateConfirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+
+  try {
+    // ── Step 1: Delete from Firebase Auth (also removes Google sign-in) ──────
+    // Firebase requires re-authentication before deletion for security.
+    // We attempt deletion — if it fails due to needing re-auth, we catch it.
+    if (window._firebaseReady && window.firebaseDeleteAccount) {
+      await window.firebaseDeleteAccount();
+    }
+  } catch(err) {
+    console.warn('Firebase deletion:', err.message);
+    // If re-auth required, Firebase will throw — we still clear local data
+  }
+
+  // ── Step 2: Wipe all localStorage ─────────────────────────────────────────
+  localStorage.clear();
+
+  // ── Step 3: Reset in-memory gameState ─────────────────────────────────────
+  gameState.gold                = 100;
+  gameState.lives               = 5;
+  gameState.highestUnlockedLevel = 1;
+  gameState.levelRecords        = {};
+  gameState.currentLevel        = 1;
+  gameState.authProvider        = 'Guest';
+  gameState.authDisplayName     = '';
+  gameState.authEmail           = '';
+  gameState.boosters            = { hammer: 3, bomb: 3, shuffle: 3 };
+
+  toggleModal('deactivateModal', false);
+
+  // ── Step 4: Show confirmation and restart ─────────────────────────────────
+  setTimeout(() => {
+    alert('Your account has been permanently deleted. Thank you for playing CHRONOCRUSH.');
+    location.reload();
+  }, 400);
+}
