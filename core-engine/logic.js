@@ -461,6 +461,7 @@ function loadHomepage() {
   startSpaceMusic();
   checkDailyBadge();
   checkNewsBadge();
+  checkAwardsBadge();
   maybeShowDailyReward();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
@@ -838,6 +839,7 @@ function win() {
   }
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
   trackDailyWin();
+  checkAwardsBadge();
 
   // Check if this win just completed an entire era — show trophy modal after success
   const justCompletedEra = checkEraCompletion(gameState.currentLevel);
@@ -1760,3 +1762,52 @@ function claimDailyReward() {
   showShopToast('🎁 ' + reward.icon + ' ' + reward.label + ' claimed! Come back tomorrow.');
   triggerVibration([80, 40, 120]);
 }
+
+/* ============================================================
+   AWARDS BADGE — shows gold coin when a new trophy is earnable
+   ============================================================ */
+function checkAwardsBadge() {
+  const badge = document.getElementById('awardsBadge');
+  if (!badge) return;
+
+  // Show badge if any era is newly completed (trophy not yet viewed)
+  const viewedKey = 'chrono_viewed_trophies';
+  const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+
+  const hasNewTrophy = eraTimeline.some(era => {
+    const result = getEraTrophy(era);
+    if (result.tier === 'locked') return false;         // not complete
+    const trophyId = era.name + '_' + result.tier;
+    return !viewed.includes(trophyId);                  // not yet seen
+  });
+
+  badge.style.display = hasNewTrophy ? 'inline' : 'none';
+}
+
+// Mark trophies as viewed when player opens awards page
+const _origOpenAwards = openAwardsPage;
+openAwardsPage = function() {
+  _origOpenAwards();
+  // Mark all current trophies as viewed
+  const viewedKey = 'chrono_viewed_trophies';
+  const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+  eraTimeline.forEach(era => {
+    const result  = getEraTrophy(era);
+    if (result.tier === 'locked') return;
+    const trophyId = era.name + '_' + result.tier;
+    if (!viewed.includes(trophyId)) viewed.push(trophyId);
+  });
+  localStorage.setItem(viewedKey, JSON.stringify(viewed));
+  // Hide badge
+  const badge = document.getElementById('awardsBadge');
+  if (badge) badge.style.display = 'none';
+};
+
+// Also check daily badge with gold logic — show if not all done today
+const _origCheckDailyBadge = checkDailyBadge;
+checkDailyBadge = function() {
+  const tasks   = getDailyTasks();
+  const allDone = tasks.every(t => t.done);
+  const badge   = document.getElementById('dailyBadge');
+  if (badge) badge.style.display = allDone ? 'none' : 'inline';
+};
