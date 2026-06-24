@@ -2,7 +2,7 @@
    CHRONOCRUSH Service Worker v2
    ============================================================ */
 
-const CACHE_NAME  = 'chronocrush-v2';
+const CACHE_NAME  = 'chronocrush-v3';
 const OFFLINE_URL = '/chronocrush/';
 
 const PRECACHE_URLS = [
@@ -12,7 +12,8 @@ const PRECACHE_URLS = [
   '/chronocrush/core-engine/logic.js',
   '/chronocrush/manifest.json',
   '/chronocrush/icons/icon-192.png',
-  '/chronocrush/icons/icon-512.png'
+  '/chronocrush/icons/icon-512.png',
+  '/chronocrush/audio/background.mp3'
 ];
 
 // ── Install ───────────────────────────────────────────────────
