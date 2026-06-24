@@ -212,94 +212,172 @@ function getCurrentEraForLevel(level) {
   return eraTimeline.find(e => level >= e.startLvl && level <= e.endLvl) || eraTimeline[0];
 }
 
-let reverbNode = null;
-function getReverbNode(ac) {
+/* ============================================================
+   SPACE AMBIENT MUSIC ENGINE v3
+   Deep, mysterious, comfortable. Layers:
+   1. Slow drone — a single held note that fades in and out
+   2. Pad chord — 3-4 voices, detuned, run through convolution reverb
+   3. Melody shimmer — single high note that wanders softly every few bars
+   4. Sub pulse — barely audible low throb like a distant engine
+   All notes are tuned to a minor pentatonic scale to guarantee
+   nothing clashes and everything sounds haunting and beautiful.
+   ============================================================ */
+
+// Reverb — long, spacious tail
+let reverbNode    = null;
+let masterGain    = null;
+
+function buildReverb(ac) {
   if (reverbNode) return reverbNode;
-  const len = ac.sampleRate * 3.5;
-  const impulse = ac.createBuffer(2, len, ac.sampleRate);
+  const dur     = ac.sampleRate * 6;   // 6-second tail
+  const buf     = ac.createBuffer(2, dur, ac.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
-    const d = impulse.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2);
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < dur; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / dur, 1.8);
+    }
   }
   reverbNode = ac.createConvolver();
-  reverbNode.buffer = impulse;
+  reverbNode.buffer = buf;
   reverbNode.connect(ac.destination);
   return reverbNode;
 }
 
-const SPACE_CHORDS = [
-  [130.81, 196.00, 246.94, 329.63],
-  [146.83, 220.00, 277.18, 369.99],
-  [123.47, 185.00, 246.94, 311.13],
-  [138.59, 207.65, 261.63, 349.23],
-  [110.00, 164.81, 220.00, 293.66],
-  [116.54, 174.61, 233.08, 311.13],
-];
-let chordIndex = 0;
+function getMaster(ac) {
+  if (masterGain) return masterGain;
+  masterGain = ac.createGain();
+  masterGain.gain.setValueAtTime(0.7, ac.currentTime);
+  masterGain.connect(ac.destination);
+  return masterGain;
+}
+
+// Minor pentatonic root freqs (A minor pent: A C D E G across octaves)
+const PENT = {
+  sub:    [55.00, 65.41],               // A1, C2
+  drone:  [110.00, 130.81, 146.83],     // A2, C3, D3
+  pad:    [220.00, 261.63, 293.66, 329.63, 392.00], // A3 C4 D4 E4 G4
+  melody: [440.00, 523.25, 587.33, 659.25, 783.99]  // A4 C5 D5 E5 G5
+};
+
+let musicLoopId   = null;
+let musicBeat     = 0;
+const BEAT_MS     = 4200;  // one "beat" = 4.2 seconds, very slow
 
 function startSpaceMusic() {
   initAudio();
   if (!gameState.preferences.sound) return;
-  if (gameState.musicSchedulerId) return;
-  chordIndex = 0;
-  scheduleNextChord();
+  if (musicLoopId) return;
+  musicBeat = 0;
+  runMusicBeat();
 }
 
-function scheduleNextChord() {
-  if (!gameState.preferences.sound) return;
-  playSpaceChord(SPACE_CHORDS[chordIndex % SPACE_CHORDS.length]);
-  chordIndex++;
-  gameState.musicSchedulerId = setTimeout(scheduleNextChord, 7000 + Math.random() * 2000);
-}
+function runMusicBeat() {
+  if (!gameState.preferences.sound || !gameState.audioCtx) return;
+  const ac  = gameState.audioCtx;
+  if (ac.state === 'suspended') { ac.resume(); }
+  const rev = buildReverb(ac);
+  const mst = getMaster(ac);
+  const now = ac.currentTime;
 
-function playSpaceChord(freqs) {
-  const ac = gameState.audioCtx;
-  if (!ac || ac.state === 'suspended') return;
-  const reverb = getReverbNode(ac);
-  const master = ac.createGain();
-  master.gain.setValueAtTime(0, ac.currentTime);
-  master.gain.linearRampToValueAtTime(0.055, ac.currentTime + 2.5);
-  master.gain.setValueAtTime(0.055, ac.currentTime + 4.5);
-  master.gain.linearRampToValueAtTime(0, ac.currentTime + 7.5);
-  master.connect(reverb);
-  master.connect(ac.destination);
-  freqs.forEach((freq, i) => {
-    const osc = ac.createOscillator(), filt = ac.createBiquadFilter(), gain = ac.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq * (1 + i * 0.0008), ac.currentTime);
-    filt.type = "lowpass"; filt.frequency.setValueAtTime(600 + i * 80, ac.currentTime); filt.Q.value = 0.4;
-    gain.gain.setValueAtTime(0.18, ac.currentTime);
-    osc.connect(filt); filt.connect(gain); gain.connect(master);
-    osc.start(); osc.stop(ac.currentTime + 8);
-    const osc2 = ac.createOscillator(), gain2 = ac.createGain();
-    osc2.type = "triangle";
-    osc2.frequency.setValueAtTime(freq * (1 - 0.0015), ac.currentTime);
-    gain2.gain.setValueAtTime(0.06, ac.currentTime);
-    osc2.connect(gain2); gain2.connect(master);
-    osc2.start(); osc2.stop(ac.currentTime + 8);
-  });
-  const sub = ac.createOscillator(), subG = ac.createGain(), subF = ac.createBiquadFilter();
-  sub.type = "sine"; sub.frequency.setValueAtTime(freqs[0] / 2, ac.currentTime);
-  subF.type = "lowpass"; subF.frequency.setValueAtTime(120, ac.currentTime);
-  subG.gain.setValueAtTime(0, ac.currentTime);
-  subG.gain.linearRampToValueAtTime(0.08, ac.currentTime + 3);
-  subG.gain.linearRampToValueAtTime(0, ac.currentTime + 7.5);
-  sub.connect(subF); subF.connect(subG); subG.connect(ac.destination);
-  sub.start(); sub.stop(ac.currentTime + 8);
-  if (Math.random() < 0.45) {
-    const shim = ac.createOscillator(), shimG = ac.createGain();
-    shim.type = "sine"; shim.frequency.setValueAtTime(freqs[freqs.length-1]*2, ac.currentTime+1.5);
-    shimG.gain.setValueAtTime(0, ac.currentTime+1.5);
-    shimG.gain.linearRampToValueAtTime(0.022, ac.currentTime+2.2);
-    shimG.gain.linearRampToValueAtTime(0, ac.currentTime+4.5);
-    shim.connect(shimG); shimG.connect(reverb);
-    shim.start(ac.currentTime+1.5); shim.stop(ac.currentTime+5);
+  // ── 1. Sub pulse (every beat, very quiet) ──────────────────
+  if (musicBeat % 2 === 0) {
+    const sub  = ac.createOscillator();
+    const subG = ac.createGain();
+    const subF = ac.createBiquadFilter();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(PENT.sub[musicBeat % PENT.sub.length], now);
+    subF.type = 'lowpass';
+    subF.frequency.setValueAtTime(90, now);
+    subG.gain.setValueAtTime(0, now);
+    subG.gain.linearRampToValueAtTime(0.06, now + 1.5);
+    subG.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 1.8);
+    sub.connect(subF); subF.connect(subG); subG.connect(mst);
+    sub.start(now); sub.stop(now + BEAT_MS / 1000 * 2);
   }
+
+  // ── 2. Drone (every 2 beats) ────────────────────────────────
+  if (musicBeat % 2 === 0) {
+    const droneFreq = PENT.drone[Math.floor(musicBeat / 2) % PENT.drone.length];
+    [1, 2.005, 0.997].forEach((detune, i) => {
+      const osc  = ac.createOscillator();
+      const gain = ac.createGain();
+      const filt = ac.createBiquadFilter();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(droneFreq * detune, now);
+      filt.type = 'lowpass';
+      filt.frequency.setValueAtTime(400 + i * 60, now);
+      filt.Q.value = 0.3;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.04, now + 2);
+      gain.gain.setValueAtTime(0.04, now + BEAT_MS / 1000 * 1.5);
+      gain.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 2.1);
+      osc.connect(filt); filt.connect(gain);
+      gain.connect(rev);                 // mostly wet
+      gain.connect(mst);                 // tiny dry
+      osc.start(now); osc.stop(now + BEAT_MS / 1000 * 2.2);
+    });
+  }
+
+  // ── 3. Pad chord (every 3 beats — overlaps for continuity) ──
+  if (musicBeat % 3 === 0) {
+    const rootIdx = Math.floor(musicBeat / 3) % PENT.pad.length;
+    // Pick 3 voices from pad array starting at rootIdx
+    const voices = [0, 2, 4].map(offset => PENT.pad[(rootIdx + offset) % PENT.pad.length]);
+    voices.forEach((freq, i) => {
+      const osc  = ac.createOscillator();
+      const gain = ac.createGain();
+      const filt = ac.createBiquadFilter();
+      osc.type = 'sine';
+      // Gentle vibrato via slight LFO effect from tiny frequency wander
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.linearRampToValueAtTime(freq * 1.002, now + BEAT_MS / 1000 * 1.5);
+      osc.frequency.linearRampToValueAtTime(freq, now + BEAT_MS / 1000 * 3);
+      filt.type = 'lowpass';
+      filt.frequency.setValueAtTime(700 + i * 120, now);
+      filt.Q.value = 0.5;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.028 - i * 0.004, now + 2.5);
+      gain.gain.setValueAtTime(0.028 - i * 0.004, now + BEAT_MS / 1000 * 2.5);
+      gain.gain.linearRampToValueAtTime(0, now + BEAT_MS / 1000 * 3.2);
+      osc.connect(filt); filt.connect(gain);
+      gain.connect(rev);
+      osc.start(now); osc.stop(now + BEAT_MS / 1000 * 3.3);
+    });
+  }
+
+  // ── 4. Melody shimmer (random, sparse — every 4–7 beats) ────
+  if (musicBeat % 5 === 0 || (musicBeat % 7 === 0)) {
+    const mFreq = PENT.melody[Math.floor(Math.random() * PENT.melody.length)];
+    const shimmerDelay = Math.random() * 1.5;
+    const osc  = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(mFreq, now + shimmerDelay);
+    gain.gain.setValueAtTime(0, now + shimmerDelay);
+    gain.gain.linearRampToValueAtTime(0.018, now + shimmerDelay + 0.8);
+    gain.gain.linearRampToValueAtTime(0, now + shimmerDelay + 2.5);
+    osc.connect(gain);
+    gain.connect(rev);  // pure reverb tail, no dry
+    osc.start(now + shimmerDelay);
+    osc.stop(now + shimmerDelay + 3);
+  }
+
+  musicBeat++;
+  musicLoopId = setTimeout(runMusicBeat, BEAT_MS);
 }
 
 function stopSpaceMusic() {
-  if (gameState.musicSchedulerId) { clearTimeout(gameState.musicSchedulerId); gameState.musicSchedulerId = null; }
+  if (musicLoopId) { clearTimeout(musicLoopId); musicLoopId = null; }
+  if (masterGain)  { masterGain = null; }  // let it fade naturally
+  gameState.musicSchedulerId = null;
 }
+
+// Keep old schedulerId reference in sync
+Object.defineProperty(gameState, 'musicSchedulerId', {
+  get: () => musicLoopId,
+  set: (v) => { if (!v) stopSpaceMusic(); },
+  configurable: true
+});
 
 function startEraMusic() { startSpaceMusic(); }
 function stopEraMusic()  { stopSpaceMusic();  }
