@@ -534,7 +534,7 @@ function startLevelLogic(lvl) {
 
   document.getElementById("activeEraName").innerText = `Level ${lvl}`;
   document.getElementById("movesDisplay").innerText  = gameState.moves;
-  document.getElementById("targetDisplay").innerText = gameState.targetScore;
+  document.getElementById("targetDisplay").innerText = `0/${diff.challengeCount}`;
   document.getElementById("scoreDisplay").innerText  = 0;
   const banner = document.getElementById("challengeBanner");
   if (banner) banner.innerText = `Clear ${diff.challengeCount} ${challengeItem} to pass!`;
@@ -771,6 +771,11 @@ function updateChallengeBanner() {
   const banner = document.getElementById("challengeBanner");
   if (!banner || !gameState.challengeTarget) return;
   const remaining = Math.max(0, gameState.challengeTarget.count - gameState.challengeProgress);
+
+  // Update TARGET display to show live progress
+  const targetEl = document.getElementById("targetDisplay");
+  if (targetEl) targetEl.innerText = `${gameState.challengeProgress}/${gameState.challengeTarget.count}`;
+
   banner.innerText = remaining > 0
     ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
     : `Challenge complete! ${gameState.challengeTarget.item} cleared ✓`;
@@ -778,8 +783,9 @@ function updateChallengeBanner() {
 
 function evaluateLevelEndConditions() {
   const challengeMet = !gameState.challengeTarget || gameState.challengeProgress >= gameState.challengeTarget.count;
-  const scoreMet     = gameState.score >= gameState.targetScore;
-  if (challengeMet && scoreMet) { setTimeout(win, 400); return; }
+  // Win when challenge is cleared — score display shows as bonus progress only
+  // The TARGET shown is the score the player accumulates by clearing the challenge
+  if (challengeMet) { setTimeout(win, 400); return; }
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
