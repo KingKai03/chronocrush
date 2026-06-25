@@ -426,30 +426,69 @@ function advanceToNextLevel() {
    Score target and challenge count scale up across levels.
    Easy (1–9), Easy-Medium (10–49), Hard (50–70).
 ──────────────────────────────────────────────────────────────────────────── */
+/* ── Difficulty curve ──────────────────────────────────────────────────────
+   ALL levels have exactly 20 moves — no exceptions.
+   Difficulty comes from higher score targets and bigger challenge counts.
+   Players must make EVERY move count at higher levels.
+
+   Levels  1–9   : Tutorial  — gentle introduction
+   Levels 10–29  : Easy      — warming up
+   Levels 30–49  : Medium    — requires real strategy
+   Levels 50–59  : Hard      — easy to run out of moves
+   Levels 60–70  : Very Hard — very easy to fail, will lose lives
+────────────────────────────────────────────────────────────────────────── */
 function getDifficulty(lvl) {
+
+  // Tutorial (1-9)
   if (lvl <= 9) {
     return {
       moves:          20,
-      targetScore:    300 + lvl * 30,
-      challengeCount: 5 + Math.floor(lvl * 0.5),
+      targetScore:    300 + lvl * 50,             // 350 – 750
+      challengeCount: 5 + Math.floor(lvl * 0.5),  // 5 – 9
       boosters:       { hammer: 5, bomb: 4, shuffle: 4 }
     };
   }
-  if (lvl <= 49) {
-    const t = (lvl - 10) / 39;
+
+  // Easy (10-29)
+  if (lvl <= 29) {
+    const t = (lvl - 10) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(600 + t * 1800),
-      challengeCount: Math.round(10  + t * 8),
+      targetScore:    Math.round(1200 + t * 2300), // 1200 → 3500
+      challengeCount: Math.round(10  + t * 6),     // 10 → 16
       boosters:       { hammer: 3, bomb: 3, shuffle: 3 }
     };
   }
-  const t = (lvl - 50) / 20;
+
+  // Medium (30-49)
+  if (lvl <= 49) {
+    const t = (lvl - 30) / 19;
+    return {
+      moves:          20,
+      targetScore:    Math.round(4000 + t * 4000), // 4000 → 8000
+      challengeCount: Math.round(17  + t * 7),     // 17 → 24
+      boosters:       { hammer: 3, bomb: 2, shuffle: 2 }
+    };
+  }
+
+  // Hard (50-59)
+  if (lvl <= 59) {
+    const t = (lvl - 50) / 9;
+    return {
+      moves:          20,
+      targetScore:    Math.round(9000 + t * 5000), // 9000 → 14000
+      challengeCount: Math.round(25  + t * 7),     // 25 → 32
+      boosters:       { hammer: 2, bomb: 2, shuffle: 1 }
+    };
+  }
+
+  // Very Hard (60-70)
+  const t = (lvl - 60) / 10;
   return {
     moves:          20,
-    targetScore:    Math.round(2600 + t * 2400),
-    challengeCount: Math.round(19   + t * 9),
-    boosters:       { hammer: 2, bomb: 2, shuffle: 2 }
+    targetScore:    Math.round(15000 + t * 10000), // 15000 → 25000
+    challengeCount: Math.round(33   + t * 12),     // 33 → 45
+    boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
   };
 }
 
@@ -621,7 +660,8 @@ function swapTiles(r1, c1, r2, c2) {
   renderBoard();
   animateSwap(r1, c1);
   animateSwap(r2, c2);
-  setTimeout(checkChallengeAndScore, 180);
+  // Wait for swap animation before checking matches (300ms)
+  setTimeout(checkChallengeAndScore, 300);
 }
 
 function findBoardMatches() {
@@ -683,6 +723,7 @@ function checkChallengeAndScore() {
   updateChallengeBanner();
 
   // After vanish animation: refill only the matched cells in place
+  // Longer vanish pause (500ms) so player can see what was cleared
   setTimeout(() => {
     matchedPositions.forEach(pos => {
       gameState.grid[pos.r][pos.c] = randomItem(era.items);
@@ -693,9 +734,9 @@ function checkChallengeAndScore() {
         animateDrop(pos.r, pos.c);
       }
     });
-    // Check for new matches after refill settles
-    setTimeout(checkChallengeAndScore, 360);
-  }, 280);
+    // Wait for drop animation to complete before checking chains (600ms)
+    setTimeout(checkChallengeAndScore, 600);
+  }, 500);
 }
 
 function afterMatch() {
