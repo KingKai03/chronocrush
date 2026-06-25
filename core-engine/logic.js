@@ -429,89 +429,88 @@ function advanceToNextLevel() {
    Easy (1–9), Easy-Medium (10–49), Hard (50–70).
 ──────────────────────────────────────────────────────────────────────────── */
 /* ── Difficulty curve ──────────────────────────────────────────────────────
-   ALL levels have exactly 20 moves — no exceptions.
-   Difficulty comes from higher score targets and bigger challenge counts.
-   Players must make EVERY move count at higher levels.
-
-   Levels  1–9   : Tutorial  — gentle introduction
-   Levels 10–29  : Easy      — warming up
-   Levels 30–49  : Medium    — requires real strategy
-   Levels 50–59  : Hard      — easy to run out of moves
-   Levels 60–70  : Very Hard — very easy to fail, will lose lives
+   ALL levels: exactly 20 moves.
+   Targets are set so a player needs near-perfect play to pass.
+   With 20 moves, a good player gets ~3-4 matches per move = 60-80 matches.
+   Targets are calibrated so you need MOST of those matches to count.
+   Players should fail from level 10 onwards if they play carelessly.
 ────────────────────────────────────────────────────────────────────────── */
 function getDifficulty(lvl) {
 
-  // Tutorial (1-9)
+  // Tutorial (1-9): should pass first try, just learn the game
+  // ~10-15 matches needed — very achievable
   if (lvl <= 9) {
     return {
       moves:          20,
-      targetScore:    300 + lvl * 50,             // 350 – 750
-      challengeCount: 5 + Math.floor(lvl * 0.5),  // 5 – 9
+      targetScore:    150 + lvl * 50,              // 200 – 600
+      challengeCount: 4 + Math.floor(lvl * 0.4),  // 4 – 7
       boosters:       { hammer: 5, bomb: 4, shuffle: 4 }
     };
   }
 
-  // Easy (10-29)
+  // Easy→Medium (10-29): starts getting real from level 10
+  // Need 40-65 matches — requires consistent play, easy to fail carelessly
   if (lvl <= 29) {
     const t = (lvl - 10) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(1200 + t * 2300), // 1200 → 3500
-      challengeCount: Math.round(10  + t * 6),     // 10 → 16
+      targetScore:    Math.round(3200 + t * 5000),  // 3200 → 8200
+      challengeCount: Math.round(14  + t * 10),     // 14 → 24
       boosters:       { hammer: 3, bomb: 3, shuffle: 3 }
     };
   }
 
-  // Medium (30-49)
+  // Medium→Hard (30-49): need near-perfect play
+  // Need 65-90 matches — very hard, will fail regularly
   if (lvl <= 49) {
     const t = (lvl - 30) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(4000 + t * 4000), // 4000 → 8000
-      challengeCount: Math.round(17  + t * 7),     // 17 → 24
+      targetScore:    Math.round(9000 + t * 8000),  // 9000 → 17000
+      challengeCount: Math.round(25  + t * 10),     // 25 → 35
       boosters:       { hammer: 3, bomb: 2, shuffle: 2 }
     };
   }
 
-  // Hard (50-59)
+  // Hard (50-59): brutally hard — most players will retry multiple times
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
       moves:          20,
-      targetScore:    Math.round(9000 + t * 5000), // 9000 → 14000
-      challengeCount: Math.round(25  + t * 7),     // 25 → 32
+      targetScore:    Math.round(18000 + t * 9000), // 18000 → 27000
+      challengeCount: Math.round(36   + t * 10),    // 36 → 46
       boosters:       { hammer: 2, bomb: 2, shuffle: 1 }
     };
   }
 
-  // Very Hard (60-70)
+  // Very Hard (60-70): expect multiple lives lost per level
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
       moves:          20,
-      targetScore:    Math.round(15000 + t * 10000), // 15000 → 25000
-      challengeCount: Math.round(33   + t * 12),     // 33 → 45
+      targetScore:    Math.round(28000 + t * 14000), // 28000 → 42000
+      challengeCount: Math.round(47   + t * 13),     // 47 → 60
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
     };
   }
 
-  // Extreme (71-80): Rise of the Web
+  // Extreme (71-80): Rise of the Web — near impossible without boosters
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
       moves:          20,
-      targetScore:    Math.round(26000 + t * 9000),  // 26000 → 35000
-      challengeCount: Math.round(46   + t * 9),      // 46 → 55
+      targetScore:    Math.round(43000 + t * 12000), // 43000 → 55000
+      challengeCount: Math.round(61   + t * 9),      // 61 → 70
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
     };
   }
 
-  // Legendary (81-90): Flip Phone Era — brutal endgame
+  // Legendary (81-90): Flip Phone Era — the true endgame grind
   const t = (lvl - 81) / 9;
   return {
     moves:          20,
-    targetScore:    Math.round(36000 + t * 14000),   // 36000 → 50000
-    challengeCount: Math.round(56   + t * 14),       // 56 → 70
+    targetScore:    Math.round(56000 + t * 19000),   // 56000 → 75000
+    challengeCount: Math.round(71   + t * 14),       // 71 → 85
     boosters:       { hammer: 1, bomb: 1, shuffle: 1 }
   };
 }
