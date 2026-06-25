@@ -9,7 +9,7 @@ const gameState = {
   gold: 100,
   currentLevel: 1,
   highestUnlockedLevel: 1,
-  totalLevels: 70,
+  totalLevels: 90,
   isGameActive: false,
   levelPendingStart: null,
   levelRecords: {},
@@ -38,13 +38,15 @@ let fxCanvas = null, fxCtx = null, fxParticles = [], fxAnimationId = null;
    ERA TIMELINE
    ============================================================ */
 const eraTimeline = [
-  { name: "1940s Noir",        startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'] },
-  { name: "1950s Rockabilly",  startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'] },
-  { name: "1960s Psychedelic", startLvl: 21, endLvl: 30, items: ['☮️','🌸','🚌','🎨'] },
-  { name: "1970s Disco",       startLvl: 31, endLvl: 40, items: ['🪩','✨','🛼','🕺'] },
-  { name: "1980s Retro Synth", startLvl: 41, endLvl: 50, items: ['🎮','📼','🕹️','📟'] },
-  { name: "1990s Grunge",      startLvl: 51, endLvl: 60, items: ['📀','☎️','🧥','🎧'] },
-  { name: "2000s Y2K Pop",     startLvl: 61, endLvl: 70, items: ['💿','📱','👛','🌐'] }
+  { name: "1940s Noir",          startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'] },
+  { name: "1950s Rockabilly",    startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'] },
+  { name: "1960s Psychedelic",   startLvl: 21, endLvl: 30, items: ['☮️','🌸','🚌','🎨'] },
+  { name: "1970s Disco",         startLvl: 31, endLvl: 40, items: ['🪩','✨','🛼','🕺'] },
+  { name: "1980s Retro Synth",   startLvl: 41, endLvl: 50, items: ['🎮','📼','🕹️','📟'] },
+  { name: "1990s Grunge",        startLvl: 51, endLvl: 60, items: ['📀','☎️','🧥','🎧'] },
+  { name: "2000s Y2K Pop",       startLvl: 61, endLvl: 70, items: ['💿','📱','👛','🌐'] },
+  { name: "2001 Rise of the Web",startLvl: 71, endLvl: 80, items: ['💻','🖱️','📡','🔋'] },
+  { name: "2002 Flip Phone Era", startLvl: 81, endLvl: 90, items: ['📲','🎵','🕹️','💾'] }
 ];
 
 /* ============================================================
@@ -483,12 +485,34 @@ function getDifficulty(lvl) {
   }
 
   // Very Hard (60-70)
-  const t = (lvl - 60) / 10;
+  if (lvl <= 70) {
+    const t = (lvl - 60) / 10;
+    return {
+      moves:          20,
+      targetScore:    Math.round(15000 + t * 10000), // 15000 → 25000
+      challengeCount: Math.round(33   + t * 12),     // 33 → 45
+      boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
+    };
+  }
+
+  // Extreme (71-80): Rise of the Web
+  if (lvl <= 80) {
+    const t = (lvl - 71) / 9;
+    return {
+      moves:          20,
+      targetScore:    Math.round(26000 + t * 9000),  // 26000 → 35000
+      challengeCount: Math.round(46   + t * 9),      // 46 → 55
+      boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
+    };
+  }
+
+  // Legendary (81-90): Flip Phone Era — brutal endgame
+  const t = (lvl - 81) / 9;
   return {
     moves:          20,
-    targetScore:    Math.round(15000 + t * 10000), // 15000 → 25000
-    challengeCount: Math.round(33   + t * 12),     // 33 → 45
-    boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
+    targetScore:    Math.round(36000 + t * 14000),   // 36000 → 50000
+    challengeCount: Math.round(56   + t * 14),       // 56 → 70
+    boosters:       { hammer: 1, bomb: 1, shuffle: 1 }
   };
 }
 
@@ -1269,7 +1293,7 @@ function getEraTrophy(era) {
   return                      { tier: 'bronze', completedLevels, totalLevels, totalStars };
 }
 
-const ERA_ICONS = ['🎷','🎸','☮️','🪩','🎮','📀','💿'];
+const ERA_ICONS = ['🎷','🎸','☮️','🪩','🎮','📀','💿','💻','📲'];
 const TROPHY_ICONS = { gold: '🥇', silver: '🥈', bronze: '🥉', locked: '🔒' };
 const TROPHY_LABELS = { gold: 'GOLD', silver: 'SILVER', bronze: 'BRONZE', locked: 'LOCKED' };
 
@@ -1640,8 +1664,8 @@ const ANNOUNCEMENTS = [
     id: 'ann_005',
     tag: 'event',
     tagLabel: 'COMING SOON',
-    title: '🌍 7 Eras, 70 Levels Await',
-    body: 'Travel from the smoky 1940s Noir all the way to the chaotic 2000s Y2K Pop. Each era has unique gadget tiles and its own soundtrack vibe. How far through the timeline can you go?',
+    title: '🌍 9 Eras, 90 Levels Await',
+    body: 'Travel from the smoky 1940s Noir all the way to the 2002 Flip Phone Era — 9 eras, 90 levels of match-3 madness. Each era has unique tiles and increasing difficulty. How far through the timeline can you go?',
     date: 'June 2025',
     isNew: false
   }
