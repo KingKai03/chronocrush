@@ -474,87 +474,88 @@ function advanceToNextLevel() {
 ──────────────────────────────────────────────────────────────────────────── */
 /* ── Difficulty curve ──────────────────────────────────────────────────────
    ALL levels: exactly 20 moves.
-   Targets are set so a player needs near-perfect play to pass.
-   With 20 moves, a good player gets ~3-4 matches per move = 60-80 matches.
-   Targets are calibrated so you need MOST of those matches to count.
-   Players should fail from level 10 onwards if they play carelessly.
+   Win requires BOTH: clear X specific tiles AND reach score target.
+   Score per match: 50pts (lvl 1-9), 100pts (10-29), 150pts (30-49),
+                    200pts (50-59), 250pts (60-70), 300pts (71-90)
+   
+   With 20 moves, best case ~4 matches per move = 80 matches max.
+   At 150pts per match from level 30: max possible = 80 × 150 = 12,000pts
+   Targets are set CLOSE to this maximum so bad play = fail.
 ────────────────────────────────────────────────────────────────────────── */
 function getDifficulty(lvl) {
 
-  // Tutorial (1-9): should pass first try, just learn the game
-  // ~10-15 matches needed — very achievable
+  // Tutorial (1-9): learn the game, generous
   if (lvl <= 9) {
     return {
       moves:          20,
-      targetScore:    150 + lvl * 50,              // 200 – 600
-      challengeCount: 4 + Math.floor(lvl * 0.4),  // 4 – 7
+      targetScore:    200 + lvl * 60,              // 260 – 740
+      challengeCount: 4 + Math.floor(lvl * 0.5),  // 4 – 8
       boosters:       { hammer: 5, bomb: 4, shuffle: 4 }
     };
   }
 
-  // Easy→Medium (10-29): starts getting real from level 10
-  // Need 40-65 matches — requires consistent play, easy to fail carelessly
+  // Easy (10-29): getting real — need consistent chains
   if (lvl <= 29) {
     const t = (lvl - 10) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(3200 + t * 5000),  // 3200 → 8200
-      challengeCount: Math.round(14  + t * 10),     // 14 → 24
+      targetScore:    Math.round(1500 + t * 3000),  // 1500 → 4500
+      challengeCount: Math.round(10  + t * 8),      // 10 → 18
       boosters:       { hammer: 3, bomb: 3, shuffle: 3 }
     };
   }
 
-  // Medium→Hard (30-49): need near-perfect play
-  // Need 65-90 matches — very hard, will fail regularly
+  // Hard from level 30 — BOTH conditions are very tough
+  // Score max at 150pts/match × 80 matches = 12,000. Target is 8,000-11,500
   if (lvl <= 49) {
     const t = (lvl - 30) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(9000 + t * 8000),  // 9000 → 17000
-      challengeCount: Math.round(25  + t * 10),     // 25 → 35
+      targetScore:    Math.round(8000 + t * 3500),  // 8000 → 11500
+      challengeCount: Math.round(22  + t * 8),      // 22 → 30
       boosters:       { hammer: 3, bomb: 2, shuffle: 2 }
     };
   }
 
-  // Hard (50-59): brutally hard — most players will retry multiple times
+  // Very Hard (50-59): max possible ~16,000. Target 12,000-15,000
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
       moves:          20,
-      targetScore:    Math.round(18000 + t * 9000), // 18000 → 27000
-      challengeCount: Math.round(36   + t * 10),    // 36 → 46
+      targetScore:    Math.round(12000 + t * 3000), // 12000 → 15000
+      challengeCount: Math.round(31   + t * 7),     // 31 → 38
       boosters:       { hammer: 2, bomb: 2, shuffle: 1 }
     };
   }
 
-  // Very Hard (60-70): expect multiple lives lost per level
+  // Brutal (60-70): max possible ~20,000. Target 16,000-19,500
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
       moves:          20,
-      targetScore:    Math.round(28000 + t * 14000), // 28000 → 42000
-      challengeCount: Math.round(47   + t * 13),     // 47 → 60
+      targetScore:    Math.round(16000 + t * 3500), // 16000 → 19500
+      challengeCount: Math.round(39   + t * 9),     // 39 → 48
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
     };
   }
 
-  // Extreme (71-80): Rise of the Web — near impossible without boosters
+  // Extreme (71-80): max ~24,000. Target 20,000-23,000
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
       moves:          20,
-      targetScore:    Math.round(43000 + t * 12000), // 43000 → 55000
-      challengeCount: Math.round(61   + t * 9),      // 61 → 70
+      targetScore:    Math.round(20000 + t * 3000), // 20000 → 23000
+      challengeCount: Math.round(49   + t * 8),     // 49 → 57
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
     };
   }
 
-  // Legendary (81-90): Flip Phone Era — the true endgame grind
+  // Legendary (81-90): max ~24,000. Target 23,500-24,000 — near perfect play needed
   const t = (lvl - 81) / 9;
   return {
     moves:          20,
-    targetScore:    Math.round(56000 + t * 19000),   // 56000 → 75000
-    challengeCount: Math.round(71   + t * 14),       // 71 → 85
+    targetScore:    Math.round(23500 + t * 500),   // 23500 → 24000
+    challengeCount: Math.round(58   + t * 10),     // 58 → 68
     boosters:       { hammer: 1, bomb: 1, shuffle: 1 }
   };
 }
@@ -578,7 +579,7 @@ function startLevelLogic(lvl) {
 
   document.getElementById("activeEraName").innerText = `Level ${lvl}`;
   document.getElementById("movesDisplay").innerText  = gameState.moves;
-  document.getElementById("targetDisplay").innerText = `0/${diff.challengeCount}`;
+  document.getElementById("targetDisplay").innerText = diff.targetScore;
   document.getElementById("scoreDisplay").innerText  = 0;
   const banner = document.getElementById("challengeBanner");
   if (banner) banner.innerText = `Clear ${diff.challengeCount} ${challengeItem} to pass!`;
@@ -815,21 +816,16 @@ function updateChallengeBanner() {
   const banner = document.getElementById("challengeBanner");
   if (!banner || !gameState.challengeTarget) return;
   const remaining = Math.max(0, gameState.challengeTarget.count - gameState.challengeProgress);
-
-  // Update TARGET display to show live progress
-  const targetEl = document.getElementById("targetDisplay");
-  if (targetEl) targetEl.innerText = `${gameState.challengeProgress}/${gameState.challengeTarget.count}`;
-
   banner.innerText = remaining > 0
-    ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
-    : `Challenge complete! ${gameState.challengeTarget.item} cleared ✓`;
+    ? `Clear ${remaining} more ${gameState.challengeTarget.item} AND hit the score target!`
+    : `Tiles cleared ✓ — now hit the score target!`;
 }
 
 function evaluateLevelEndConditions() {
   const challengeMet = !gameState.challengeTarget || gameState.challengeProgress >= gameState.challengeTarget.count;
-  // Win when challenge is cleared — score display shows as bonus progress only
-  // The TARGET shown is the score the player accumulates by clearing the challenge
-  if (challengeMet) { setTimeout(win, 400); return; }
+  const scoreMet     = gameState.score >= gameState.targetScore;
+  // BOTH conditions must be met — challenge tiles cleared AND score target reached
+  if (challengeMet && scoreMet) { setTimeout(win, 400); return; }
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
