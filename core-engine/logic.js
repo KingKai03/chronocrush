@@ -77,6 +77,49 @@ function boot() {
     switchView("authScreen");
     checkPaymentReturn();
   }, 900);
+
+  // Start offline/online detection
+  initOfflineDetection();
+}
+
+/* ============================================================
+   OFFLINE / ONLINE DETECTION
+   ============================================================ */
+function initOfflineDetection() {
+  function updateOnlineStatus() {
+    const banner = document.getElementById('offlineBanner');
+    const isOffline = !navigator.onLine;
+
+    if (banner) banner.style.display = isOffline ? 'block' : 'none';
+
+    // If offline, disable Google sign-in button and show message
+    const googleBtn = document.getElementById('googleSignInBtn');
+    if (googleBtn) {
+      if (isOffline) {
+        googleBtn.disabled = true;
+        googleBtn.style.opacity = '0.4';
+        googleBtn.title = 'Google sign-in requires internet connection';
+      } else {
+        // Only re-enable if terms checkbox is ticked
+        const checked = document.getElementById('termsAgreeCheck')?.checked;
+        googleBtn.disabled = !checked;
+        googleBtn.style.opacity = checked ? '1' : '';
+        googleBtn.title = '';
+      }
+    }
+
+    if (isOffline) {
+      console.log('[CHRONOCRUSH] Playing offline — all game features available');
+    } else {
+      console.log('[CHRONOCRUSH] Back online');
+    }
+  }
+
+  window.addEventListener('online',  updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+
+  // Check on load
+  updateOnlineStatus();
 }
 
 function syncSettingsUI() {
