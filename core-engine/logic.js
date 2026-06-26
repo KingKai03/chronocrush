@@ -830,18 +830,75 @@ function evaluateLevelEndConditions() {
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
+
       if (gameState.lifeShield) {
+        // Shield absorbs the fail — no life lost
         gameState.lifeShield = false;
         localStorage.removeItem("chrono_shield");
         showShopToast("🛡️ Life Shield saved you!");
+        showFailModal(true);
       } else {
+        // Silently deduct a life — no alert, just update the counter
         gameState.lives = Math.max(0, gameState.lives - 1);
         localStorage.setItem("chrono_lives", gameState.lives);
-        alert("Out of moves! You lost a life.");
+        // Update lives display silently
+        const lc = document.getElementById("livesCounter");
+        if (lc) lc.innerText = gameState.lives;
+        showFailModal(false);
       }
-      loadHomepage();
     }, 500);
   }
+}
+
+/* ============================================================
+   LEVEL FAIL MODAL
+   ============================================================ */
+function showFailModal(shieldSaved) {
+  const needed   = gameState.targetScore - gameState.score;
+  const pct      = Math.round((gameState.score / gameState.targetScore) * 100);
+
+  // Pick a fun fail message based on how close they were
+  let title, subtext;
+  if (shieldSaved) {
+    title   = "SHIELD SAVED YOU!";
+    subtext = "LIFE SHIELD ACTIVATED";
+  } else if (pct >= 90) {
+    title   = "SO CLOSE!";
+    subtext = "OUT OF MOVES";
+  } else if (pct >= 70) {
+    title   = "ALMOST THERE!";
+    subtext = "KEEP PRACTICING";
+  } else if (pct >= 50) {
+    title   = "NOT QUITE!";
+    subtext = "YOU CAN DO BETTER";
+  } else {
+    title   = "KEEP TRYING!";
+    subtext = "PRACTICE MAKES PERFECT";
+  }
+
+  document.getElementById("failTitle").textContent   = title;
+  document.getElementById("failSubtext").textContent = subtext;
+  document.getElementById("failScoreDisplay").textContent =
+    `${gameState.score.toLocaleString()} / ${gameState.targetScore.toLocaleString()} pts`;
+
+  triggerVibration([80, 40, 80]);
+  switchView("homePage");
+  toggleModal("levelFailModal", true);
+}
+
+function retryAfterFail() {
+  toggleModal("levelFailModal", false);
+  if (gameState.lives <= 0) {
+    showShopToast("No lives left! Visit the Shop to refill ❤️", "error");
+    loadHomepage();
+    return;
+  }
+  playLevelTransition(() => startLevelLogic(gameState.currentLevel));
+}
+
+function backToMapAfterFail() {
+  toggleModal("levelFailModal", false);
+  loadHomepage();
 }
 
 /* ============================================================
