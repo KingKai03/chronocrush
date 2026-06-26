@@ -237,6 +237,10 @@
         <span class="tab-icon">⚡</span><span>Daily</span>
         <span class="gold-flicker-badge" id="dailyBadge" style="display:none">🪙</span>
       </button>
+      <button class="footer-tab-btn" onclick="openQuizPage()">
+        <span class="tab-icon">🎓</span><span>Quiz</span>
+        <span class="gold-flicker-badge" id="quizBadge" style="display:none">🪙</span>
+      </button>
       <button class="footer-tab-btn" onclick="openAnnouncementsPage()">
         <span class="tab-icon">📢</span><span>News</span>
         <span class="gold-flicker-badge" id="newsBadge" style="display:none">🪙</span>
@@ -802,6 +806,33 @@
         Delete My Account
       </button>
       <button class="deactivate-cancel-btn" onclick="toggleModal('deactivateModal', false)">Cancel — Keep My Account</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DAILY QUIZ PAGE
+       ============================================================ -->
+  <div id="quizPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>🎓 ERA QUIZ</h2>
+    </header>
+    <div class="subpage-body scrollable-content" id="quizBody">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       QUIZ RESULT MODAL
+       ============================================================ -->
+  <div id="quizResultModal" class="modal-overlay">
+    <div class="quiz-result-card" id="quizResultCard">
+      <div class="quiz-result-icon" id="quizResultIcon">🎉</div>
+      <h2 class="quiz-result-title" id="quizResultTitle">Correct!</h2>
+      <p class="quiz-result-msg" id="quizResultMsg">You really know your eras!</p>
+      <div class="quiz-result-reward" id="quizResultReward"></div>
+      <div class="quiz-result-fact" id="quizResultFact"></div>
+      <button class="quiz-result-btn" onclick="closeQuizResult()">Awesome! 🚀</button>
     </div>
   </div>
 
