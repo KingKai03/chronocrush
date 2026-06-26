@@ -219,6 +219,20 @@
       <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
 
+    <!-- Life refill countdown — only visible when lives = 0 -->
+    <div id="lifeRefillBar" style="display:none">
+      <div class="life-refill-inner">
+        <span class="life-refill-icon">❤️</span>
+        <div class="life-refill-text">
+          <span class="life-refill-label">Lives refill in</span>
+          <span class="life-refill-timer" id="lifeRefillTimer">12:00:00</span>
+        </div>
+        <div class="life-refill-progress-wrap">
+          <div class="life-refill-progress-fill" id="lifeRefillFill"></div>
+        </div>
+      </div>
+    </div>
+
     <main class="map-scroll-viewport">
       <!-- Top-left corner badge: black record disk showing current/next level + lives -->
       <div class="map-corner-badge">
