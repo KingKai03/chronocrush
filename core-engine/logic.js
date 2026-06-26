@@ -845,9 +845,13 @@ function evaluateLevelEndConditions() {
         localStorage.setItem("chrono_lives", gameState.lives);
         // Update lives display silently
         updateLivesDisplay();
-        // Start refill timer if lives just hit 0
-        if (gameState.lives === 0 && !localStorage.getItem('chrono_life_refill_at')) {
-          localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
+        // Start 12-hour refill timer ONLY when all 5 lives are gone
+        if (gameState.lives === 0) {
+          if (!localStorage.getItem('chrono_life_refill_at')) {
+            localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
+          }
+          // Show the countdown bar immediately
+          startLifeRefillTimer();
         }
         showFailModal(false);
       }
@@ -2509,13 +2513,17 @@ function startLifeRefillTimer() {
   const bar = document.getElementById('lifeRefillBar');
   if (!bar) return;
 
-  // If lives are full — hide bar
-  if (gameState.lives >= MAX_LIVES) {
+  // Only show timer when lives are exactly 0
+  if (gameState.lives > 0) {
     bar.style.display = 'none';
+    // Clear any stale timer if they have lives again (e.g. bought from shop)
+    if (gameState.lives >= MAX_LIVES) {
+      localStorage.removeItem('chrono_life_refill_at');
+    }
     return;
   }
 
-  // Lives are < 5 — check if a refill timer is already running
+  // Lives = 0 — check if a refill timer is already running
   const refillAt = parseInt(localStorage.getItem('chrono_life_refill_at'));
   const now      = Date.now();
 
