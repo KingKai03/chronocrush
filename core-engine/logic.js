@@ -422,6 +422,7 @@ function loadHomepage() {
   checkDailyBadge();
   checkNewsBadge();
   checkAwardsBadge();
+  checkQuizBadge();
   maybeShowDailyReward();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
@@ -2005,4 +2006,420 @@ async function executeDeactivation() {
     alert('Your account has been permanently deleted. Thank you for playing CHRONOCRUSH.');
     location.reload();
   }, 400);
+}
+
+/* ============================================================
+   ERA QUIZ SYSTEM
+   Daily trivia question — one per day, era-themed.
+   Correct = reward. Wrong = try again tomorrow.
+   ============================================================ */
+
+const QUIZ_QUESTIONS = [
+  // ── 1940s Noir ───────────────────────────────────────────────
+  {
+    era: "1940s Noir", icon: "🎷",
+    question: "Which famous jazz musician was known as the 'King of Swing' in the 1940s?",
+    options: ["Benny Goodman", "Miles Davis", "Louis Armstrong"],
+    correct: 0,
+    fact: "Benny Goodman was crowned the King of Swing and played to packed crowds at Carnegie Hall in 1938 — a landmark moment for jazz."
+  },
+  {
+    era: "1940s Noir", icon: "🎷",
+    question: "What year did World War II end?",
+    options: ["1943", "1945", "1947"],
+    correct: 1,
+    fact: "World War II ended in 1945 — VE Day (Victory in Europe) on 8 May, and VJ Day (Victory over Japan) on 15 August."
+  },
+  {
+    era: "1940s Noir", icon: "🎷",
+    question: "What iconic film noir starred Humphrey Bogart as detective Sam Spade?",
+    options: ["Casablanca", "The Maltese Falcon", "Double Indemnity"],
+    correct: 1,
+    fact: "The Maltese Falcon (1941) defined the film noir genre and made Humphrey Bogart a Hollywood legend."
+  },
+
+  // ── 1950s Rockabilly ─────────────────────────────────────────
+  {
+    era: "1950s Rockabilly", icon: "🎸",
+    question: "Which artist recorded 'Rock Around the Clock' in 1954, helping launch rock and roll?",
+    options: ["Chuck Berry", "Bill Haley", "Elvis Presley"],
+    correct: 1,
+    fact: "Bill Haley & His Comets recorded 'Rock Around the Clock' in 1954. When it featured in the film Blackboard Jungle, it sparked a rock and roll craze worldwide."
+  },
+  {
+    era: "1950s Rockabilly", icon: "🎸",
+    question: "What was the name of Elvis Presley's first hit single in 1954?",
+    options: ["Hound Dog", "That's All Right", "Heartbreak Hotel"],
+    correct: 1,
+    fact: "'That's All Right' was recorded at Sun Studio in Memphis in 1954 — Elvis was 19 years old and the world would never be the same."
+  },
+  {
+    era: "1950s Rockabilly", icon: "🎸",
+    question: "Which car brand became a symbol of 1950s American cool?",
+    options: ["Ford Thunderbird", "Chevrolet Corvette", "Cadillac Eldorado"],
+    correct: 1,
+    fact: "The Chevrolet Corvette launched in 1953 and became the definitive American sports car — a symbol of post-war optimism and freedom."
+  },
+
+  // ── 1960s Psychedelic ─────────────────────────────────────────
+  {
+    era: "1960s Psychedelic", icon: "☮️",
+    question: "What famous music festival took place in August 1969?",
+    options: ["Glastonbury", "Woodstock", "Isle of Wight"],
+    correct: 1,
+    fact: "Woodstock drew over 400,000 people to a farm in New York state. Performances by Jimi Hendrix, Janis Joplin and The Who defined a generation."
+  },
+  {
+    era: "1960s Psychedelic", icon: "☮️",
+    question: "Which Beatles album featured the song 'Lucy in the Sky with Diamonds'?",
+    options: ["Abbey Road", "Let It Be", "Sgt. Pepper's Lonely Hearts Club Band"],
+    correct: 2,
+    fact: "Sgt. Pepper's Lonely Hearts Club Band (1967) is widely considered one of the greatest albums ever made and defined the psychedelic era."
+  },
+  {
+    era: "1960s Psychedelic", icon: "☮️",
+    question: "In what year did man first land on the Moon?",
+    options: ["1967", "1969", "1971"],
+    correct: 1,
+    fact: "On 20 July 1969, Neil Armstrong became the first human to walk on the Moon, watched live by 600 million people worldwide."
+  },
+
+  // ── 1970s Disco ───────────────────────────────────────────────
+  {
+    era: "1970s Disco", icon: "🪩",
+    question: "Which New York nightclub was the epicentre of the 1970s disco scene?",
+    options: ["The Roxy", "Studio 54", "CBGB"],
+    correct: 1,
+    fact: "Studio 54 opened in 1977 and became the most famous nightclub in the world — celebrities, models and musicians danced under its iconic mirror ball."
+  },
+  {
+    era: "1970s Disco", icon: "🪩",
+    question: "Which artist released 'Stayin' Alive' in 1977, one of the biggest disco hits ever?",
+    options: ["Donna Summer", "Bee Gees", "Gloria Gaynor"],
+    correct: 1,
+    fact: "The Bee Gees recorded 'Stayin' Alive' for the Saturday Night Fever soundtrack. It became one of the best-selling soundtracks in history."
+  },
+  {
+    era: "1970s Disco", icon: "🪩",
+    question: "What dance craze swept discotheques worldwide in the late 1970s?",
+    options: ["The Hustle", "The Twist", "The Moonwalk"],
+    correct: 0,
+    fact: "The Hustle became the signature dance of the disco era. Van McCoy's 1975 hit 'Do The Hustle' sparked a line-dancing revolution worldwide."
+  },
+
+  // ── Extra Bee Gees questions ─────────────────────────────────
+  {
+    era: "1970s Disco", icon: "🪩",
+    question: "Where were the Bee Gees originally from before becoming international superstars?",
+    options: ["United States", "Australia", "United Kingdom"],
+    correct: 1,
+    fact: "The Bee Gees — Barry, Robin and Maurice Gibb — were born on the Isle of Man but grew up in Brisbane, Australia, before conquering the world from the UK."
+  },
+  {
+    era: "1970s Disco", icon: "🪩",
+    question: "How many Grammy Awards did the Saturday Night Fever soundtrack win in 1979?",
+    options: ["2", "4", "6"],
+    correct: 1,
+    fact: "The Saturday Night Fever soundtrack won 4 Grammy Awards in 1979 including Album of the Year. It sold over 40 million copies and remains one of the best-selling soundtracks of all time."
+  },
+  {
+    era: "2000s Y2K Pop", icon: "💿",
+    question: "Which Bee Gees member continued performing as a solo artist into the 2000s after the group disbanded?",
+    options: ["Robin Gibb", "Barry Gibb", "Andy Gibb"],
+    correct: 1,
+    fact: "Barry Gibb is the last surviving Bee Gee. After the group disbanded following Maurice's passing in 2003, Barry continued touring and recording, keeping the Bee Gees legacy alive."
+  },
+
+  // ── 1980s Retro Synth ─────────────────────────────────────────
+  {
+    era: "1980s Retro Synth", icon: "🎮",
+    question: "Which video game console launched in 1983 and revolutionised home gaming?",
+    options: ["Atari 2600", "Nintendo Entertainment System", "Sega Genesis"],
+    correct: 1,
+    fact: "The Nintendo Entertainment System (NES) launched in 1983 in Japan and 1985 in North America, saving the video game industry after the crash of 1983."
+  },
+  {
+    era: "1980s Retro Synth", icon: "🎮",
+    question: "Michael Jackson's 'Thriller' music video was released in what year?",
+    options: ["1982", "1983", "1984"],
+    correct: 1,
+    fact: "The Thriller music video debuted in December 1983. At 14 minutes long, it's the most influential music video ever made and set a new standard for the art form."
+  },
+  {
+    era: "1980s Retro Synth", icon: "🎮",
+    question: "Which synth band released 'Don't You Want Me' in 1981?",
+    options: ["Depeche Mode", "Human League", "Duran Duran"],
+    correct: 1,
+    fact: "The Human League's 'Don't You Want Me' was the Christmas number one in the UK in 1981 and became one of the defining songs of the synth-pop era."
+  },
+
+  // ── 1990s Grunge ──────────────────────────────────────────────
+  {
+    era: "1990s Grunge", icon: "📀",
+    question: "Which Nirvana album is considered the defining record of the grunge movement?",
+    options: ["Bleach", "Nevermind", "In Utero"],
+    correct: 1,
+    fact: "Nevermind (1991) knocked Michael Jackson off the number one spot with its raw, distorted sound. 'Smells Like Teen Spirit' became the anthem of a generation."
+  },
+  {
+    era: "1990s Grunge", icon: "📀",
+    question: "The Spice Girls dominated 1990s pop culture — what was their debut single?",
+    options: ["Say You'll Be There", "Wannabe", "2 Become 1"],
+    correct: 1,
+    fact: "'Wannabe' was released in July 1996 and reached number one in 37 countries. The Spice Girls went on to sell over 100 million records worldwide."
+  },
+  {
+    era: "1990s Grunge", icon: "📀",
+    question: "What internet browser dominated the 1990s?",
+    options: ["Internet Explorer", "Netscape Navigator", "Mozilla Firefox"],
+    correct: 1,
+    fact: "Netscape Navigator launched in 1994 and at its peak controlled 90% of the web browser market, making the internet accessible to everyday people for the first time."
+  },
+
+  // ── 2000s Y2K Pop ─────────────────────────────────────────────
+  {
+    era: "2000s Y2K Pop", icon: "💿",
+    question: "The Y2K bug caused worldwide panic in 1999. What was it?",
+    options: ["A computer virus", "A fear that computers would fail at the year 2000", "A power grid failure"],
+    correct: 1,
+    fact: "The Y2K bug was a fear that computers storing years as two digits would interpret 2000 as 1900. Billions were spent fixing it — and midnight passed without disaster."
+  },
+  {
+    era: "2000s Y2K Pop", icon: "💿",
+    question: "Which artist released 'Crazy in Love' in 2003, featuring Jay-Z?",
+    options: ["Rihanna", "Beyoncé", "Mariah Carey"],
+    correct: 1,
+    fact: "'Crazy in Love' launched Beyoncé's solo career and became one of the best-selling singles of the 2000s, winning two Grammy Awards."
+  },
+  {
+    era: "2000s Y2K Pop", icon: "💿",
+    question: "What social media platform launched in 2004 and changed the world?",
+    options: ["MySpace", "Facebook", "Twitter"],
+    correct: 1,
+    fact: "Facebook launched on 4 February 2004 from Mark Zuckerberg's Harvard dorm room. It now has over 3 billion monthly users worldwide."
+  },
+
+  // ── 2001: Rise of the Web ─────────────────────────────────────
+  {
+    era: "2001: Rise of the Web", icon: "💻",
+    question: "Which online encyclopedia launched in January 2001 and transformed how we access knowledge?",
+    options: ["Encyclopedia Britannica Online", "Wikipedia", "Ask Jeeves"],
+    correct: 1,
+    fact: "Wikipedia launched on 15 January 2001 with the radical idea that anyone could edit it. It now has over 60 million articles in 300+ languages."
+  },
+  {
+    era: "2001: Rise of the Web", icon: "💻",
+    question: "What Apple product released in 2001 changed how we listen to music forever?",
+    options: ["iMac G4", "iPod", "iTunes"],
+    correct: 1,
+    fact: "The original iPod launched on 23 October 2001. Steve Jobs introduced it as '1,000 songs in your pocket' — the music industry was never the same."
+  },
+  {
+    era: "2001: Rise of the Web", icon: "💻",
+    question: "Which popular messaging service had over 100 million users by 2001?",
+    options: ["AOL Instant Messenger", "MSN Messenger", "ICQ"],
+    correct: 1,
+    fact: "MSN Messenger (later Windows Live Messenger) became the dominant chat platform for teenagers in the early 2000s before smartphones changed everything."
+  },
+
+  // ── 2002: Flip Phone Era ──────────────────────────────────────
+  {
+    era: "2002: Flip Phone Era", icon: "📲",
+    question: "Which iconic flip phone, released around 2004, became a fashion symbol worldwide?",
+    options: ["Nokia 3310", "Motorola RAZR", "Sony Ericsson T68"],
+    correct: 1,
+    fact: "The Motorola RAZR V3 launched in 2004 and sold over 130 million units. Its wafer-thin design and metallic finish made it the most stylish phone of its era."
+  },
+  {
+    era: "2002: Flip Phone Era", icon: "📲",
+    question: "What mobile phone manufacturer dominated the early 2000s with phones like the 3310?",
+    options: ["Samsung", "Nokia", "Motorola"],
+    correct: 1,
+    fact: "Nokia held over 40% of the global mobile phone market in the early 2000s. The Nokia 3310 became legendary for its durability — it still memes today."
+  },
+  {
+    era: "2002: Flip Phone Era", icon: "📲",
+    question: "Snake, the addictive game pre-installed on Nokia phones, first appeared in which year?",
+    options: ["1995", "1997", "2000"],
+    correct: 1,
+    fact: "Snake was pre-installed on the Nokia 6110 in 1997. It's estimated to have been played by over 350 million people — making it one of the most played games ever."
+  }
+];
+
+// Daily quiz state
+function getQuizDayKey() {
+  return 'chrono_quiz_' + new Date().toDateString();
+}
+function getQuizAnsweredKey() {
+  return 'chrono_quiz_answered_' + new Date().toDateString();
+}
+
+function getTodaysQuestion() {
+  // Seed question to today's date so everyone gets same question
+  const seed = new Date().getFullYear() * 10000 +
+               (new Date().getMonth() + 1) * 100 +
+               new Date().getDate();
+  const idx = seed % QUIZ_QUESTIONS.length;
+  return { question: QUIZ_QUESTIONS[idx], idx };
+}
+
+function openQuizPage() {
+  const body = document.getElementById('quizBody');
+  if (!body) return;
+
+  const { question, idx } = getTodaysQuestion();
+  const alreadyAnswered = localStorage.getItem(getQuizAnsweredKey());
+  const wasCorrect      = localStorage.getItem(getQuizDayKey()) === 'correct';
+
+  // Hide quiz badge
+  const badge = document.getElementById('quizBadge');
+  if (badge) badge.style.display = 'none';
+
+  let html = `
+    <div class="quiz-era-header">
+      <div class="quiz-era-badge">${question.era}</div>
+      <div class="quiz-era-icon">${question.icon}</div>
+      <div class="quiz-title">Daily Era Quiz</div>
+      <div class="quiz-subtitle">One question per day. Get it right to earn a reward!<br>Come back tomorrow for a new question.</div>
+    </div>`;
+
+  if (alreadyAnswered) {
+    // Already answered today
+    if (wasCorrect) {
+      html += `
+        <div class="quiz-already-done">
+          <div class="done-icon">✅</div>
+          <h3>Already Claimed!</h3>
+          <p>You answered today's question correctly and claimed your reward. Come back tomorrow for a new question!</p>
+          <div class="quiz-timer">Next question in: <strong>${formatTimeLeft(msUntilMidnight())}</strong></div>
+        </div>`;
+    } else {
+      html += `
+        <div class="quiz-already-done">
+          <div class="done-icon">😅</div>
+          <h3>Better Luck Tomorrow!</h3>
+          <p>You already attempted today's question. The correct answer was:<br><br>
+          <strong style="color:var(--gold-bright)">${question.options[question.correct]}</strong></p>
+          <p style="margin-top:8px;font-style:italic;font-size:0.75rem">${question.fact}</p>
+          <div class="quiz-timer">New question in: <strong>${formatTimeLeft(msUntilMidnight())}</strong></div>
+        </div>`;
+    }
+  } else {
+    // Show the question
+    const letters = ['A', 'B', 'C'];
+    // Pick today's reward
+    const rewards = [
+      { icon: '❤️', label: '+1 Life',    type: 'life'    },
+      { icon: '💣', label: 'Bomb ×1',    type: 'bomb'    },
+      { icon: '🔨', label: 'Hammer ×1',  type: 'hammer'  },
+      { icon: '🪙', label: '+75 Gold',   type: 'gold'    },
+      { icon: '🔀', label: 'Shuffle ×1', type: 'shuffle' },
+    ];
+    const rewardSeed = Math.floor(new Date().getDate() + new Date().getMonth() * 31);
+    const todayReward = rewards[rewardSeed % rewards.length];
+
+    html += `
+      <div class="quiz-reward-preview">
+        <div class="reward-icon">${todayReward.icon}</div>
+        <div class="reward-text">
+          <strong>Today's Reward: ${todayReward.label}</strong>
+          Answer correctly to claim it!
+        </div>
+      </div>
+      <div class="quiz-question-card">
+        <div class="quiz-question-num">Question of the Day</div>
+        <div class="quiz-question-text">${question.question}</div>
+      </div>
+      <div class="quiz-options">`;
+
+    question.options.forEach((opt, i) => {
+      html += `
+        <button class="quiz-option-btn" onclick="answerQuiz(${i}, ${question.correct}, '${todayReward.type}', '${todayReward.label}', '${todayReward.icon}')">
+          <div class="quiz-option-letter">${letters[i]}</div>
+          <div class="quiz-option-text">${opt}</div>
+        </button>`;
+    });
+
+    html += `</div>`;
+  }
+
+  body.innerHTML = html;
+  switchView('quizPage');
+}
+
+function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
+  // Disable all buttons immediately
+  document.querySelectorAll('.quiz-option-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    else if (i === chosen && chosen !== correct) btn.classList.add('wrong');
+  });
+
+  const isCorrect = chosen === correct;
+  const { question } = getTodaysQuestion();
+
+  // Save result
+  localStorage.setItem(getQuizAnsweredKey(), '1');
+  localStorage.setItem(getQuizDayKey(), isCorrect ? 'correct' : 'wrong');
+
+  setTimeout(() => {
+    if (isCorrect) {
+      // Apply reward
+      switch(rewardType) {
+        case 'life':
+          gameState.lives = Math.min(99, gameState.lives + 1);
+          localStorage.setItem('chrono_lives', gameState.lives);
+          break;
+        case 'bomb':
+          gameState.boosters.bomb += 1;
+          break;
+        case 'hammer':
+          gameState.boosters.hammer += 1;
+          break;
+        case 'shuffle':
+          gameState.boosters.shuffle += 1;
+          break;
+        case 'gold':
+          gameState.gold += 75;
+          localStorage.setItem('chrono_gold', gameState.gold);
+          const pg = document.getElementById('profileGold');
+          if (pg) pg.innerText = gameState.gold;
+          break;
+      }
+      showQuizResult(true, rewardIcon, rewardLabel, question.fact);
+    } else {
+      showQuizResult(false, null, null, question.fact);
+    }
+  }, 700);
+}
+
+function showQuizResult(correct, rewardIcon, rewardLabel, fact) {
+  const card = document.getElementById('quizResultCard');
+  card.className = 'quiz-result-card ' + (correct ? 'result-correct' : 'result-wrong');
+
+  document.getElementById('quizResultIcon').textContent  = correct ? '🎉' : '😅';
+  document.getElementById('quizResultTitle').textContent = correct ? 'Correct!' : 'Oops! Wrong Answer';
+  document.getElementById('quizResultMsg').textContent   = correct
+    ? 'Impressive! You really know your eras!'
+    : 'Better luck tomorrow! A new question awaits.';
+
+  const rewardEl = document.getElementById('quizResultReward');
+  rewardEl.style.display = correct ? 'block' : 'none';
+  if (correct) rewardEl.textContent = rewardIcon + ' ' + rewardLabel + ' added to your game!';
+
+  document.getElementById('quizResultFact').textContent = '📚 ' + fact;
+
+  toggleModal('quizResultModal', true);
+  triggerVibration(correct ? [100, 40, 100] : [80]);
+}
+
+function closeQuizResult() {
+  toggleModal('quizResultModal', false);
+  openQuizPage(); // Refresh to show "already answered" state
+}
+
+function checkQuizBadge() {
+  const answered = localStorage.getItem(getQuizAnsweredKey());
+  const badge    = document.getElementById('quizBadge');
+  if (badge) badge.style.display = answered ? 'none' : 'block';
 }
