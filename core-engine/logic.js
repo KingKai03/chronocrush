@@ -423,6 +423,8 @@ function loadHomepage() {
   checkNewsBadge();
   checkAwardsBadge();
   checkQuizBadge();
+  updateLivesDisplay();
+  startLifeRefillTimer();
   maybeShowDailyReward();
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
@@ -842,8 +844,11 @@ function evaluateLevelEndConditions() {
         gameState.lives = Math.max(0, gameState.lives - 1);
         localStorage.setItem("chrono_lives", gameState.lives);
         // Update lives display silently
-        const lc = document.getElementById("livesCounter");
-        if (lc) lc.innerText = gameState.lives;
+        updateLivesDisplay();
+        // Start refill timer if lives just hit 0
+        if (gameState.lives === 0 && !localStorage.getItem('chrono_life_refill_at')) {
+          localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
+        }
         showFailModal(false);
       }
     }, 500);
@@ -2476,4 +2481,107 @@ function checkQuizBadge() {
   const answered = localStorage.getItem(getQuizAnsweredKey());
   const badge    = document.getElementById('quizBadge');
   if (badge) badge.style.display = answered ? 'none' : 'block';
+}
+
+/* ============================================================
+   LIFE REFILL SYSTEM
+   When lives hit 0, start a 12-hour countdown.
+   When timer completes, refill to 5 lives automatically.
+   Shows a progress bar and live countdown under the header.
+   ============================================================ */
+
+const LIFE_REFILL_MS    = 12 * 60 * 60 * 1000; // 12 hours in ms
+const MAX_LIVES         = 5;
+let   _lifeRefillTicker = null;
+
+function updateLivesDisplay() {
+  // Sync lives counter in header
+  const lc = document.getElementById('livesCounter');
+  if (lc) lc.innerText = gameState.lives;
+  const cl = document.getElementById('mapCornerLives');
+  if (cl) cl.innerText = gameState.lives;
+}
+
+function startLifeRefillTimer() {
+  // Clear any existing ticker
+  if (_lifeRefillTicker) { clearInterval(_lifeRefillTicker); _lifeRefillTicker = null; }
+
+  const bar = document.getElementById('lifeRefillBar');
+  if (!bar) return;
+
+  // If lives are full — hide bar
+  if (gameState.lives >= MAX_LIVES) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  // Lives are < 5 — check if a refill timer is already running
+  const refillAt = parseInt(localStorage.getItem('chrono_life_refill_at'));
+  const now      = Date.now();
+
+  if (!refillAt || isNaN(refillAt)) {
+    // Start a fresh 12-hour timer from now
+    const newRefillAt = now + LIFE_REFILL_MS;
+    localStorage.setItem('chrono_life_refill_at', newRefillAt);
+    tickLifeRefill(newRefillAt);
+  } else if (now >= refillAt) {
+    // Timer already expired — refill now
+    grantLifeRefill();
+  } else {
+    // Timer still running — resume countdown
+    tickLifeRefill(refillAt);
+  }
+}
+
+function tickLifeRefill(refillAt) {
+  const bar      = document.getElementById('lifeRefillBar');
+  const timerEl  = document.getElementById('lifeRefillTimer');
+  const fillEl   = document.getElementById('lifeRefillFill');
+
+  if (!bar) return;
+  bar.style.display = 'block';
+
+  function update() {
+    const now       = Date.now();
+    const remaining = Math.max(0, refillAt - now);
+    const elapsed   = LIFE_REFILL_MS - remaining;
+    const pct       = Math.min(100, (elapsed / LIFE_REFILL_MS) * 100);
+
+    // Format HH:MM:SS
+    const h  = Math.floor(remaining / 3600000);
+    const m  = Math.floor((remaining % 3600000) / 60000);
+    const s  = Math.floor((remaining % 60000) / 1000);
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+
+    if (timerEl) timerEl.textContent = `${hh}:${mm}:${ss}`;
+    if (fillEl)  fillEl.style.width  = pct + '%';
+
+    if (remaining <= 0) {
+      clearInterval(_lifeRefillTicker);
+      _lifeRefillTicker = null;
+      grantLifeRefill();
+    }
+  }
+
+  update(); // Run immediately
+  _lifeRefillTicker = setInterval(update, 1000);
+}
+
+function grantLifeRefill() {
+  // Award 5 lives
+  gameState.lives = MAX_LIVES;
+  localStorage.setItem('chrono_lives', MAX_LIVES);
+  localStorage.removeItem('chrono_life_refill_at');
+
+  // Update UI
+  updateLivesDisplay();
+
+  const bar = document.getElementById('lifeRefillBar');
+  if (bar) bar.style.display = 'none';
+
+  // Show a toast so player knows
+  showShopToast('❤️ Your 5 lives have been refilled!');
+  triggerVibration([60, 30, 60]);
 }
