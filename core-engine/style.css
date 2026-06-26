@@ -1979,6 +1979,30 @@ body {
 }
 
 /* ============================================================
+   OFFLINE BANNER
+   ============================================================ */
+#offlineBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  background: linear-gradient(135deg, #1a2a0a, #2d4a10);
+  border-bottom: 1px solid #52c48a;
+  color: #52c48a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 12px;
+  letter-spacing: 0.5px;
+  animation: slideDown 0.3s ease forwards;
+}
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ============================================================
    PORTAL FLASH
    ============================================================ */
 #portalFlash {
