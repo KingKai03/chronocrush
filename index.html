@@ -515,6 +515,23 @@
   </div>
 
   <!-- ============================================================
+       LEVEL FAIL MODAL — record disc style, mirrors success modal
+       ============================================================ -->
+  <div id="levelFailModal" class="modal-overlay">
+    <div class="record-modal-disc fail-disc">
+      <div class="record-center-label fail-label">
+        <h2 class="fail-text" id="failTitle">SO CLOSE!</h2>
+        <p class="sub-fail-text" id="failSubtext">OUT OF MOVES</p>
+        <div class="fail-score-display" id="failScoreDisplay"></div>
+        <div class="record-btn-stack">
+          <button class="record-action-btn btn-retry" onclick="retryAfterFail()">RETRY</button>
+          <button class="record-action-btn btn-stop" onclick="backToMapAfterFail()">BACK TO MAP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        SETTINGS MODAL
        ============================================================ -->
   <div id="settingsModal" class="modal-overlay">
