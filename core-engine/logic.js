@@ -573,16 +573,17 @@ function startLevelLogic(lvl) {
   gameState.boosters    = { ...diff.boosters };
 
   const era = getCurrentEraForLevel(lvl);
-  const challengeItem  = era.items[(lvl - 1) % era.items.length];
-  gameState.challengeTarget   = { item: challengeItem, count: diff.challengeCount };
+  // No tile challenge — pure score target
+  gameState.challengeTarget   = null;
   gameState.challengeProgress = 0;
 
   document.getElementById("activeEraName").innerText = `Level ${lvl}`;
   document.getElementById("movesDisplay").innerText  = gameState.moves;
-  document.getElementById("targetDisplay").innerText = diff.targetScore;
+  document.getElementById("targetDisplay").innerText = diff.targetScore.toLocaleString();
   document.getElementById("scoreDisplay").innerText  = 0;
+  // Banner shows the score target as the goal
   const banner = document.getElementById("challengeBanner");
-  if (banner) banner.innerText = `Clear ${diff.challengeCount} ${challengeItem} to pass!`;
+  if (banner) banner.innerText = `Score ${diff.targetScore.toLocaleString()} points before your moves run out!`;
 
   updateBoosterUI();
   switchView("gamePlayScreen");
@@ -778,7 +779,7 @@ function checkChallengeAndScore() {
 
   // Score + challenge tracking
   gameState.score += matchedPositions.length * 50;
-  document.getElementById("scoreDisplay").innerText = gameState.score;
+  document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
   matchedPositions.forEach(pos => {
@@ -808,24 +809,24 @@ function checkChallengeAndScore() {
 }
 
 function afterMatch() {
-  document.getElementById("scoreDisplay").innerText = gameState.score;
+  document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   setTimeout(checkChallengeAndScore, 250);
 }
 
 function updateChallengeBanner() {
   const banner = document.getElementById("challengeBanner");
-  if (!banner || !gameState.challengeTarget) return;
-  const remaining = Math.max(0, gameState.challengeTarget.count - gameState.challengeProgress);
-  banner.innerText = remaining > 0
-    ? `Clear ${remaining} more ${gameState.challengeTarget.item} AND hit the score target!`
-    : `Tiles cleared ✓ — now hit the score target!`;
+  if (!banner) return;
+  const remaining = Math.max(0, gameState.targetScore - gameState.score);
+  if (remaining > 0) {
+    banner.innerText = `${remaining.toLocaleString()} points to go! ${gameState.moves} moves left`;
+  } else {
+    banner.innerText = `Target reached! 🎉`;
+  }
 }
 
 function evaluateLevelEndConditions() {
-  const challengeMet = !gameState.challengeTarget || gameState.challengeProgress >= gameState.challengeTarget.count;
-  const scoreMet     = gameState.score >= gameState.targetScore;
-  // BOTH conditions must be met — challenge tiles cleared AND score target reached
-  if (challengeMet && scoreMet) { setTimeout(win, 400); return; }
+  // Win = hit the score target. Simple.
+  if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
