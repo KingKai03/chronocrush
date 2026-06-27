@@ -519,33 +519,33 @@ function getDifficulty(lvl) {
     };
   }
 
-  // Very Hard (50-59): max possible ~16,000. Target 12,000-15,000
+  // Very Hard (50-59): 35 moves so players can reach the high targets
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
-      moves:          20,
+      moves:          35,
       targetScore:    Math.round(12000 + t * 3000), // 12000 → 15000
       challengeCount: Math.round(31   + t * 7),     // 31 → 38
       boosters:       { hammer: 2, bomb: 2, shuffle: 1 }
     };
   }
 
-  // Brutal (60-70): max possible ~20,000. Target 16,000-19,500
+  // Brutal (60-70): 35 moves
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
-      moves:          20,
+      moves:          35,
       targetScore:    Math.round(16000 + t * 3500), // 16000 → 19500
       challengeCount: Math.round(39   + t * 9),     // 39 → 48
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
     };
   }
 
-  // Extreme (71-80): max ~24,000. Target 20,000-23,000
+  // Extreme (71-80): 35 moves
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
-      moves:          20,
+      moves:          35,
       targetScore:    Math.round(20000 + t * 3000), // 20000 → 23000
       challengeCount: Math.round(49   + t * 8),     // 49 → 57
       boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
