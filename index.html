@@ -145,7 +145,7 @@
       <div class="auth-divider-label">Sign in to save your progress</div>
 
       <!-- Google -->
-      <button class="auth-social-btn auth-google-btn" id="googleSignInBtn" onclick="handleSocialAuth('google')" disabled>
+      <button class="auth-social-btn auth-google-btn" id="googleSignInBtn" onclick="handleSocialAuth('google')">
         <span class="auth-social-icon">
           <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -161,19 +161,31 @@
       <div class="auth-or-divider"><span>or</span></div>
 
       <!-- Guest -->
-      <button class="auth-social-btn auth-guest-btn" id="guestSignInBtn" onclick="handleAuth('guest')" disabled>
+      <button class="auth-social-btn auth-guest-btn" id="guestSignInBtn" onclick="handleAuth('guest')">
         <span class="auth-social-icon">👤</span>
         Play as Guest
       </button>
 
-      <div class="auth-terms-agree">
-        <label class="auth-agree-label">
-          <input type="checkbox" id="termsAgreeCheck" onchange="toggleAuthButtons()">
-          <span>I have read and agree to the <a class="auth-link" onclick="openTermsPage()">Terms of Service</a> and <a class="auth-link" onclick="openPrivacyPage()">Privacy Policy</a></span>
-        </label>
-      </div>
       <p class="auth-terms-note">Guest progress is saved on this device only.</p>
 
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TERMS AGREEMENT POPUP — shown after sign-in choice, before game
+       ============================================================ -->
+  <div id="termsAgreeModal" class="modal-overlay">
+    <div class="modal-window terms-agree-window">
+      <div class="terms-agree-icon">📋</div>
+      <h2 class="terms-agree-title">Before You Play</h2>
+      <p class="terms-agree-body">By continuing you confirm that you have read and agree to our <a class="auth-link" onclick="openTermsFromModal()">Terms of Service</a> and <a class="auth-link" onclick="openPrivacyFromModal()">Privacy Policy</a>.</p>
+      <label class="auth-agree-label terms-agree-check-wrap">
+        <input type="checkbox" id="termsAgreeModalCheck" onchange="toggleTermsAgreeBtn()">
+        <span>I have read and agree to the Terms of Service and Privacy Policy</span>
+      </label>
+      <button class="terms-agree-confirm-btn" id="termsAgreeConfirmBtn" disabled onclick="confirmTermsAndProceed()">
+        Let's Play! 🚀
+      </button>
     </div>
   </div>
 
