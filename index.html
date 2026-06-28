@@ -24,7 +24,7 @@
        ═══════════════════════════════════════════════════════════ -->
   <script type="module">
     import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithPopup, signOut,
+    import { getAuth, signInWithRedirect, getRedirectResult, signOut,
              GoogleAuthProvider,
              onAuthStateChanged }               from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -57,17 +57,28 @@
     // Expose sign-in functions to global scope so logic.js can call them
     window._firebaseReady = FIREBASE_READY;
 
+    // Handle redirect result when page loads (after Google sign-in redirect)
+    if (FIREBASE_READY) {
+      getRedirectResult(auth).then(result => {
+        if (result && result.user) {
+          window.afterFirebaseAuth(result.user);
+        }
+      }).catch(err => {
+        console.warn('Redirect result error:', err);
+      });
+    }
+
     window.firebaseSignInGoogle = async function() {
       if (!FIREBASE_READY) return null;
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
+      // Use redirect instead of popup — works on all devices/browsers
       try {
-        const result = await signInWithPopup(auth, provider);
-        return result.user;
+        await signInWithRedirect(auth, provider);
+        return null; // page will redirect, result handled on return
       } catch(err) {
-        if (err.code !== 'auth/popup-closed-by-user') {
-          console.error('Google sign-in error:', err.message);
+        console.error('Google sign-in error:', err.message);
         }
         return null;
       }
