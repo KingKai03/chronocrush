@@ -1168,12 +1168,15 @@ function confirmTermsAndProceed() {
   const provider = _pendingAuthProvider;
   _pendingAuthProvider = null;
 
-  // Small delay ensures modal is fully gone before popup fires
-  // (browsers block popups if they think it's not a direct user gesture)
   setTimeout(() => {
     if (provider === 'guest') {
       _doGuestAuth();
+    } else if (provider === 'google_redirect_complete') {
+      // Already signed in via redirect — just proceed to game
+      afterAuthSuccess();
     } else if (provider) {
+      // Save terms agreed flag before redirect (page will reload)
+      localStorage.setItem('chrono_terms_agreed', '1');
       _doSocialAuth(provider);
     }
   }, 80);
