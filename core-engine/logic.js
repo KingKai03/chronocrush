@@ -93,7 +93,7 @@ function initOfflineDetection() {
 
     if (banner) banner.style.display = isOffline ? 'block' : 'none';
 
-    // If offline, disable Google sign-in button and show message
+    // Only disable Google sign-in when offline
     const googleBtn = document.getElementById('googleSignInBtn');
     if (googleBtn) {
       if (isOffline) {
@@ -101,10 +101,8 @@ function initOfflineDetection() {
         googleBtn.style.opacity = '0.4';
         googleBtn.title = 'Google sign-in requires internet connection';
       } else {
-        // Only re-enable if terms checkbox is ticked
-        const checked = document.getElementById('termsAgreeCheck')?.checked;
-        googleBtn.disabled = !checked;
-        googleBtn.style.opacity = checked ? '1' : '';
+        googleBtn.disabled = false;
+        googleBtn.style.opacity = '1';
         googleBtn.title = '';
       }
     }
