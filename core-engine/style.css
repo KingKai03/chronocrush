@@ -295,6 +295,54 @@ body {
   pointer-events: none;
 }
 
+/* ── Terms agree popup ───────────────────────────────────── */
+.terms-agree-window {
+  max-width: 320px;
+  text-align: center;
+}
+.terms-agree-icon {
+  font-size: 2.5rem;
+  margin-bottom: 4px;
+}
+.terms-agree-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--gold-bright);
+  margin-bottom: 8px;
+}
+.terms-agree-body {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.terms-agree-check-wrap {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.terms-agree-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #d4af37, #ffe066);
+  color: #1a1300;
+  border: none;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  letter-spacing: 0.5px;
+}
+.terms-agree-confirm-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.terms-agree-confirm-btn:not(:disabled):active { transform: scale(0.97); }
+
 /* Subtle shake animation when they try to click without agreeing */
 @keyframes authShake {
   0%, 100% { transform: translateX(0); }
