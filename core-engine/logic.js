@@ -440,11 +440,15 @@ function toggleModal(id, open) {
   const m = document.getElementById(id);
   if (!m) return;
   if (open) {
+    m.style.display = '';  // clear any forced hide
     m.classList.add('visible');
     if (id === 'levelSuccessModal') { resizeFireworksCanvas(); spawnFireworksBurst(); runFireworksLoop(); }
   } else {
     m.classList.remove('visible');
+    m.style.display = 'none'; // force hide so it never blocks clicks
     if (id === 'levelSuccessModal') { cancelAnimationFrame(fxAnimationId); fxParticles = []; }
+    // Re-enable display via CSS class next time it opens
+    requestAnimationFrame(() => { if (!m.classList.contains('visible')) m.style.display = ''; });
   }
 }
 
@@ -1154,13 +1158,25 @@ function toggleTermsAgreeBtn() {
 }
 
 function confirmTermsAndProceed() {
-  toggleModal('termsAgreeModal', false);
-  if (_pendingAuthProvider === 'guest') {
-    _doGuestAuth();
-  } else if (_pendingAuthProvider) {
-    _doSocialAuth(_pendingAuthProvider);
+  // Hide modal completely before triggering auth
+  const modal = document.getElementById('termsAgreeModal');
+  if (modal) {
+    modal.classList.remove('visible');
+    modal.style.display = 'none'; // force hide immediately
   }
+
+  const provider = _pendingAuthProvider;
   _pendingAuthProvider = null;
+
+  // Small delay ensures modal is fully gone before popup fires
+  // (browsers block popups if they think it's not a direct user gesture)
+  setTimeout(() => {
+    if (provider === 'guest') {
+      _doGuestAuth();
+    } else if (provider) {
+      _doSocialAuth(provider);
+    }
+  }, 80);
 }
 
 function openTermsFromModal() {
