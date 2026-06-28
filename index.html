@@ -73,13 +73,11 @@
       const provider = new GoogleAuthProvider();
       provider.addScope('email');
       provider.addScope('profile');
-      // Use redirect instead of popup — works on all devices/browsers
       try {
         await signInWithRedirect(auth, provider);
-        return null; // page will redirect, result handled on return
+        return null;
       } catch(err) {
-        console.error('Google sign-in error:', err.message);
-        }
+        console.error('Google sign-in error:', err.code, err.message);
         return null;
       }
     };
