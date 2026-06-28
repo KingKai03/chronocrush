@@ -28,6 +28,7 @@ const gameState = {
   activeBooster: null,
   challengeTarget: null,
   challengeProgress: 0,
+  levelMode: 'score',
   lastSeenEraName: null
 };
 
@@ -575,17 +576,38 @@ function startLevelLogic(lvl) {
   gameState.boosters    = { ...diff.boosters };
 
   const era = getCurrentEraForLevel(lvl);
-  // No tile challenge — pure score target
-  gameState.challengeTarget   = null;
-  gameState.challengeProgress = 0;
 
-  document.getElementById("activeEraName").innerText = `Level ${lvl}`;
-  document.getElementById("movesDisplay").innerText  = gameState.moves;
-  document.getElementById("targetDisplay").innerText = diff.targetScore.toLocaleString();
-  document.getElementById("scoreDisplay").innerText  = 0;
-  // Banner shows the score target as the goal
-  const banner = document.getElementById("challengeBanner");
-  if (banner) banner.innerText = `Score ${diff.targetScore.toLocaleString()} points before your moves run out!`;
+  // ── Win condition depends on level range ──────────────────────
+  // Levels  1-20: clear a specific tile count (tile-clear mode)
+  // Levels 21-29: transition — score target only
+  // Levels 30-90: score target only
+  if (lvl <= 20) {
+    // Tile-clear mode: clear 8 of one specific tile type
+    const challengeItem = era.items[(lvl - 1) % era.items.length];
+    const clearCount    = 6 + Math.floor(lvl * 0.4); // 6 → 13 tiles to clear
+    gameState.challengeTarget   = { item: challengeItem, count: clearCount };
+    gameState.challengeProgress = 0;
+    gameState.levelMode         = 'tile';
+
+    document.getElementById("activeEraName").innerText = `Level ${lvl}`;
+    document.getElementById("movesDisplay").innerText  = gameState.moves;
+    document.getElementById("targetDisplay").innerText = `0/${clearCount}`;
+    document.getElementById("scoreDisplay").innerText  = 0;
+    const banner = document.getElementById("challengeBanner");
+    if (banner) banner.innerText = `Clear ${clearCount} ${challengeItem} to pass this level!`;
+  } else {
+    // Score-target mode: hit the score before moves run out
+    gameState.challengeTarget   = null;
+    gameState.challengeProgress = 0;
+    gameState.levelMode         = 'score';
+
+    document.getElementById("activeEraName").innerText = `Level ${lvl}`;
+    document.getElementById("movesDisplay").innerText  = gameState.moves;
+    document.getElementById("targetDisplay").innerText = diff.targetScore.toLocaleString();
+    document.getElementById("scoreDisplay").innerText  = 0;
+    const banner = document.getElementById("challengeBanner");
+    if (banner) banner.innerText = `Score ${diff.targetScore.toLocaleString()} pts before moves run out!`;
+  }
 
   updateBoosterUI();
   switchView("gamePlayScreen");
@@ -712,7 +734,9 @@ function refillDestroyedTiles(positions, itemSet) {
 }
 
 function destroyTile(r, c, itemSet) {
-  if (gameState.grid[r][c] === gameState.challengeTarget?.item) gameState.challengeProgress++;
+  if (gameState.challengeTarget && gameState.grid[r][c] === gameState.challengeTarget.item) {
+    gameState.challengeProgress++;
+  }
   animateMatch(r, c);
   gameState.grid[r][c] = null;
 }
@@ -816,19 +840,40 @@ function afterMatch() {
 }
 
 function updateChallengeBanner() {
-  const banner = document.getElementById("challengeBanner");
+  const banner   = document.getElementById("challengeBanner");
+  const targetEl = document.getElementById("targetDisplay");
   if (!banner) return;
-  const remaining = Math.max(0, gameState.targetScore - gameState.score);
-  if (remaining > 0) {
-    banner.innerText = `${remaining.toLocaleString()} points to go! ${gameState.moves} moves left`;
+
+  if (gameState.levelMode === 'tile' && gameState.challengeTarget) {
+    // Tile-clear mode: show live tile progress
+    const done      = gameState.challengeProgress;
+    const total     = gameState.challengeTarget.count;
+    const remaining = Math.max(0, total - done);
+    if (targetEl) targetEl.innerText = `${done}/${total}`;
+    banner.innerText = remaining > 0
+      ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
+      : `Level complete! 🎉`;
   } else {
-    banner.innerText = `Target reached! 🎉`;
+    // Score-target mode: show remaining points needed
+    const remaining = Math.max(0, gameState.targetScore - gameState.score);
+    if (remaining > 0) {
+      banner.innerText = `${remaining.toLocaleString()} points to go! ${gameState.moves} moves left`;
+    } else {
+      banner.innerText = `Target reached! 🎉`;
+    }
   }
 }
 
 function evaluateLevelEndConditions() {
-  // Win = hit the score target. Simple.
-  if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
+  if (gameState.levelMode === 'tile') {
+    // Tile-clear mode (levels 1-20): clear required tiles to win
+    const challengeMet = gameState.challengeTarget &&
+                         gameState.challengeProgress >= gameState.challengeTarget.count;
+    if (challengeMet) { setTimeout(win, 400); return; }
+  } else {
+    // Score-target mode (levels 21+): hit score target to win
+    if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
+  }
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
@@ -1045,7 +1090,6 @@ async function handleSocialAuth(provider) {
     return;
   }
 
-  // ── Firebase NOT configured yet — show setup notice ──────────
   showAuthSetupNotice(provider);
 }
 
@@ -1081,11 +1125,54 @@ function showAuthSetupNotice(provider) {
 
 function handleAuth(mode) {
   initAudio();
+  _pendingAuthProvider = 'guest';
+  showTermsAgreePopup();
+}
+
+function _doGuestAuth() {
   gameState.authProvider    = 'Guest';
   gameState.authDisplayName = 'Guest';
   gameState.authEmail       = '';
   localStorage.setItem('chrono_auth_provider', 'Guest');
   afterAuthSuccess();
+}
+
+/* Terms agree popup functions */
+function showTermsAgreePopup() {
+  // Reset checkbox
+  const chk = document.getElementById('termsAgreeModalCheck');
+  const btn = document.getElementById('termsAgreeConfirmBtn');
+  if (chk) chk.checked = false;
+  if (btn) btn.disabled = true;
+  toggleModal('termsAgreeModal', true);
+}
+
+function toggleTermsAgreeBtn() {
+  const chk = document.getElementById('termsAgreeModalCheck');
+  const btn = document.getElementById('termsAgreeConfirmBtn');
+  if (btn) btn.disabled = !chk?.checked;
+}
+
+function confirmTermsAndProceed() {
+  toggleModal('termsAgreeModal', false);
+  if (_pendingAuthProvider === 'guest') {
+    _doGuestAuth();
+  } else if (_pendingAuthProvider) {
+    _doSocialAuth(_pendingAuthProvider);
+  }
+  _pendingAuthProvider = null;
+}
+
+function openTermsFromModal() {
+  toggleModal('termsAgreeModal', false);
+  _termsCalledFrom = 'authScreen';
+  switchView('termsPage');
+}
+
+function openPrivacyFromModal() {
+  toggleModal('termsAgreeModal', false);
+  _termsCalledFrom = 'authScreen';
+  switchView('privacyPage');
 }
 
 function afterAuthSuccess() {
@@ -1986,14 +2073,6 @@ checkDailyBadge = function() {
    ============================================================ */
 
 let _termsCalledFrom = 'settings'; // track where to go back to
-
-function toggleAuthButtons() {
-  const checked = document.getElementById('termsAgreeCheck')?.checked;
-  ['googleSignInBtn', 'guestSignInBtn'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.disabled = !checked;
-  });
-}
 
 function openTermsPage() {
   _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
