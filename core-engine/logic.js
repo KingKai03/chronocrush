@@ -69,7 +69,15 @@ function boot() {
 
   switchView("loadingScreen");
   setTimeout(() => {
-    switchView("authScreen");
+    const savedProvider = localStorage.getItem("chrono_auth_provider");
+    const savedTerms    = localStorage.getItem("chrono_terms_agreed_permanent");
+
+    if (savedProvider && savedTerms) {
+
+      afterAuthSuccess();
+    } else {
+      switchView("authScreen");
+    }
     checkPaymentReturn();
   }, 900);
 
@@ -871,18 +879,15 @@ function checkChallengeAndScore() {
   });
   const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
 
-  matchedPositions.forEach(pos => animateMatch(pos.r, pos.c));
+  matchedPositions.forEach(pos => {
+    animateMatch(pos.r, pos.c);
+    gameState.grid[pos.r][pos.c] = null;
+  });
 
   setTimeout(() => {
-
-    matchedPositions.forEach(pos => {
-      gameState.grid[pos.r][pos.c] = null;
-    });
-
     applyGravityAndRefill(items);
 
     discoBallSpawns.forEach(d => {
-
       gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
     if (discoBallSpawns.length > 0) renderBoard();
@@ -1172,6 +1177,7 @@ function _doGuestAuth() {
   gameState.authDisplayName = 'Guest';
   gameState.authEmail       = '';
   localStorage.setItem('chrono_auth_provider', 'Guest');
+  localStorage.setItem('chrono_terms_agreed_permanent', '1');
   afterAuthSuccess();
 }
 
