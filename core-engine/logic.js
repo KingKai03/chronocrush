@@ -963,13 +963,13 @@ function checkChallengeAndScore() {
   const items = era.items.slice(0, 3);
   const { matches: matchedPositions, match5s } = findBoardMatches();
 
-  // No matches — just check win/fail condition and stop
+  // No matches — check win/fail and stop. Player makes next move.
   if (matchedPositions.length === 0) {
     evaluateLevelEndConditions();
     return;
   }
 
-  // Points scale with level
+  // Score
   const ptsMult = gameState.currentLevel <= 9  ? 50  :
                   gameState.currentLevel <= 29 ? 100 :
                   gameState.currentLevel <= 49 ? 150 :
@@ -980,36 +980,43 @@ function checkChallengeAndScore() {
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
-  // Track challenge + animate cleared tiles
+  // Track challenge progress
   matchedPositions.forEach(pos => {
     if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
-    animateMatch(pos.r, pos.c);
-    gameState.grid[pos.r][pos.c] = null; // clear immediately
   });
-
   updateChallengeBanner();
 
-  // Track disco ball spawns
+  // Track disco ball spawns BEFORE clearing
   const discoBallSpawns = match5s.map(m5 => {
     const mid = Math.floor(m5.positions.length / 2);
     return { pos: m5.positions[mid], item: m5.item };
   });
+  const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
 
-  // After flash — apply gravity once, board fills completely, game waits for player
+  // Step 1: Flash matched tiles (visual only — grid data untouched)
+  matchedPositions.forEach(pos => animateMatch(pos.r, pos.c));
+
+  // Step 2: After flash animation completes — clear grid data and apply gravity
   setTimeout(() => {
-    // Apply gravity using the robust function
+    // Clear matched positions from grid
+    matchedPositions.forEach(pos => {
+      gameState.grid[pos.r][pos.c] = null;
+    });
+
+    // Apply gravity — fills every gap, board always 100% full
     applyGravityAndRefill(items);
 
-    // Place disco balls after gravity
+    // Place disco balls on top of refilled board
     discoBallSpawns.forEach(d => {
+      // Find a suitable position near the spawn point
       gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
     if (discoBallSpawns.length > 0) renderBoard();
 
-    // Check win/fail only — player must make next move
-    setTimeout(evaluateLevelEndConditions, 450);
-  }, 480);
+    // Done — wait for player's next move
+    setTimeout(evaluateLevelEndConditions, 300);
+  }, 450);
 }
 
 function afterMatch() {
