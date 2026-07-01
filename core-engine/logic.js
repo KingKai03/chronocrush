@@ -199,9 +199,20 @@ function renderBoard() {
   if (!board) return;
   const tiles = board.querySelectorAll('.board-tile');
   tiles.forEach(tile => {
-    const r = parseInt(tile.dataset.r);
-    const c = parseInt(tile.dataset.c);
-    tile.textContent = (gameState.grid[r] && gameState.grid[r][c]) ? gameState.grid[r][c] : '';
+    const r   = parseInt(tile.dataset.r);
+    const c   = parseInt(tile.dataset.c);
+    const val = (gameState.grid[r] && gameState.grid[r][c]) ? gameState.grid[r][c] : '';
+
+    if (val === DISCO_BALL) {
+      tile.textContent = '✦';
+      tile.classList.add('disco-ball-tile');
+      tile.title = 'DISCO BALL — swap with any tile to blast!';
+    } else {
+      tile.textContent = val;
+      tile.classList.remove('disco-ball-tile');
+      tile.title = '';
+    }
+
     tile.classList.toggle('selected',
       gameState.selectedTile &&
       gameState.selectedTile.r === r &&
@@ -887,9 +898,17 @@ function checkChallengeAndScore() {
           tile.classList.add("disco-ball-tile");
           tile.title = "DISCO BALL — swap with any tile to blast!";
         } else {
-          tile.textContent = gameState.grid[pos.r][pos.c];
-          tile.classList.remove("disco-ball-tile");
-          animateDrop(pos.r, pos.c);
+          const newVal = gameState.grid[pos.r][pos.c];
+          if (newVal === DISCO_BALL) {
+            tile.textContent = '✦';
+            tile.classList.add('disco-ball-tile');
+            tile.title = 'DISCO BALL — swap with any tile to blast!';
+          } else {
+            tile.textContent = newVal;
+            tile.classList.remove('disco-ball-tile');
+            tile.title = '';
+            animateDrop(pos.r, pos.c);
+          }
         }
       }
     });
