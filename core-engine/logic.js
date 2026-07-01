@@ -24,7 +24,7 @@ const gameState = {
   authProvider: 'Guest',
   authDisplayName: '',
   authEmail: '',
-  boosters: { hammer: 3, bomb: 3, shuffle: 3 },
+  boosters:       { hammer: 0, bomb: 0, shuffle: 0 },
   activeBooster: null,
   challengeTarget: null,
   challengeProgress: 0,
@@ -495,7 +495,7 @@ function getDifficulty(lvl) {
       moves:          20,
       targetScore:    200 + lvl * 60,              // 260 – 740
       challengeCount: 4 + Math.floor(lvl * 0.5),  // 4 – 8
-      boosters:       { hammer: 5, bomb: 4, shuffle: 4 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -506,7 +506,7 @@ function getDifficulty(lvl) {
       moves:          20,
       targetScore:    Math.round(1500 + t * 3000),  // 1500 → 4500
       challengeCount: Math.round(10  + t * 8),      // 10 → 18
-      boosters:       { hammer: 3, bomb: 3, shuffle: 3 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -518,7 +518,7 @@ function getDifficulty(lvl) {
       moves:          20,
       targetScore:    Math.round(8000 + t * 3500),  // 8000 → 11500
       challengeCount: Math.round(22  + t * 8),      // 22 → 30
-      boosters:       { hammer: 3, bomb: 2, shuffle: 2 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -529,7 +529,7 @@ function getDifficulty(lvl) {
       moves:          35,
       targetScore:    Math.round(12000 + t * 3000), // 12000 → 15000
       challengeCount: Math.round(31   + t * 7),     // 31 → 38
-      boosters:       { hammer: 2, bomb: 2, shuffle: 1 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -540,7 +540,7 @@ function getDifficulty(lvl) {
       moves:          35,
       targetScore:    Math.round(16000 + t * 3500), // 16000 → 19500
       challengeCount: Math.round(39   + t * 9),     // 39 → 48
-      boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -551,7 +551,7 @@ function getDifficulty(lvl) {
       moves:          35,
       targetScore:    Math.round(20000 + t * 3000), // 20000 → 23000
       challengeCount: Math.round(49   + t * 8),     // 49 → 57
-      boosters:       { hammer: 2, bomb: 1, shuffle: 1 }
+      boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
@@ -561,7 +561,7 @@ function getDifficulty(lvl) {
     moves:          20,
     targetScore:    Math.round(23500 + t * 500),   // 23500 → 24000
     challengeCount: Math.round(58   + t * 10),     // 58 → 68
-    boosters:       { hammer: 1, bomb: 1, shuffle: 1 }
+    boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
   };
 }
 
@@ -649,7 +649,7 @@ function generateBoard(itemSet) {
     }
   }
   let guard = 0;
-  while (findBoardMatches().length > 0 && guard < 50) {
+  while (findBoardMatches().matches.length > 0 && guard < 50) {
     resolveSilentMatches(itemSet); guard++;
   }
 }
@@ -660,7 +660,7 @@ function randomItem(itemSet) {
 }
 
 function resolveSilentMatches(itemSet) {
-  findBoardMatches().forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(itemSet); });
+  findBoardMatches().matches.forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(itemSet); });
 }
 
 /* ============================================================
@@ -761,26 +761,57 @@ function swapTiles(r1, c1, r2, c2) {
   setTimeout(checkChallengeAndScore, 300);
 }
 
+const DISCO_BALL = '🪩'; // Special power tile created by match-5
+
 function findBoardMatches() {
-  const matches = [];
-  for (let r = 0; r < BOARD_SIZE; r++)
-    for (let c = 0; c < BOARD_SIZE - 2; c++) {
+  const matches  = [];
+  const match5s  = []; // positions where a disco ball should spawn
+
+  // ── Horizontal matches ─────────────────────────────────────────
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    let c = 0;
+    while (c < BOARD_SIZE) {
       const v = gameState.grid[r][c];
-      if (v && v === gameState.grid[r][c+1] && v === gameState.grid[r][c+2])
-        matches.push({r,c},{r,c:c+1},{r,c:c+2});
+      if (!v || v === DISCO_BALL) { c++; continue; }
+      let len = 1;
+      while (c + len < BOARD_SIZE && gameState.grid[r][c + len] === v) len++;
+      if (len >= 3) {
+        const group = [];
+        for (let k = 0; k < len; k++) group.push({ r, c: c + k });
+        if (len >= 5) match5s.push({ positions: group, item: v, dir: 'h' });
+        matches.push(...group);
+      }
+      c += len;
     }
-  for (let c = 0; c < BOARD_SIZE; c++)
-    for (let r = 0; r < BOARD_SIZE - 2; r++) {
+  }
+
+  // ── Vertical matches ───────────────────────────────────────────
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    let r = 0;
+    while (r < BOARD_SIZE) {
       const v = gameState.grid[r][c];
-      if (v && v === gameState.grid[r+1][c] && v === gameState.grid[r+2][c])
-        matches.push({r,c},{r:r+1,c},{r:r+2,c});
+      if (!v || v === DISCO_BALL) { r++; continue; }
+      let len = 1;
+      while (r + len < BOARD_SIZE && gameState.grid[r + len][c] === v) len++;
+      if (len >= 3) {
+        const group = [];
+        for (let k = 0; k < len; k++) group.push({ r: r + k, c });
+        if (len >= 5) match5s.push({ positions: group, item: v, dir: 'v' });
+        matches.push(...group);
+      }
+      r += len;
     }
+  }
+
+  // De-dupe
   const seen = new Set();
-  return matches.filter(m => {
+  const unique = matches.filter(m => {
     const key = `${m.r},${m.c}`;
     if (seen.has(key)) return false;
     seen.add(key); return true;
   });
+
+  return { matches: unique, match5s };
 }
 
 /* ── Core cascade loop ────────────────────────────────────────────────────
@@ -790,48 +821,62 @@ function findBoardMatches() {
    4. Check for new matches (chain reaction)              (loop)
    ──────────────────────────────────────────────────────────────────── */
 function checkChallengeAndScore() {
-  const matches = findBoardMatches();
-  if (matches.length === 0) { evaluateLevelEndConditions(); return; }
+  const { matches: matchedPositions, match5s } = findBoardMatches();
+  if (matchedPositions.length === 0) { evaluateLevelEndConditions(); return; }
 
   const era = getCurrentEraForLevel(gameState.currentLevel);
 
-  // De-dupe matched positions
-  const matchedSet = new Set();
-  const matchedPositions = [];
-  matches.forEach(pos => {
-    const key = `${pos.r},${pos.c}`;
-    if (matchedSet.has(key)) return;
-    matchedSet.add(key);
-    matchedPositions.push(pos);
-  });
+  // Points scale with level
+  const ptsMult = gameState.currentLevel <= 9  ? 50  :
+                  gameState.currentLevel <= 29 ? 100 :
+                  gameState.currentLevel <= 49 ? 150 :
+                  gameState.currentLevel <= 59 ? 200 :
+                  gameState.currentLevel <= 70 ? 250 : 300;
 
-  // Score + challenge tracking
-  gameState.score += matchedPositions.length * 50;
+  // Match-5 gives double points bonus
+  const bonusPts = match5s.length * 5 * ptsMult;
+  gameState.score += matchedPositions.length * ptsMult + bonusPts;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
+  // Track challenge progress + animate all matched tiles
   matchedPositions.forEach(pos => {
     if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
-    // Flash + shrink just those tiles
     animateMatch(pos.r, pos.c);
   });
 
   updateChallengeBanner();
 
-  // After vanish animation: refill only the matched cells in place
-  // Longer vanish pause (500ms) so player can see what was cleared
+  // Track where disco balls should spawn (middle of each match-5 group)
+  const discoBallSpawns = match5s.map(m5 => {
+    const mid = Math.floor(m5.positions.length / 2);
+    return { pos: m5.positions[mid], item: m5.item };
+  });
+
+  // After vanish: refill matched cells, spawn disco balls for match-5
   setTimeout(() => {
+    const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
+
     matchedPositions.forEach(pos => {
-      gameState.grid[pos.r][pos.c] = randomItem(era.items);
+      const key = `${pos.r},${pos.c}`;
+      // Spawn disco ball at middle of match-5, random tile elsewhere
+      gameState.grid[pos.r][pos.c] = discoPosKeys.has(key) ? DISCO_BALL : randomItem(era.items);
       const tile = getTile(pos.r, pos.c);
       if (tile) {
         tile.classList.remove('matched');
         tile.textContent = gameState.grid[pos.r][pos.c];
-        animateDrop(pos.r, pos.c);
+        if (discoPosKeys.has(key)) {
+          tile.classList.add('disco-ball-tile');
+          setTimeout(() => tile.classList.remove('disco-ball-tile'), 800);
+        } else {
+          animateDrop(pos.r, pos.c);
+        }
       }
     });
-    // Wait for drop animation to complete before checking chains (600ms)
+
+    // Disco ball spawns silently — player discovers it naturally
+
     setTimeout(checkChallengeAndScore, 600);
   }, 500);
 }
