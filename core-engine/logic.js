@@ -764,39 +764,43 @@ function useBombOnTile(r, c) {
    GRAVITY — tiles fall down to fill gaps, new tiles drop from top
    ============================================================ */
 function applyGravityAndRefill(itemSet) {
-  const era = getCurrentEraForLevel(gameState.currentLevel);
+  const era   = getCurrentEraForLevel(gameState.currentLevel);
   const items = (itemSet || era.items).slice(0, 3);
 
-  // For each column, compact existing tiles downward, fill top with new
+  // Column-by-column gravity: pull existing tiles to bottom, fill top with new
   for (let c = 0; c < BOARD_SIZE; c++) {
-    const column = [];
+    // Step 1: collect all non-empty tiles from bottom upward
+    const existing = [];
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      if (gameState.grid[r][c] !== null) {
-        column.push(gameState.grid[r][c]);
+      const v = gameState.grid[r][c];
+      if (v !== null && v !== undefined && v !== '') {
+        existing.push(v);
       }
     }
-    while (column.length < BOARD_SIZE) {
-      column.push(randomItem(items));
+
+    // Step 2: fill remaining slots with new tiles
+    while (existing.length < BOARD_SIZE) {
+      existing.push(randomItem(items));
     }
+
+    // Step 3: write back — existing[0] goes to bottom row, existing[last] to top
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
+      gameState.grid[r][c] = existing[BOARD_SIZE - 1 - r];
     }
   }
 
-  // Break up any accidental matches caused by new tiles
-  // so the player has to make intentional moves to score
+  // Silently fix any accidental matches in the new tiles
   let guard = 0;
-  while (findBoardMatches().matches.length > 0 && guard < 20) {
+  while (findBoardMatches().matches.length > 0 && guard < 30) {
     resolveSilentMatches(items);
     guard++;
   }
 
-  // Re-render entire board with drop animations
+  // Re-render entire board — must be completely full
   renderBoard();
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
       animateDrop(r, c);
-  // No auto-cascade — caller decides what happens next
 }
 
 function refillDestroyedTiles(positions, itemSet) {
@@ -992,34 +996,19 @@ function checkChallengeAndScore() {
     return { pos: m5.positions[mid], item: m5.item };
   });
 
-  // After flash animation — apply gravity ONCE, then stop
-  // Player must make the next move themselves
+  // After flash — apply gravity once, board fills completely, game waits for player
   setTimeout(() => {
-    // Apply gravity column by column
-    for (let c = 0; c < BOARD_SIZE; c++) {
-      const column = [];
-      for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-        if (gameState.grid[r][c] !== null) column.push(gameState.grid[r][c]);
-      }
-      while (column.length < BOARD_SIZE) column.push(randomItem(items));
-      for (let r = BOARD_SIZE - 1; r >= 0; r--) gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
-    }
+    // Apply gravity using the robust function
+    applyGravityAndRefill(items);
 
-    // Place disco balls
+    // Place disco balls after gravity
     discoBallSpawns.forEach(d => {
       gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
+    if (discoBallSpawns.length > 0) renderBoard();
 
-    // Render full board — always completely filled
-    renderBoard();
-    for (let r = 0; r < BOARD_SIZE; r++)
-      for (let c = 0; c < BOARD_SIZE; c++)
-        animateDrop(r, c);
-
-    // Check win/fail only — NO recursive match check
-    // Player must make their next move to trigger more matches
-    setTimeout(evaluateLevelEndConditions, 400);
-
+    // Check win/fail only — player must make next move
+    setTimeout(evaluateLevelEndConditions, 450);
   }, 480);
 }
 
