@@ -759,17 +759,45 @@ function useBombOnTile(r, c) {
   setTimeout(() => refillDestroyedTiles(destroyed, era.items), 280);
 }
 
-function refillDestroyedTiles(positions, itemSet) {
-  positions.forEach(pos => {
-    gameState.grid[pos.r][pos.c] = randomItem(itemSet);
-    const tile = getTile(pos.r, pos.c);
-    if (tile) {
-      tile.classList.remove('matched');
-      tile.textContent = gameState.grid[pos.r][pos.c];
-      animateDrop(pos.r, pos.c);
+/* ============================================================
+   GRAVITY — tiles fall down to fill gaps, new tiles drop from top
+   ============================================================ */
+function applyGravityAndRefill(itemSet) {
+  const era = getCurrentEraForLevel(gameState.currentLevel);
+  const items = (itemSet || era.items).slice(0, 3);
+
+  // For each column, compact existing tiles downward, fill top with new
+  for (let c = 0; c < BOARD_SIZE; c++) {
+    // Collect non-null tiles from bottom to top
+    const column = [];
+    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      if (gameState.grid[r][c] !== null) {
+        column.push(gameState.grid[r][c]);
+      }
     }
-  });
-  setTimeout(checkChallengeAndScore, 360);
+    // Fill remaining with new random tiles
+    while (column.length < BOARD_SIZE) {
+      column.push(randomItem(items));
+    }
+    // Write back bottom to top
+    for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+      gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
+    }
+  }
+
+  // Re-render entire board with drop animations
+  renderBoard();
+  for (let r = 0; r < BOARD_SIZE; r++)
+    for (let c = 0; c < BOARD_SIZE; c++)
+      animateDrop(r, c);
+
+  setTimeout(checkChallengeAndScore, 600);
+}
+
+function refillDestroyedTiles(positions, itemSet) {
+  // Set destroyed positions to null then apply gravity
+  positions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
+  applyGravityAndRefill(itemSet);
 }
 
 function destroyTile(r, c, itemSet) {
@@ -829,21 +857,13 @@ function activateDiscoBall(r, c, targetItem) {
   showShopToast(`🪩 DISCO BLAST! +${pts} pts`);
   updateChallengeBanner();
 
-  // Refill after all blasts complete
+  // Refill after all blasts — use gravity so tiles fall properly
   const delay = blastPositions.length * 60 + 500;
   setTimeout(() => {
-    blastPositions.forEach(pos => {
-      gameState.grid[pos.r][pos.c] = randomItem(era.items.slice(0,3));
-      const tile = getTile(pos.r, pos.c);
-      if (tile) {
-        tile.classList.remove('matched', 'disco-ball-tile', 'disco-ball-explode');
-        tile.textContent = gameState.grid[pos.r][pos.c];
-        tile.title = '';
-        animateDrop(pos.r, pos.c);
-      }
-    });
+    // Set blasted positions to null
+    blastPositions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
     updateChallengeBanner();
-    setTimeout(checkChallengeAndScore, 600);
+    applyGravityAndRefill(era.items);
   }, delay);
 }
 
@@ -973,39 +993,34 @@ function checkChallengeAndScore() {
     return { pos: m5.positions[mid], item: m5.item };
   });
 
-  // After vanish: refill matched cells, spawn disco balls for match-5
+  // After vanish: apply gravity then spawn any disco balls
   setTimeout(() => {
     const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
 
-    matchedPositions.forEach(pos => {
-      const key = `${pos.r},${pos.c}`;
-      // Spawn disco ball at middle of match-5, random tile elsewhere
-      gameState.grid[pos.r][pos.c] = discoPosKeys.has(key) ? DISCO_BALL : randomItem(era.items.slice(0,3));
-      const tile = getTile(pos.r, pos.c);
-      if (tile) {
-        tile.classList.remove('matched');
-        if (discoPosKeys.has(key)) {
-          // Render as disco ball
-          tile.textContent = "✦";
-          tile.classList.add("disco-ball-tile");
-          tile.title = "DISCO BALL — swap with any tile to blast!";
-        } else {
-          const newVal = gameState.grid[pos.r][pos.c];
-          if (newVal === DISCO_BALL) {
-            tile.textContent = '✦';
-            tile.classList.add('disco-ball-tile');
-            tile.title = 'DISCO BALL — swap with any tile to blast!';
-          } else {
-            tile.textContent = newVal;
-            tile.classList.remove('disco-ball-tile');
-            tile.title = '';
-            animateDrop(pos.r, pos.c);
-          }
-        }
+    // Set matched cells to null so gravity fills them
+    matchedPositions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
+
+    // Apply gravity — tiles fall down, new ones fill from top
+    const items = era.items.slice(0, 3);
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const column = [];
+      for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+        if (gameState.grid[r][c] !== null) column.push(gameState.grid[r][c]);
       }
+      while (column.length < BOARD_SIZE) column.push(randomItem(items));
+      for (let r = BOARD_SIZE - 1; r >= 0; r--) gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
+    }
+
+    // Place disco balls at their designated spawn positions
+    discoBallSpawns.forEach(d => {
+      gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
 
-    // Disco ball spawns silently — player discovers it naturally
+    // Re-render with animations
+    renderBoard();
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        animateDrop(r, c);
 
     setTimeout(checkChallengeAndScore, 600);
   }, 500);
