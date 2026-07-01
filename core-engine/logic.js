@@ -747,9 +747,26 @@ function destroyTile(r, c, itemSet) {
    SWAP + MATCH
    ============================================================ */
 function swapTiles(r1, c1, r2, c2) {
-  const tmp = gameState.grid[r1][c1];
-  gameState.grid[r1][c1] = gameState.grid[r2][c2];
-  gameState.grid[r2][c2] = tmp;
+  const v1 = gameState.grid[r1][c1];
+  const v2 = gameState.grid[r2][c2];
+
+  // ── Disco Ball swap activation ─────────────────────────────────
+  // If either tile is a disco ball, activate it with the OTHER tile's type
+  if (v1 === DISCO_BALL || v2 === DISCO_BALL) {
+    const discoR  = v1 === DISCO_BALL ? r1 : r2;
+    const discoC  = v1 === DISCO_BALL ? c1 : c2;
+    const target  = v1 === DISCO_BALL ? v2 : v1;
+    gameState.moves--;
+    document.getElementById("movesDisplay").innerText = gameState.moves;
+    gameState.selectedTile = null;
+    renderBoard();
+    activateDiscoBall(discoR, discoC, target);
+    return;
+  }
+
+  // Normal swap
+  gameState.grid[r1][c1] = v2;
+  gameState.grid[r2][c2] = v1;
   gameState.moves--;
   document.getElementById("movesDisplay").innerText = gameState.moves;
   triggerVibration(40);
@@ -757,11 +774,10 @@ function swapTiles(r1, c1, r2, c2) {
   renderBoard();
   animateSwap(r1, c1);
   animateSwap(r2, c2);
-  // Wait for swap animation before checking matches (300ms)
   setTimeout(checkChallengeAndScore, 300);
 }
 
-const DISCO_BALL = '🪩'; // Special power tile created by match-5
+const DISCO_BALL = '__DISCO__'; // Special power tile — rendered via CSS not emoji
 
 function findBoardMatches() {
   const matches  = [];
@@ -865,11 +881,14 @@ function checkChallengeAndScore() {
       const tile = getTile(pos.r, pos.c);
       if (tile) {
         tile.classList.remove('matched');
-        tile.textContent = gameState.grid[pos.r][pos.c];
         if (discoPosKeys.has(key)) {
-          tile.classList.add('disco-ball-tile');
-          setTimeout(() => tile.classList.remove('disco-ball-tile'), 800);
+          // Render as disco ball
+          tile.textContent = "✦";
+          tile.classList.add("disco-ball-tile");
+          tile.title = "DISCO BALL — swap with any tile to blast!";
         } else {
+          tile.textContent = gameState.grid[pos.r][pos.c];
+          tile.classList.remove("disco-ball-tile");
           animateDrop(pos.r, pos.c);
         }
       }
