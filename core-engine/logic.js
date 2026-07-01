@@ -258,7 +258,8 @@ function animateMatch(r, c) {
 function animateDrop(r, c) {
   const tile = getTile(r, c);
   if (!tile) return;
-  // Remove then re-add to restart animation
+  // Don't animate disco ball — it has its own pulse animation
+  if (gameState.grid[r] && gameState.grid[r][c] === DISCO_BALL) return;
   tile.classList.remove('dropping');
   void tile.offsetWidth; // reflow
   tile.classList.add('dropping');
@@ -768,21 +769,26 @@ function applyGravityAndRefill(itemSet) {
 
   // For each column, compact existing tiles downward, fill top with new
   for (let c = 0; c < BOARD_SIZE; c++) {
-    // Collect non-null tiles from bottom to top
     const column = [];
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       if (gameState.grid[r][c] !== null) {
         column.push(gameState.grid[r][c]);
       }
     }
-    // Fill remaining with new random tiles
     while (column.length < BOARD_SIZE) {
       column.push(randomItem(items));
     }
-    // Write back bottom to top
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
     }
+  }
+
+  // Break up any accidental matches caused by new tiles
+  // so the player has to make intentional moves to score
+  let guard = 0;
+  while (findBoardMatches().matches.length > 0 && guard < 20) {
+    resolveSilentMatches(items);
+    guard++;
   }
 
   // Re-render entire board with drop animations
@@ -842,7 +848,7 @@ function activateDiscoBall(r, c, targetItem) {
       }
 
   // Flat 5 points only
-  gameState.score += 5;
+  gameState.score += 10;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([80, 30, 80, 30, 120]);
 
