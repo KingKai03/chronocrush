@@ -202,29 +202,25 @@ function renderBoard() {
   if (!board) return;
   const tiles = board.querySelectorAll('.board-tile');
   tiles.forEach(tile => {
-    const r   = parseInt(tile.dataset.r);
-    const c   = parseInt(tile.dataset.c);
-    const val = (gameState.grid[r] && gameState.grid[r][c]) ? gameState.grid[r][c] : '';
-
-    if (val === DISCO_BALL) {
+    const r = parseInt(tile.dataset.r);
+    const c = parseInt(tile.dataset.c);
+    const v = gameState.grid[r] ? gameState.grid[r][c] : null;
+    if (v === DISCO_BALL) {
       tile.textContent = '✦';
       tile.classList.add('disco-ball-tile');
-      tile.title = 'DISCO BALL — swap with any tile to blast!';
+      tile.title = 'DISCO BALL — swap with any tile!';
     } else {
-      tile.textContent = val;
+      tile.textContent = v || '';
       tile.classList.remove('disco-ball-tile');
       tile.title = '';
     }
-
     tile.classList.toggle('selected',
-      gameState.selectedTile &&
-      gameState.selectedTile.r === r &&
-      gameState.selectedTile.c === c
+      !!(gameState.selectedTile &&
+         gameState.selectedTile.r === r &&
+         gameState.selectedTile.c === c)
     );
   });
 }
-
-// onTileClick replaced by swipe handler — see attachSwipeHandler()
 
 function getTile(r, c) {
   const board = document.getElementById('domBoard');
@@ -682,39 +678,38 @@ function useBombOnTile(r, c) {
   setTimeout(() => refillDestroyedTiles(destroyed, era.items), 280);
 }
 
-function applyGravityAndRefill(itemSet) {
-  const era   = getCurrentEraForLevel(gameState.currentLevel);
-  const items = (itemSet || era.items).slice(0, 3);
+function applyGravityAndRefill(items) {
+  const era  = getCurrentEraForLevel(gameState.currentLevel);
+  const pool = (items || era.items).slice(0, 3);
 
   for (let c = 0; c < BOARD_SIZE; c++) {
 
-    const existing = [];
+    const survive = [];
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       const v = gameState.grid[r][c];
-      if (v !== null && v !== undefined && v !== '') {
-        existing.push(v);
-      }
+      if (v !== null && v !== undefined && v !== '') survive.push(v);
     }
 
-    while (existing.length < BOARD_SIZE) {
-      existing.push(randomItem(items));
-    }
+    while (survive.length < BOARD_SIZE) survive.push(randomItem(pool));
 
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
-      gameState.grid[r][c] = existing[BOARD_SIZE - 1 - r];
+      gameState.grid[r][c] = survive[BOARD_SIZE - 1 - r];
     }
   }
 
   let guard = 0;
-  while (findBoardMatches().matches.length > 0 && guard < 30) {
-    resolveSilentMatches(items);
-    guard++;
+  while (findBoardMatches().matches.length > 0 && guard++ < 20) {
+    const pool3 = pool;
+    findBoardMatches().matches.forEach(p => {
+      gameState.grid[p.r][p.c] = randomItem(pool3);
+    });
   }
 
   renderBoard();
+
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
-      animateDrop(r, c);
+      if (gameState.grid[r][c] !== DISCO_BALL) animateDrop(r, c);
 }
 
 function refillDestroyedTiles(positions, itemSet) {
@@ -800,8 +795,8 @@ function swapTiles(r1, c1, r2, c2) {
 const DISCO_BALL = '__DISCO__';
 
 function findBoardMatches() {
-  const matches  = [];
-  const match5s  = [];
+  const matches = [];
+  const match5s = [];
 
   for (let r = 0; r < BOARD_SIZE; r++) {
     let c = 0;
@@ -811,10 +806,10 @@ function findBoardMatches() {
       let len = 1;
       while (c + len < BOARD_SIZE && gameState.grid[r][c + len] === v) len++;
       if (len >= 3) {
-        const group = [];
-        for (let k = 0; k < len; k++) group.push({ r, c: c + k });
-        if (len >= 5) match5s.push({ positions: group, item: v, dir: 'h' });
-        matches.push(...group);
+        const grp = [];
+        for (let k = 0; k < len; k++) grp.push({ r, c: c + k });
+        if (len >= 5) match5s.push({ positions: grp, item: v });
+        matches.push(...grp);
       }
       c += len;
     }
@@ -828,10 +823,10 @@ function findBoardMatches() {
       let len = 1;
       while (r + len < BOARD_SIZE && gameState.grid[r + len][c] === v) len++;
       if (len >= 3) {
-        const group = [];
-        for (let k = 0; k < len; k++) group.push({ r: r + k, c });
-        if (len >= 5) match5s.push({ positions: group, item: v, dir: 'v' });
-        matches.push(...group);
+        const grp = [];
+        for (let k = 0; k < len; k++) grp.push({ r: r + k, c });
+        if (len >= 5) match5s.push({ positions: grp, item: v });
+        matches.push(...grp);
       }
       r += len;
     }
@@ -839,61 +834,63 @@ function findBoardMatches() {
 
   const seen = new Set();
   const unique = matches.filter(m => {
-    const key = `${m.r},${m.c}`;
-    if (seen.has(key)) return false;
-    seen.add(key); return true;
+    const k = `${m.r},${m.c}`;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
   });
 
   return { matches: unique, match5s };
 }
 
 function checkChallengeAndScore() {
-  const era   = getCurrentEraForLevel(gameState.currentLevel);
-  const items = era.items.slice(0, 3);
-  const { matches: matchedPositions, match5s } = findBoardMatches();
+  const era  = getCurrentEraForLevel(gameState.currentLevel);
+  const pool = era.items.slice(0, 3);
+  const { matches, match5s } = findBoardMatches();
 
-  if (matchedPositions.length === 0) {
+  if (matches.length === 0) {
     evaluateLevelEndConditions();
     return;
   }
 
-  const ptsMult = gameState.currentLevel <= 9  ? 50  :
-                  gameState.currentLevel <= 29 ? 100 :
-                  gameState.currentLevel <= 49 ? 150 :
-                  gameState.currentLevel <= 59 ? 200 :
-                  gameState.currentLevel <= 70 ? 250 : 300;
+  const pts = gameState.currentLevel <= 9  ? 50  :
+              gameState.currentLevel <= 29 ? 100 :
+              gameState.currentLevel <= 49 ? 150 :
+              gameState.currentLevel <= 59 ? 200 :
+              gameState.currentLevel <= 70 ? 250 : 300;
 
-  gameState.score += matchedPositions.length * ptsMult;
-  document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
+  gameState.score += matches.length * pts;
+  document.getElementById('scoreDisplay').innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
-  matchedPositions.forEach(pos => {
-    if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
+  matches.forEach(p => {
+    if (gameState.challengeTarget && gameState.grid[p.r][p.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
   });
   updateChallengeBanner();
 
-  const discoBallSpawns = match5s.map(m5 => {
-    const mid = Math.floor(m5.positions.length / 2);
-    return { pos: m5.positions[mid], item: m5.item };
+  const discoBallPos = [];
+  match5s.forEach(m5 => {
+    if (Math.random() < 0.7) {
+      const mid = Math.floor(m5.positions.length / 2);
+      discoBallPos.push(m5.positions[mid]);
+    }
   });
-  const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
+  const discoPosKeys = new Set(discoBallPos.map(p => `${p.r},${p.c}`));
 
-  matchedPositions.forEach(pos => {
-    animateMatch(pos.r, pos.c);
-    gameState.grid[pos.r][pos.c] = null;
-  });
+  matches.forEach(p => animateMatch(p.r, p.c));
+
+  matches.forEach(p => { gameState.grid[p.r][p.c] = null; });
 
   setTimeout(() => {
-    applyGravityAndRefill(items);
+    applyGravityAndRefill(pool);
 
-    discoBallSpawns.forEach(d => {
-      gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
+    discoBallPos.forEach(p => {
+      gameState.grid[p.r][p.c] = DISCO_BALL;
     });
-    if (discoBallSpawns.length > 0) renderBoard();
+    if (discoBallPos.length > 0) renderBoard();
 
     setTimeout(evaluateLevelEndConditions, 300);
-  }, 450);
+  }, 420);
 }
 
 function afterMatch() {
