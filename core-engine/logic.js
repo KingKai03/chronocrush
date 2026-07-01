@@ -811,15 +811,8 @@ function activateDiscoBall(r, c, targetItem) {
       if (gameState.grid[row][col] === targetItem)
         blastPositions.push({ r: row, c: col });
 
-  // Points — 3× for each blasted tile
-  const ptsMult = gameState.currentLevel <= 9  ? 50  :
-                  gameState.currentLevel <= 29 ? 100 :
-                  gameState.currentLevel <= 49 ? 150 :
-                  gameState.currentLevel <= 59 ? 200 :
-                  gameState.currentLevel <= 70 ? 250 : 300;
-
-  const pts = blastPositions.length * ptsMult * 3;
-  gameState.score += pts;
+  // Disco ball gives only 5 points — it's a strategic tool not a scorer
+  gameState.score += 5;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
 
   // Blast each tile with staggered animation
