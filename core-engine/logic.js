@@ -653,15 +653,20 @@ function showEraUnlockToast(eraName) {
    BOARD GENERATION
    ============================================================ */
 function generateBoard(itemSet) {
+  // Use only 3 tile types — increases tile density so match-5s happen naturally
+  const reduced = itemSet.slice(0, 3);
+
   for (let r = 0; r < BOARD_SIZE; r++) {
     gameState.grid[r] = [];
     for (let c = 0; c < BOARD_SIZE; c++) {
-      gameState.grid[r][c] = randomItem(itemSet);
+      gameState.grid[r][c] = randomItem(reduced);
     }
   }
+
+  // Only remove exact 3-in-a-rows — leave 4-in-a-rows so players can extend to 5
   let guard = 0;
   while (findBoardMatches().matches.length > 0 && guard < 50) {
-    resolveSilentMatches(itemSet); guard++;
+    resolveSilentMatches(reduced); guard++;
   }
 }
 
@@ -671,6 +676,7 @@ function randomItem(itemSet) {
 }
 
 function resolveSilentMatches(itemSet) {
+  // Only fix exact 3-in-a-rows — preserve 4-in-a-rows so players can build to 5
   findBoardMatches().matches.forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(itemSet); });
 }
 
@@ -888,7 +894,7 @@ function checkChallengeAndScore() {
     matchedPositions.forEach(pos => {
       const key = `${pos.r},${pos.c}`;
       // Spawn disco ball at middle of match-5, random tile elsewhere
-      gameState.grid[pos.r][pos.c] = discoPosKeys.has(key) ? DISCO_BALL : randomItem(era.items);
+      gameState.grid[pos.r][pos.c] = discoPosKeys.has(key) ? DISCO_BALL : randomItem(era.items.slice(0,3));
       const tile = getTile(pos.r, pos.c);
       if (tile) {
         tile.classList.remove('matched');
