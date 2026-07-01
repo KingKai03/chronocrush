@@ -2,7 +2,7 @@
    CHRONOCRUSH Service Worker v4 — Full Offline Support
    ============================================================ */
 
-const CACHE_NAME    = 'chronocrush-v11';
+const CACHE_NAME    = 'chronocrush-v12';
 const OFFLINE_URL   = '/chronocrush/';
 
 // Everything the game needs to run with zero internet
