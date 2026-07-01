@@ -960,9 +960,8 @@ function checkChallengeAndScore() {
                   gameState.currentLevel <= 59 ? 200 :
                   gameState.currentLevel <= 70 ? 250 : 300;
 
-  // Match-5 gives double points bonus
-  const bonusPts = match5s.length * 5 * ptsMult;
-  gameState.score += matchedPositions.length * ptsMult + bonusPts;
+  // Normal points — no bonus for match-5 (disco ball is the reward itself)
+  gameState.score += matchedPositions.length * ptsMult;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
