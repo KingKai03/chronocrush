@@ -35,9 +35,6 @@ const gameState = {
 // Fireworks
 let fxCanvas = null, fxCtx = null, fxParticles = [], fxAnimationId = null;
 
-/* ============================================================
-   ERA TIMELINE
-   ============================================================ */
 const eraTimeline = [
   { name: "1940s Noir",          startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'] },
   { name: "1950s Rockabilly",    startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'] },
@@ -50,9 +47,6 @@ const eraTimeline = [
   { name: "2002 Flip Phone Era", startLvl: 81, endLvl: 90, items: ['📲','🎵','🕹️','💾'] }
 ];
 
-/* ============================================================
-   BOOT
-   ============================================================ */
 document.addEventListener("DOMContentLoaded", boot);
 
 function boot() {
@@ -79,13 +73,9 @@ function boot() {
     checkPaymentReturn();
   }, 900);
 
-  // Start offline/online detection
   initOfflineDetection();
 }
 
-/* ============================================================
-   OFFLINE / ONLINE DETECTION
-   ============================================================ */
 function initOfflineDetection() {
   function updateOnlineStatus() {
     const banner = document.getElementById('offlineBanner');
@@ -93,7 +83,6 @@ function initOfflineDetection() {
 
     if (banner) banner.style.display = isOffline ? 'block' : 'none';
 
-    // Only disable Google sign-in when offline
     const googleBtn = document.getElementById('googleSignInBtn');
     if (googleBtn) {
       if (isOffline) {
@@ -117,7 +106,6 @@ function initOfflineDetection() {
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
 
-  // Check on load
   updateOnlineStatus();
 }
 
@@ -135,9 +123,6 @@ function resizeFireworksCanvas() {
   if (fxCanvas) { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
 }
 
-/* ============================================================
-   DOM BOARD — build, render, handle clicks
-   ============================================================ */
 function buildDomBoard() {
   const board = document.getElementById('domBoard');
   if (!board) return;
@@ -175,7 +160,6 @@ function onTileClick(e) {
     const dr = Math.abs(sr - r);
     const dc = Math.abs(sc - c);
 
-    // Same tile tapped — deselect
     if (dr === 0 && dc === 0) {
       gameState.selectedTile = null;
       renderBoard();
@@ -185,13 +169,11 @@ function onTileClick(e) {
     const selectedVal = gameState.grid[sr][sc];
     const targetVal   = gameState.grid[r][c];
 
-    // Disco ball can swap with ANY tile on the board — no adjacency needed
     if (selectedVal === DISCO_BALL || targetVal === DISCO_BALL) {
       swapTiles(sr, sc, r, c);
       return;
     }
 
-    // Normal swap — must be adjacent
     if (dr + dc === 1) {
       swapTiles(sr, sc, r, c);
     } else {
@@ -202,17 +184,10 @@ function onTileClick(e) {
   }
 }
 
-/* ── Swipe / drag handler ───────────────────────────────────────────────────
-   Tracks touchstart / mousedown as the origin tile, then on touchend /
-   mouseup works out the swipe direction and triggers the swap.
-   A tap (no movement) still works for booster targeting.
-──────────────────────────────────────────────────────────────────────────── */
 function clearHighlight() {
   const board = document.getElementById('domBoard');
   if (board) board.querySelectorAll('.board-tile.selected').forEach(t => t.classList.remove('selected'));
 }
-
-
 
 function renderBoard() {
   const board = document.getElementById('domBoard');
@@ -258,12 +233,12 @@ function animateMatch(r, c) {
 function animateDrop(r, c) {
   const tile = getTile(r, c);
   if (!tile) return;
-  // Don't animate disco ball — it has its own pulse animation
+
   if (gameState.grid[r] && gameState.grid[r][c] === DISCO_BALL) return;
   tile.classList.remove('dropping');
-  void tile.offsetWidth; // reflow
+  void tile.offsetWidth;
   tile.classList.add('dropping');
-  // Clean up after done
+
   setTimeout(() => tile.classList.remove('dropping'), 360);
 }
 
@@ -276,27 +251,18 @@ function animateSwap(r, c) {
   setTimeout(() => tile.classList.remove('swapping'), 160);
 }
 
-/* ============================================================
-   SPACE AMBIENT MUSIC
-   ============================================================ */
 function initAudio() {
   if (!gameState.audioCtx) {
     gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (gameState.audioCtx.state === 'suspended') gameState.audioCtx.resume();
-  // Start MP3 music on first user interaction (browser autoplay policy)
+
   resumeMusicAfterInteraction();
 }
 
 function getCurrentEraForLevel(level) {
   return eraTimeline.find(e => level >= e.startLvl && level <= e.endLvl) || eraTimeline[0];
 }
-
-/* ============================================================
-   BACKGROUND MUSIC — MP3 player
-   Replaces the Web Audio synth engine.
-   File: audio/background.mp3
-   ============================================================ */
 
 let _bgAudio       = null;
 let _bgFadeTimer   = null;
@@ -305,9 +271,9 @@ function _getBgAudio() {
   if (_bgAudio) return _bgAudio;
   _bgAudio = new Audio('audio/background.mp3');
   _bgAudio.loop   = true;
-  _bgAudio.volume = 0;   // start silent, fade in
+  _bgAudio.volume = 0;
   _bgAudio.preload = 'auto';
-  // If the browser blocks autoplay, retry on next user interaction
+
   _bgAudio.addEventListener('error', (e) => {
     console.warn('Audio load error:', e);
   });
@@ -318,24 +284,21 @@ function startSpaceMusic() {
   if (!gameState.preferences.sound) return;
   const audio = _getBgAudio();
 
-  // Already playing — nothing to do
   if (!audio.paused) return;
 
-  // Resume AudioContext if needed (browser autoplay policy)
   const playPromise = audio.play();
   if (playPromise !== undefined) {
     playPromise.catch(() => {
-      // Autoplay blocked — will start on next user tap (initAudio handles this)
+
     });
   }
 
-  // Fade in from 0 to 0.45 over 2 seconds
   _fadeVolume(0, 0.45, 2000);
 }
 
 function stopSpaceMusic() {
   if (!_bgAudio || _bgAudio.paused) return;
-  // Fade out then pause
+
   _fadeVolume(_bgAudio.volume, 0, 1000, () => {
     _bgAudio.pause();
     _bgAudio.currentTime = 0;
@@ -377,18 +340,12 @@ function triggerVibration(pattern) {
   if (gameState.preferences.vibe && navigator.vibrate) navigator.vibrate(pattern);
 }
 
-/* ============================================================
-   SCREEN MANAGEMENT
-   ============================================================ */
 function switchView(id) {
   document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
   const t = document.getElementById(id);
   if (t) t.classList.add('active');
 }
 
-/* ============================================================
-   LEVEL TRANSITION
-   ============================================================ */
 function playLevelTransition(callback) {
   const screen = document.getElementById('levelTransitionScreen');
   if (!screen) { if (callback) callback(); return; }
@@ -404,9 +361,6 @@ function playLevelTransition(callback) {
   }, 1350);
 }
 
-/* ============================================================
-   HOME / MAP
-   ============================================================ */
 function loadHomepage() {
   switchView("homePage");
   document.getElementById("livesCounter").innerText = gameState.lives;
@@ -463,21 +417,18 @@ function loadHomepage() {
   });
 }
 
-/* ============================================================
-   MODALS
-   ============================================================ */
 function toggleModal(id, open) {
   const m = document.getElementById(id);
   if (!m) return;
   if (open) {
-    m.style.display = '';  // clear any forced hide
+    m.style.display = '';
     m.classList.add('visible');
     if (id === 'levelSuccessModal') { resizeFireworksCanvas(); spawnFireworksBurst(); runFireworksLoop(); }
   } else {
     m.classList.remove('visible');
-    m.style.display = 'none'; // force hide so it never blocks clicks
+    m.style.display = 'none';
     if (id === 'levelSuccessModal') { cancelAnimationFrame(fxAnimationId); fxParticles = []; }
-    // Re-enable display via CSS class next time it opens
+
     requestAnimationFrame(() => { if (!m.classList.contains('visible')) m.style.display = ''; });
   }
 }
@@ -501,98 +452,72 @@ function advanceToNextLevel() {
   } else { loadHomepage(); }
 }
 
-/* ============================================================
-   LEVEL SETUP
-   ============================================================ */
-/* ── Difficulty curve ──────────────────────────────────────────────────────
-   All levels: 20 moves, no exceptions.
-   Score target and challenge count scale up across levels.
-   Easy (1–9), Easy-Medium (10–49), Hard (50–70).
-──────────────────────────────────────────────────────────────────────────── */
-/* ── Difficulty curve ──────────────────────────────────────────────────────
-   ALL levels: exactly 20 moves.
-   Win requires BOTH: clear X specific tiles AND reach score target.
-   Score per match: 50pts (lvl 1-9), 100pts (10-29), 150pts (30-49),
-                    200pts (50-59), 250pts (60-70), 300pts (71-90)
-   
-   With 20 moves, best case ~4 matches per move = 80 matches max.
-   At 150pts per match from level 30: max possible = 80 × 150 = 12,000pts
-   Targets are set CLOSE to this maximum so bad play = fail.
-────────────────────────────────────────────────────────────────────────── */
 function getDifficulty(lvl) {
 
-  // Tutorial (1-9): learn the game, generous
   if (lvl <= 9) {
     return {
       moves:          20,
-      targetScore:    200 + lvl * 60,              // 260 – 740
-      challengeCount: 4 + Math.floor(lvl * 0.5),  // 4 – 8
+      targetScore:    200 + lvl * 60,
+      challengeCount: 4 + Math.floor(lvl * 0.5),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Easy (10-29): getting real — need consistent chains
   if (lvl <= 29) {
     const t = (lvl - 10) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(1500 + t * 3000),  // 1500 → 4500
-      challengeCount: Math.round(10  + t * 8),      // 10 → 18
+      targetScore:    Math.round(1500 + t * 3000),
+      challengeCount: Math.round(10  + t * 8),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Hard from level 30 — BOTH conditions are very tough
-  // Score max at 150pts/match × 80 matches = 12,000. Target is 8,000-11,500
   if (lvl <= 49) {
     const t = (lvl - 30) / 19;
     return {
       moves:          20,
-      targetScore:    Math.round(8000 + t * 3500),  // 8000 → 11500
-      challengeCount: Math.round(22  + t * 8),      // 22 → 30
+      targetScore:    Math.round(8000 + t * 3500),
+      challengeCount: Math.round(22  + t * 8),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Very Hard (50-59): 35 moves so players can reach the high targets
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
       moves:          35,
-      targetScore:    Math.round(12000 + t * 3000), // 12000 → 15000
-      challengeCount: Math.round(31   + t * 7),     // 31 → 38
+      targetScore:    Math.round(12000 + t * 3000),
+      challengeCount: Math.round(31   + t * 7),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Brutal (60-70): 35 moves
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
       moves:          35,
-      targetScore:    Math.round(16000 + t * 3500), // 16000 → 19500
-      challengeCount: Math.round(39   + t * 9),     // 39 → 48
+      targetScore:    Math.round(16000 + t * 3500),
+      challengeCount: Math.round(39   + t * 9),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Extreme (71-80): 35 moves
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
       moves:          35,
-      targetScore:    Math.round(20000 + t * 3000), // 20000 → 23000
-      challengeCount: Math.round(49   + t * 8),     // 49 → 57
+      targetScore:    Math.round(20000 + t * 3000),
+      challengeCount: Math.round(49   + t * 8),
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
 
-  // Legendary (81-90): max ~24,000. Target 23,500-24,000 — near perfect play needed
   const t = (lvl - 81) / 9;
   return {
     moves:          20,
-    targetScore:    Math.round(23500 + t * 500),   // 23500 → 24000
-    challengeCount: Math.round(58   + t * 10),     // 58 → 68
+    targetScore:    Math.round(23500 + t * 500),
+    challengeCount: Math.round(58   + t * 10),
     boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
   };
 }
@@ -611,14 +536,10 @@ function startLevelLogic(lvl) {
 
   const era = getCurrentEraForLevel(lvl);
 
-  // ── Win condition depends on level range ──────────────────────
-  // Levels  1-20: clear a specific tile count (tile-clear mode)
-  // Levels 21-29: transition — score target only
-  // Levels 30-90: score target only
   if (lvl <= 20) {
-    // Tile-clear mode: clear 8 of one specific tile type
+
     const challengeItem = era.items[(lvl - 1) % era.items.length];
-    const clearCount    = 6 + Math.floor(lvl * 0.4); // 6 → 13 tiles to clear
+    const clearCount    = 6 + Math.floor(lvl * 0.4);
     gameState.challengeTarget   = { item: challengeItem, count: clearCount };
     gameState.challengeProgress = 0;
     gameState.levelMode         = 'tile';
@@ -630,7 +551,7 @@ function startLevelLogic(lvl) {
     const banner = document.getElementById("challengeBanner");
     if (banner) banner.innerText = `Clear ${clearCount} ${challengeItem} to pass this level!`;
   } else {
-    // Score-target mode: hit the score before moves run out
+
     gameState.challengeTarget   = null;
     gameState.challengeProgress = 0;
     gameState.levelMode         = 'score';
@@ -670,11 +591,8 @@ function showEraUnlockToast(eraName) {
   setTimeout(() => toast.classList.remove('show'), 3200);
 }
 
-/* ============================================================
-   BOARD GENERATION
-   ============================================================ */
 function generateBoard(itemSet) {
-  // Use only 3 tile types — increases tile density so match-5s happen naturally
+
   const reduced = itemSet.slice(0, 3);
 
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -684,7 +602,6 @@ function generateBoard(itemSet) {
     }
   }
 
-  // Only remove exact 3-in-a-rows — leave 4-in-a-rows so players can extend to 5
   let guard = 0;
   while (findBoardMatches().matches.length > 0 && guard < 50) {
     resolveSilentMatches(reduced); guard++;
@@ -697,13 +614,10 @@ function randomItem(itemSet) {
 }
 
 function resolveSilentMatches(itemSet) {
-  // Only fix exact 3-in-a-rows — preserve 4-in-a-rows so players can build to 5
+
   findBoardMatches().matches.forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(itemSet); });
 }
 
-/* ============================================================
-   BOOSTERS
-   ============================================================ */
 function selectBooster(type) {
   if (!gameState.isGameActive || gameState.boosters[type] <= 0) return;
   gameState.activeBooster = (gameState.activeBooster === type) ? null : type;
@@ -760,16 +674,12 @@ function useBombOnTile(r, c) {
   setTimeout(() => refillDestroyedTiles(destroyed, era.items), 280);
 }
 
-/* ============================================================
-   GRAVITY — tiles fall down to fill gaps, new tiles drop from top
-   ============================================================ */
 function applyGravityAndRefill(itemSet) {
   const era   = getCurrentEraForLevel(gameState.currentLevel);
   const items = (itemSet || era.items).slice(0, 3);
 
-  // Column-by-column gravity: pull existing tiles to bottom, fill top with new
   for (let c = 0; c < BOARD_SIZE; c++) {
-    // Step 1: collect all non-empty tiles from bottom upward
+
     const existing = [];
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       const v = gameState.grid[r][c];
@@ -778,25 +688,21 @@ function applyGravityAndRefill(itemSet) {
       }
     }
 
-    // Step 2: fill remaining slots with new tiles
     while (existing.length < BOARD_SIZE) {
       existing.push(randomItem(items));
     }
 
-    // Step 3: write back — existing[0] goes to bottom row, existing[last] to top
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       gameState.grid[r][c] = existing[BOARD_SIZE - 1 - r];
     }
   }
 
-  // Silently fix any accidental matches in the new tiles
   let guard = 0;
   while (findBoardMatches().matches.length > 0 && guard < 30) {
     resolveSilentMatches(items);
     guard++;
   }
 
-  // Re-render entire board — must be completely full
   renderBoard();
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
@@ -817,14 +723,10 @@ function destroyTile(r, c, itemSet) {
   gameState.grid[r][c] = null;
 }
 
-/* ============================================================
-   DISCO BALL ACTIVATION
-   ============================================================ */
 function activateDiscoBall(r, c, targetItem) {
   const era   = getCurrentEraForLevel(gameState.currentLevel);
   const items = era.items.slice(0, 3);
 
-  // If no target, use most common tile
   if (!targetItem || targetItem === DISCO_BALL) {
     const counts = {};
     items.forEach(item => counts[item] = 0);
@@ -836,14 +738,11 @@ function activateDiscoBall(r, c, targetItem) {
     targetItem = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
   }
 
-  // Animate disco ball exploding
   const ballTile = getTile(r, c);
   if (ballTile) ballTile.classList.add('disco-ball-explode');
 
-  // Clear disco ball from grid immediately
   gameState.grid[r][c] = null;
 
-  // Find all tiles of target type and clear them
   for (let row = 0; row < BOARD_SIZE; row++)
     for (let col = 0; col < BOARD_SIZE; col++)
       if (gameState.grid[row][col] === targetItem) {
@@ -851,29 +750,21 @@ function activateDiscoBall(r, c, targetItem) {
         gameState.grid[row][col] = null;
       }
 
-  // Flat 5 points only
   gameState.score += 10;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([80, 30, 80, 30, 120]);
 
-  // Immediately apply gravity and refill — NO cascade check after
-  // Player keeps their remaining moves and plays on normally
   setTimeout(() => {
     applyGravityAndRefill(items);
     updateChallengeBanner();
-    // No checkChallengeAndScore — disco ball does NOT trigger auto-play
+
   }, 500);
 }
 
-/* ============================================================
-   SWAP + MATCH
-   ============================================================ */
 function swapTiles(r1, c1, r2, c2) {
   const v1 = gameState.grid[r1][c1];
   const v2 = gameState.grid[r2][c2];
 
-  // ── Disco Ball swap activation ─────────────────────────────────
-  // If either tile is a disco ball, activate it with the OTHER tile's type
   if (v1 === DISCO_BALL || v2 === DISCO_BALL) {
     const discoR  = v1 === DISCO_BALL ? r1 : r2;
     const discoC  = v1 === DISCO_BALL ? c1 : c2;
@@ -886,7 +777,6 @@ function swapTiles(r1, c1, r2, c2) {
     return;
   }
 
-  // Normal swap
   gameState.grid[r1][c1] = v2;
   gameState.grid[r2][c2] = v1;
   gameState.moves--;
@@ -899,13 +789,12 @@ function swapTiles(r1, c1, r2, c2) {
   setTimeout(checkChallengeAndScore, 300);
 }
 
-const DISCO_BALL = '__DISCO__'; // Special power tile — rendered via CSS not emoji
+const DISCO_BALL = '__DISCO__';
 
 function findBoardMatches() {
   const matches  = [];
-  const match5s  = []; // positions where a disco ball should spawn
+  const match5s  = [];
 
-  // ── Horizontal matches ─────────────────────────────────────────
   for (let r = 0; r < BOARD_SIZE; r++) {
     let c = 0;
     while (c < BOARD_SIZE) {
@@ -923,7 +812,6 @@ function findBoardMatches() {
     }
   }
 
-  // ── Vertical matches ───────────────────────────────────────────
   for (let c = 0; c < BOARD_SIZE; c++) {
     let r = 0;
     while (r < BOARD_SIZE) {
@@ -941,7 +829,6 @@ function findBoardMatches() {
     }
   }
 
-  // De-dupe
   const seen = new Set();
   const unique = matches.filter(m => {
     const key = `${m.r},${m.c}`;
@@ -952,24 +839,16 @@ function findBoardMatches() {
   return { matches: unique, match5s };
 }
 
-/* ── Core cascade loop ────────────────────────────────────────────────────
-   1. Find matches → flash them gold → shrink to nothing  (250ms)
-   2. Drop existing tiles down to fill gaps               (320ms)
-   3. Drop new tiles in from above                        (320ms)
-   4. Check for new matches (chain reaction)              (loop)
-   ──────────────────────────────────────────────────────────────────── */
 function checkChallengeAndScore() {
   const era   = getCurrentEraForLevel(gameState.currentLevel);
   const items = era.items.slice(0, 3);
   const { matches: matchedPositions, match5s } = findBoardMatches();
 
-  // No matches — check win/fail and stop. Player makes next move.
   if (matchedPositions.length === 0) {
     evaluateLevelEndConditions();
     return;
   }
 
-  // Score
   const ptsMult = gameState.currentLevel <= 9  ? 50  :
                   gameState.currentLevel <= 29 ? 100 :
                   gameState.currentLevel <= 49 ? 150 :
@@ -980,41 +859,34 @@ function checkChallengeAndScore() {
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
-  // Track challenge progress
   matchedPositions.forEach(pos => {
     if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
   });
   updateChallengeBanner();
 
-  // Track disco ball spawns BEFORE clearing
   const discoBallSpawns = match5s.map(m5 => {
     const mid = Math.floor(m5.positions.length / 2);
     return { pos: m5.positions[mid], item: m5.item };
   });
   const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
 
-  // Step 1: Flash matched tiles (visual only — grid data untouched)
   matchedPositions.forEach(pos => animateMatch(pos.r, pos.c));
 
-  // Step 2: After flash animation completes — clear grid data and apply gravity
   setTimeout(() => {
-    // Clear matched positions from grid
+
     matchedPositions.forEach(pos => {
       gameState.grid[pos.r][pos.c] = null;
     });
 
-    // Apply gravity — fills every gap, board always 100% full
     applyGravityAndRefill(items);
 
-    // Place disco balls on top of refilled board
     discoBallSpawns.forEach(d => {
-      // Find a suitable position near the spawn point
+
       gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
     if (discoBallSpawns.length > 0) renderBoard();
 
-    // Done — wait for player's next move
     setTimeout(evaluateLevelEndConditions, 300);
   }, 450);
 }
@@ -1030,7 +902,7 @@ function updateChallengeBanner() {
   if (!banner) return;
 
   if (gameState.levelMode === 'tile' && gameState.challengeTarget) {
-    // Tile-clear mode: show live tile progress
+
     const done      = gameState.challengeProgress;
     const total     = gameState.challengeTarget.count;
     const remaining = Math.max(0, total - done);
@@ -1039,7 +911,7 @@ function updateChallengeBanner() {
       ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
       : `Level complete! 🎉`;
   } else {
-    // Score-target mode: show remaining points needed
+
     const remaining = Math.max(0, gameState.targetScore - gameState.score);
     if (remaining > 0) {
       banner.innerText = `${remaining.toLocaleString()} points to go! ${gameState.moves} moves left`;
@@ -1051,12 +923,12 @@ function updateChallengeBanner() {
 
 function evaluateLevelEndConditions() {
   if (gameState.levelMode === 'tile') {
-    // Tile-clear mode (levels 1-20): clear required tiles to win
+
     const challengeMet = gameState.challengeTarget &&
                          gameState.challengeProgress >= gameState.challengeTarget.count;
     if (challengeMet) { setTimeout(win, 400); return; }
   } else {
-    // Score-target mode (levels 21+): hit score target to win
+
     if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
   }
   if (gameState.moves <= 0) {
@@ -1064,23 +936,23 @@ function evaluateLevelEndConditions() {
       gameState.isGameActive = false;
 
       if (gameState.lifeShield) {
-        // Shield absorbs the fail — no life lost
+
         gameState.lifeShield = false;
         localStorage.removeItem("chrono_shield");
         showShopToast("🛡️ Life Shield saved you!");
         showFailModal(true);
       } else {
-        // Silently deduct a life — no alert, just update the counter
+
         gameState.lives = Math.max(0, gameState.lives - 1);
         localStorage.setItem("chrono_lives", gameState.lives);
-        // Update lives display silently
+
         updateLivesDisplay();
-        // Start 12-hour refill timer ONLY when all 5 lives are gone
+
         if (gameState.lives === 0) {
           if (!localStorage.getItem('chrono_life_refill_at')) {
             localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
           }
-          // Show the countdown bar immediately
+
           startLifeRefillTimer();
         }
         showFailModal(false);
@@ -1089,14 +961,10 @@ function evaluateLevelEndConditions() {
   }
 }
 
-/* ============================================================
-   LEVEL FAIL MODAL
-   ============================================================ */
 function showFailModal(shieldSaved) {
   const needed   = gameState.targetScore - gameState.score;
   const pct      = Math.round((gameState.score / gameState.targetScore) * 100);
 
-  // Pick a fun fail message based on how close they were
   let title, subtext;
   if (shieldSaved) {
     title   = "SHIELD SAVED YOU!";
@@ -1140,9 +1008,6 @@ function backToMapAfterFail() {
   loadHomepage();
 }
 
-/* ============================================================
-   WIN
-   ============================================================ */
 function win() {
   gameState.isGameActive = false;
   triggerVibration([100,40,100,40,300]);
@@ -1163,13 +1028,11 @@ function win() {
   trackDailyWin();
   checkAwardsBadge();
 
-  // Check if this win just completed an entire era — show trophy modal after success
   const justCompletedEra = checkEraCompletion(gameState.currentLevel);
 
   switchView("homePage");
   toggleModal('levelSuccessModal', true);
 
-  // If era completed, queue the trophy reveal after a short delay so success modal shows first
   if (justCompletedEra) {
     setTimeout(() => {
       toggleModal('levelSuccessModal', false);
@@ -1178,9 +1041,6 @@ function win() {
   }
 }
 
-/* ============================================================
-   FIREWORKS
-   ============================================================ */
 function spawnFireworksBurst() {
   const colors = ['#ffd700','#ff5e62','#ff9966','#00f2fe','#4facfe','#b19ffb'];
   const cx = window.innerWidth/2, cy = window.innerHeight/2;
@@ -1208,14 +1068,8 @@ function runFireworksLoop() {
   fxAnimationId = requestAnimationFrame(runFireworksLoop);
 }
 
-/* ============================================================
-   NAV
-   ============================================================ */
 function exitToHome() { gameState.isGameActive=false; gameState.activeBooster=null; loadHomepage(); }
 function transitionToMap() { initAudio(); triggerFlashAnimation(); loadHomepage(); }
-/* ============================================================
-   AUTH + NOTIFICATION FLOW
-   ============================================================ */
 
 // Called by Firebase module (index.html) once sign-in succeeds
 window.afterFirebaseAuth = function(user) {
@@ -1249,7 +1103,6 @@ function setAuthBtnLoading(btnId, loading, originalHTML) {
 async function handleSocialAuth(provider) {
   initAudio();
 
-  // ── Firebase is configured — do real OAuth ───────────────────
   if (window._firebaseReady) {
     const btnId = 'googleSignInBtn';
     setAuthBtnLoading(btnId, true);
@@ -1265,7 +1118,7 @@ async function handleSocialAuth(provider) {
       if (user) {
         window.afterFirebaseAuth(user);
       } else {
-        // Popup closed or cancelled — show friendly message
+
         showAuthError('Sign-in was cancelled. Please try again.');
       }
     } catch(err) {
@@ -1293,7 +1146,7 @@ function showAuthError(msg) {
 }
 
 function showAuthSetupNotice(provider) {
-  // Firebase not configured — show a modal explaining what's needed
+
   const providerName = 'Google';
   let el = document.getElementById('authErrorMsg');
   if (!el) {
@@ -1322,9 +1175,8 @@ function _doGuestAuth() {
   afterAuthSuccess();
 }
 
-/* Terms agree popup functions */
 function showTermsAgreePopup() {
-  // Reset checkbox
+
   const chk = document.getElementById('termsAgreeModalCheck');
   const btn = document.getElementById('termsAgreeConfirmBtn');
   if (chk) chk.checked = false;
@@ -1339,11 +1191,11 @@ function toggleTermsAgreeBtn() {
 }
 
 function confirmTermsAndProceed() {
-  // Hide modal completely before triggering auth
+
   const modal = document.getElementById('termsAgreeModal');
   if (modal) {
     modal.classList.remove('visible');
-    modal.style.display = 'none'; // force hide immediately
+    modal.style.display = 'none';
   }
 
   const provider = _pendingAuthProvider;
@@ -1353,10 +1205,10 @@ function confirmTermsAndProceed() {
     if (provider === 'guest') {
       _doGuestAuth();
     } else if (provider === 'google_redirect_complete') {
-      // Already signed in via redirect — just proceed to game
+
       afterAuthSuccess();
     } else if (provider) {
-      // Save terms agreed flag before redirect (page will reload)
+
       localStorage.setItem('chrono_terms_agreed', '1');
       _doSocialAuth(provider);
     }
@@ -1405,7 +1257,7 @@ function handleNotifPermission(allow) {
 }
 
 function scheduleWelcomeNotification() {
-  // Show a welcome notification after 3 seconds if permission granted
+
   if (Notification.permission === 'granted') {
     setTimeout(() => {
       try {
@@ -1426,13 +1278,10 @@ function triggerFlashAnimation() {
 function openSettingsModal() { toggleModal('settingsModal', true); }
 
 function openHowToPlay() {
-  toggleModal('settingsModal', false);   // close settings first
+  toggleModal('settingsModal', false);
   toggleModal('howToPlayModal', true);
 }
 
-/* ============================================================
-   SETTINGS
-   ============================================================ */
 function togglePreference(p) {
   gameState.preferences[p] = !gameState.preferences[p];
   localStorage.setItem("chrono_preferences", JSON.stringify(gameState.preferences));
@@ -1445,11 +1294,8 @@ function resetGameProgress() {
   if (confirm("This will erase all progress, gold, and lives. Continue?")) { localStorage.clear(); location.reload(); }
 }
 
-/* ============================================================
-   SHOP
-   ============================================================ */
 function openShopPage() {
-  // Sync gold display when opening shop
+
   const disp = document.getElementById('shopGoldDisplay');
   if (disp) disp.textContent = gameState.gold.toLocaleString();
   switchView('shopPage');
@@ -1493,11 +1339,11 @@ function buyItem(type, cost) {
       showShopToast("🛡️ Life Shield active!");
       break;
     case 'gold': {
-      // Free daily claim — once per day only
+
       const todayKey = 'chrono_free_gold_' + new Date().toDateString();
       if (localStorage.getItem(todayKey)) {
         showShopToast('Already claimed today! Come back tomorrow.', 'error');
-        gameState.gold += cost; // refund since we deducted 0 but just in case
+        gameState.gold += cost;
       } else {
         gameState.gold += 50;
         localStorage.setItem(todayKey, '1');
@@ -1516,7 +1362,6 @@ function buyItem(type, cost) {
   triggerVibration(40);
 }
 
-/* ── Shop toast notification ────────────────────────────────── */
 function showShopToast(msg, type) {
   let toast = document.getElementById('shopToast');
   if (!toast) {
@@ -1538,9 +1383,6 @@ function showShopToast(msg, type) {
   toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
 }
 
-/* ============================================================
-   PAYFAST PAYMENT FLOW
-   ============================================================ */
 // ⚠️  SETUP REQUIRED: Replace these with your real PayFast credentials
 // Get them at https://www.payfast.co.za after creating a merchant account
 // PayFast config — update merchant_id and merchant_key before going live
@@ -1560,7 +1402,7 @@ function getPayfastUrls() {
   };
 }
 
-let pendingPayment = null; // { packageId, amountZAR, goldCoins }
+let pendingPayment = null;
 
 function initiatePayment(packageId, amountZAR, goldCoins) {
   pendingPayment = { packageId, amountZAR, goldCoins };
@@ -1584,7 +1426,6 @@ function confirmPayment() {
 
   const { packageId, amountZAR, goldCoins } = pendingPayment;
 
-  // No credentials yet — dev mode: add gold directly for testing
   if (PAYFAST_CONFIG.merchant_id === 'YOUR_MERCHANT_ID') {
     const msg = 'PayFast not configured yet. Gold added in test mode.';
     gameState.gold += goldCoins;
@@ -1599,7 +1440,6 @@ function confirmPayment() {
     return;
   }
 
-  // Build PayFast hosted payment form and submit
   const host = PAYFAST_CONFIG.sandbox
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
@@ -1632,17 +1472,15 @@ function confirmPayment() {
   form.submit();
 }
 
-
 // Check for payment return from PayFast
 function checkPaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   const result = params.get('payment');
   if (result === 'success') {
-    // PayFast returned — in production, rely on ITN webhook for gold credit.
-    // For now show a friendly message.
+
     setTimeout(() => {
       showShopToast('✅ Payment received! Your gold will arrive shortly.');
-      // Clean URL
+
       window.history.replaceState({}, '', window.location.pathname);
     }, 800);
   } else if (result === 'cancel') {
@@ -1653,9 +1491,6 @@ function checkPaymentReturn() {
   }
 }
 
-/* ============================================================
-   FRIENDS
-   ============================================================ */
 function copyInviteLink() {
   const link = window.location.href.split('?')[0];
   if (navigator.clipboard) navigator.clipboard.writeText(link).then(()=>alert("Copied!")).catch(()=>alert("Link: "+link));
@@ -1664,11 +1499,6 @@ function copyInviteLink() {
 function shareToFacebook() {
   window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href.split('?')[0])}`, '_blank', 'width=600,height=400');
 }
-
-
-/* ============================================================
-   AWARDS PAGE
-   ============================================================ */
 
 // Trophy tier based on average stars across all levels in an era
 function getEraTrophy(era) {
@@ -1708,7 +1538,6 @@ function openAwardsPage() {
     const { tier, completedLevels, totalLevels, totalStars } = result;
     const pct = Math.round((completedLevels / totalLevels) * 100);
 
-    // Star display
     const maxStars = totalLevels * 3;
     const starPct = tier !== 'locked' ? Math.round((totalStars / maxStars) * 100) : Math.round((completedLevels / totalLevels) * 100);
 
@@ -1745,10 +1574,6 @@ function openAwardsPage() {
   switchView('awardsPage');
 }
 
-/* ============================================================
-   DAILY CHALLENGE PAGE
-   ============================================================ */
-
 // Seed daily challenges from the date so everyone gets the same ones each day
 function getDailySeed() {
   const d = new Date();
@@ -1756,7 +1581,7 @@ function getDailySeed() {
 }
 
 function seededRand(seed, n) {
-  // Simple LCG
+
   const val = ((seed * 1664525 + 1013904223) & 0xffffffff) >>> 0;
   return val % n;
 }
@@ -1766,15 +1591,12 @@ function getDailyTasks() {
   const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
   const eraIdx = eraTimeline.indexOf(currentEra);
 
-  // Task 1: Complete current era (big challenge)
   const eraResult = getEraTrophy(currentEra);
   const eraComplete = eraResult.tier !== 'locked';
 
-  // Task 2: Win any 3 levels today
   const dailyWinsKey = `chrono_daily_wins_${getDailySeed()}`;
   const dailyWins = parseInt(localStorage.getItem(dailyWinsKey)) || 0;
 
-  // Task 3: Get a 3-star on a specific level (seeded to today)
   const targetLvl = currentEra.startLvl + seededRand(seed, 10);
   const has3Star  = (gameState.levelRecords[targetLvl] || 0) >= 3;
 
@@ -1865,7 +1687,6 @@ function openDailyChallenge() {
   html += `</div>`;
   body.innerHTML = html;
 
-  // Show/hide red dot badge on footer
   const allDone = tasks.every(t => t.done);
   const badge   = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'block';
@@ -1879,7 +1700,6 @@ function trackDailyWin() {
   const wins = (parseInt(localStorage.getItem(key)) || 0) + 1;
   localStorage.setItem(key, wins);
 
-  // Auto-reward gold for daily win task completion
   if (wins === 3) {
     gameState.gold += 60;
     localStorage.setItem("chrono_gold", gameState.gold);
@@ -1894,17 +1714,13 @@ function checkDailyBadge() {
   if (badge) badge.style.display = allDone ? 'none' : 'block';
 }
 
-/* ============================================================
-   ERA TROPHY MODAL
-   ============================================================ */
-
 // Returns the era object if completing `level` just finished that era, else null
 function checkEraCompletion(level) {
   const era = getCurrentEraForLevel(level);
   if (!era) return null;
-  // Only fires when the player just completed the LAST level of the era
+
   if (level !== era.endLvl) return null;
-  // Verify all levels in era now have a record
+
   for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
     if (!gameState.levelRecords[lvl]) return null;
   }
@@ -1929,7 +1745,6 @@ function showEraTrophyModal(era) {
 
   const starDisplay = '📀'.repeat(Math.floor(totalStars / (era.endLvl - era.startLvl + 1)));
 
-  // Update modal content
   const card = document.getElementById('eraTrophyCard');
   card.className = `era-trophy-modal-card card-${tier}`;
   document.getElementById('eraTrophyIcon').textContent  = trophyIcon;
@@ -1938,7 +1753,6 @@ function showEraTrophyModal(era) {
   document.getElementById('eraTrophyMsg').textContent   = tierMsg;
   document.getElementById('eraTrophyStars').textContent = `${starDisplay}  ${totalStars}/${maxStars} stars`;
 
-  // Setup fireworks canvas
   trophyFxCanvas = document.getElementById('trophyFireworksCanvas');
   if (trophyFxCanvas) {
     trophyFxCanvas.width  = window.innerWidth;
@@ -1949,7 +1763,6 @@ function showEraTrophyModal(era) {
   toggleModal('eraTrophyModal', true);
   triggerVibration([150, 60, 150, 60, 400]);
 
-  // Start trophy fireworks
   trophyFxParticles = [];
   spawnTrophyBurst(tier);
   runTrophyFireworks();
@@ -2005,7 +1818,7 @@ function runTrophyFireworks() {
     trophyFxCtx.fill();
     trophyFxCtx.restore();
   }
-  // Respawn bursts periodically while modal is open
+
   if (Math.random() < 0.025 && trophyFxParticles.length < 80) {
     const modal = document.getElementById('eraTrophyModal');
     if (modal && modal.classList.contains('visible')) {
@@ -2016,10 +1829,6 @@ function runTrophyFireworks() {
   }
   trophyFxId = requestAnimationFrame(runTrophyFireworks);
 }
-
-/* ============================================================
-   ANNOUNCEMENTS PAGE
-   ============================================================ */
 
 // Hardcoded announcements — update this array as the game evolves
 const ANNOUNCEMENTS = [
@@ -2074,16 +1883,13 @@ function openAnnouncementsPage() {
   const body = document.getElementById('announcementsBody');
   if (!body) return;
 
-  // Track which announcements the player has seen
   const seenKey  = 'chrono_seen_announcements';
   const seen     = JSON.parse(localStorage.getItem(seenKey) || '[]');
   const newIds   = ANNOUNCEMENTS.filter(a => a.isNew && !seen.includes(a.id)).map(a => a.id);
 
-  // Mark all as seen now that player opened the page
   const allSeen  = [...new Set([...seen, ...ANNOUNCEMENTS.map(a => a.id)])];
   localStorage.setItem(seenKey, JSON.stringify(allSeen));
 
-  // Hide news badge
   const badge = document.getElementById('newsBadge');
   if (badge) badge.style.display = 'none';
 
@@ -2114,10 +1920,6 @@ function checkNewsBadge() {
   if (badge) badge.style.display = hasNew ? 'block' : 'none';
 }
 
-/* ============================================================
-   DAILY REWARD SYSTEM
-   ============================================================ */
-
 // 7-day reward cycle — loops back after day 7
 const DAILY_REWARDS = [
   { day: 1, icon: '🪙', label: 'Gold',       desc: 'Day 1 reward',  type: 'gold',    amount: 100  },
@@ -2140,15 +1942,15 @@ function getDailyRewardState() {
   const streak     = parseInt(localStorage.getItem('chrono_daily_reward_streak')) || 0;
   const todayKey   = getDayKey(0);
   const alreadyClaimedToday = lastClaim === todayKey;
-  // Which day of the 7-cycle are we on (0-indexed)
+
   const dayIndex = streak % 7;
   return { alreadyClaimedToday, streak, dayIndex, todayKey };
 }
 
 function maybeShowDailyReward() {
   const { alreadyClaimedToday } = getDailyRewardState();
-  if (alreadyClaimedToday) return; // already claimed today — don't show
-  // Small delay so the map loads first, then popup slides up
+  if (alreadyClaimedToday) return;
+
   setTimeout(showDailyRewardModal, 800);
 }
 
@@ -2156,12 +1958,10 @@ function showDailyRewardModal() {
   const { streak, dayIndex } = getDailyRewardState();
   const reward = DAILY_REWARDS[dayIndex];
 
-  // Update reward showcase
   document.getElementById('dailyRewardIcon').textContent   = reward.icon;
   document.getElementById('dailyRewardAmount').textContent = '+' + (reward.amount > 1 ? reward.amount + ' ' : '') + reward.label;
   document.getElementById('dailyRewardDesc').textContent   = reward.desc;
 
-  // Build the 7-day streak strip
   const strip = document.getElementById('dailyStreakStrip');
   if (strip) {
     strip.innerHTML = '';
@@ -2185,7 +1985,6 @@ function claimDailyReward() {
   const { streak, dayIndex, todayKey } = getDailyRewardState();
   const reward = DAILY_REWARDS[dayIndex];
 
-  // Apply the reward
   switch (reward.type) {
     case 'gold':
       gameState.gold += reward.amount;
@@ -2210,7 +2009,6 @@ function claimDailyReward() {
       break;
   }
 
-  // Save claim date and increment streak
   localStorage.setItem('chrono_daily_reward_date',   todayKey);
   localStorage.setItem('chrono_daily_reward_streak', streak + 1);
 
@@ -2219,22 +2017,18 @@ function claimDailyReward() {
   triggerVibration([80, 40, 120]);
 }
 
-/* ============================================================
-   AWARDS BADGE — shows gold coin when a new trophy is earnable
-   ============================================================ */
 function checkAwardsBadge() {
   const badge = document.getElementById('awardsBadge');
   if (!badge) return;
 
-  // Show badge if any era is newly completed (trophy not yet viewed)
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
 
   const hasNewTrophy = eraTimeline.some(era => {
     const result = getEraTrophy(era);
-    if (result.tier === 'locked') return false;         // not complete
+    if (result.tier === 'locked') return false;
     const trophyId = era.name + '_' + result.tier;
-    return !viewed.includes(trophyId);                  // not yet seen
+    return !viewed.includes(trophyId);
   });
 
   badge.style.display = hasNewTrophy ? 'inline' : 'none';
@@ -2244,7 +2038,7 @@ function checkAwardsBadge() {
 const _origOpenAwards = openAwardsPage;
 openAwardsPage = function() {
   _origOpenAwards();
-  // Mark all current trophies as viewed
+
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
   eraTimeline.forEach(era => {
@@ -2254,7 +2048,7 @@ openAwardsPage = function() {
     if (!viewed.includes(trophyId)) viewed.push(trophyId);
   });
   localStorage.setItem(viewedKey, JSON.stringify(viewed));
-  // Hide badge
+
   const badge = document.getElementById('awardsBadge');
   if (badge) badge.style.display = 'none';
 };
@@ -2268,11 +2062,7 @@ checkDailyBadge = function() {
   if (badge) badge.style.display = allDone ? 'none' : 'inline';
 };
 
-/* ============================================================
-   TERMS, PRIVACY & ACCOUNT DEACTIVATION
-   ============================================================ */
-
-let _termsCalledFrom = 'settings'; // track where to go back to
+let _termsCalledFrom = 'settings';
 
 function openTermsPage() {
   _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
@@ -2287,7 +2077,7 @@ function openPrivacyPage() {
 }
 
 function closeTermsOrPrivacy() {
-  // Go back to wherever they came from
+
   if (_termsCalledFrom && _termsCalledFrom !== 'termsPage' && _termsCalledFrom !== 'privacyPage') {
     switchView(_termsCalledFrom);
   } else {
@@ -2297,7 +2087,7 @@ function closeTermsOrPrivacy() {
 
 function confirmDeactivateAccount() {
   toggleModal('settingsModal', false);
-  // Reset checkbox state each time
+
   const chk = document.getElementById('deactivateConfirmCheck');
   if (chk) chk.checked = false;
   const btn = document.getElementById('deactivateConfirmBtn');
@@ -2316,21 +2106,17 @@ async function executeDeactivation() {
   if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
 
   try {
-    // ── Step 1: Delete from Firebase Auth (also removes Google sign-in) ──────
-    // Firebase requires re-authentication before deletion for security.
-    // We attempt deletion — if it fails due to needing re-auth, we catch it.
+
     if (window._firebaseReady && window.firebaseDeleteAccount) {
       await window.firebaseDeleteAccount();
     }
   } catch(err) {
     console.warn('Firebase deletion:', err.message);
-    // If re-auth required, Firebase will throw — we still clear local data
+
   }
 
-  // ── Step 2: Wipe all localStorage ─────────────────────────────────────────
   localStorage.clear();
 
-  // ── Step 3: Reset in-memory gameState ─────────────────────────────────────
   gameState.gold                = 100;
   gameState.lives               = 5;
   gameState.highestUnlockedLevel = 1;
@@ -2343,21 +2129,14 @@ async function executeDeactivation() {
 
   toggleModal('deactivateModal', false);
 
-  // ── Step 4: Show confirmation and restart ─────────────────────────────────
   setTimeout(() => {
     alert('Your account has been permanently deleted. Thank you for playing CHRONOCRUSH.');
     location.reload();
   }, 400);
 }
 
-/* ============================================================
-   ERA QUIZ SYSTEM
-   Daily trivia question — one per day, era-themed.
-   Correct = reward. Wrong = try again tomorrow.
-   ============================================================ */
-
 const QUIZ_QUESTIONS = [
-  // ── 1940s Noir ───────────────────────────────────────────────
+
   {
     era: "1940s Noir", icon: "🎷",
     question: "Which famous jazz musician was known as the 'King of Swing' in the 1940s?",
@@ -2380,7 +2159,6 @@ const QUIZ_QUESTIONS = [
     fact: "The Maltese Falcon (1941) defined the film noir genre and made Humphrey Bogart a Hollywood legend."
   },
 
-  // ── 1950s Rockabilly ─────────────────────────────────────────
   {
     era: "1950s Rockabilly", icon: "🎸",
     question: "Which artist recorded 'Rock Around the Clock' in 1954, helping launch rock and roll?",
@@ -2403,7 +2181,6 @@ const QUIZ_QUESTIONS = [
     fact: "The Chevrolet Corvette launched in 1953 and became the definitive American sports car — a symbol of post-war optimism and freedom."
   },
 
-  // ── 1960s Psychedelic ─────────────────────────────────────────
   {
     era: "1960s Psychedelic", icon: "☮️",
     question: "What famous music festival took place in August 1969?",
@@ -2426,7 +2203,6 @@ const QUIZ_QUESTIONS = [
     fact: "On 20 July 1969, Neil Armstrong became the first human to walk on the Moon, watched live by 600 million people worldwide."
   },
 
-  // ── 1970s Disco ───────────────────────────────────────────────
   {
     era: "1970s Disco", icon: "🪩",
     question: "Which New York nightclub was the epicentre of the 1970s disco scene?",
@@ -2449,7 +2225,6 @@ const QUIZ_QUESTIONS = [
     fact: "The Hustle became the signature dance of the disco era. Van McCoy's 1975 hit 'Do The Hustle' sparked a line-dancing revolution worldwide."
   },
 
-  // ── Extra Bee Gees questions ─────────────────────────────────
   {
     era: "1970s Disco", icon: "🪩",
     question: "Where were the Bee Gees originally from before becoming international superstars?",
@@ -2472,7 +2247,6 @@ const QUIZ_QUESTIONS = [
     fact: "Barry Gibb is the last surviving Bee Gee. After the group disbanded following Maurice's passing in 2003, Barry continued touring and recording, keeping the Bee Gees legacy alive."
   },
 
-  // ── 1980s Retro Synth ─────────────────────────────────────────
   {
     era: "1980s Retro Synth", icon: "🎮",
     question: "Which video game console launched in 1983 and revolutionised home gaming?",
@@ -2495,7 +2269,6 @@ const QUIZ_QUESTIONS = [
     fact: "The Human League's 'Don't You Want Me' was the Christmas number one in the UK in 1981 and became one of the defining songs of the synth-pop era."
   },
 
-  // ── 1990s Grunge ──────────────────────────────────────────────
   {
     era: "1990s Grunge", icon: "📀",
     question: "Which Nirvana album is considered the defining record of the grunge movement?",
@@ -2518,7 +2291,6 @@ const QUIZ_QUESTIONS = [
     fact: "Netscape Navigator launched in 1994 and at its peak controlled 90% of the web browser market, making the internet accessible to everyday people for the first time."
   },
 
-  // ── 2000s Y2K Pop ─────────────────────────────────────────────
   {
     era: "2000s Y2K Pop", icon: "💿",
     question: "The Y2K bug caused worldwide panic in 1999. What was it?",
@@ -2541,7 +2313,6 @@ const QUIZ_QUESTIONS = [
     fact: "Facebook launched on 4 February 2004 from Mark Zuckerberg's Harvard dorm room. It now has over 3 billion monthly users worldwide."
   },
 
-  // ── 2001: Rise of the Web ─────────────────────────────────────
   {
     era: "2001: Rise of the Web", icon: "💻",
     question: "Which online encyclopedia launched in January 2001 and transformed how we access knowledge?",
@@ -2564,7 +2335,6 @@ const QUIZ_QUESTIONS = [
     fact: "MSN Messenger (later Windows Live Messenger) became the dominant chat platform for teenagers in the early 2000s before smartphones changed everything."
   },
 
-  // ── 2002: Flip Phone Era ──────────────────────────────────────
   {
     era: "2002: Flip Phone Era", icon: "📲",
     question: "Which iconic flip phone, released around 2004, became a fashion symbol worldwide?",
@@ -2597,7 +2367,7 @@ function getQuizAnsweredKey() {
 }
 
 function getTodaysQuestion() {
-  // Seed question to today's date so everyone gets same question
+
   const seed = new Date().getFullYear() * 10000 +
                (new Date().getMonth() + 1) * 100 +
                new Date().getDate();
@@ -2613,7 +2383,6 @@ function openQuizPage() {
   const alreadyAnswered = localStorage.getItem(getQuizAnsweredKey());
   const wasCorrect      = localStorage.getItem(getQuizDayKey()) === 'correct';
 
-  // Hide quiz badge
   const badge = document.getElementById('quizBadge');
   if (badge) badge.style.display = 'none';
 
@@ -2626,7 +2395,7 @@ function openQuizPage() {
     </div>`;
 
   if (alreadyAnswered) {
-    // Already answered today
+
     if (wasCorrect) {
       html += `
         <div class="quiz-already-done">
@@ -2647,9 +2416,9 @@ function openQuizPage() {
         </div>`;
     }
   } else {
-    // Show the question
+
     const letters = ['A', 'B', 'C'];
-    // Pick today's reward
+
     const rewards = [
       { icon: '❤️', label: '+1 Life',    type: 'life'    },
       { icon: '💣', label: 'Bomb ×1',    type: 'bomb'    },
@@ -2690,7 +2459,7 @@ function openQuizPage() {
 }
 
 function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
-  // Disable all buttons immediately
+
   document.querySelectorAll('.quiz-option-btn').forEach((btn, i) => {
     btn.disabled = true;
     if (i === correct) btn.classList.add('correct');
@@ -2700,13 +2469,12 @@ function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
   const isCorrect = chosen === correct;
   const { question } = getTodaysQuestion();
 
-  // Save result
   localStorage.setItem(getQuizAnsweredKey(), '1');
   localStorage.setItem(getQuizDayKey(), isCorrect ? 'correct' : 'wrong');
 
   setTimeout(() => {
     if (isCorrect) {
-      // Apply reward
+
       switch(rewardType) {
         case 'life':
           gameState.lives = Math.min(99, gameState.lives + 1);
@@ -2757,7 +2525,7 @@ function showQuizResult(correct, rewardIcon, rewardLabel, fact) {
 
 function closeQuizResult() {
   toggleModal('quizResultModal', false);
-  openQuizPage(); // Refresh to show "already answered" state
+  openQuizPage();
 }
 
 function checkQuizBadge() {
@@ -2766,19 +2534,12 @@ function checkQuizBadge() {
   if (badge) badge.style.display = answered ? 'none' : 'block';
 }
 
-/* ============================================================
-   LIFE REFILL SYSTEM
-   When lives hit 0, start a 12-hour countdown.
-   When timer completes, refill to 5 lives automatically.
-   Shows a progress bar and live countdown under the header.
-   ============================================================ */
-
-const LIFE_REFILL_MS    = 12 * 60 * 60 * 1000; // 12 hours in ms
+const LIFE_REFILL_MS    = 12 * 60 * 60 * 1000;
 const MAX_LIVES         = 5;
 let   _lifeRefillTicker = null;
 
 function updateLivesDisplay() {
-  // Sync lives counter in header
+
   const lc = document.getElementById('livesCounter');
   if (lc) lc.innerText = gameState.lives;
   const cl = document.getElementById('mapCornerLives');
@@ -2786,36 +2547,34 @@ function updateLivesDisplay() {
 }
 
 function startLifeRefillTimer() {
-  // Clear any existing ticker
+
   if (_lifeRefillTicker) { clearInterval(_lifeRefillTicker); _lifeRefillTicker = null; }
 
   const bar = document.getElementById('lifeRefillBar');
   if (!bar) return;
 
-  // Only show timer when lives are exactly 0
   if (gameState.lives > 0) {
     bar.style.display = 'none';
-    // Clear any stale timer if they have lives again (e.g. bought from shop)
+
     if (gameState.lives >= MAX_LIVES) {
       localStorage.removeItem('chrono_life_refill_at');
     }
     return;
   }
 
-  // Lives = 0 — check if a refill timer is already running
   const refillAt = parseInt(localStorage.getItem('chrono_life_refill_at'));
   const now      = Date.now();
 
   if (!refillAt || isNaN(refillAt)) {
-    // Start a fresh 12-hour timer from now
+
     const newRefillAt = now + LIFE_REFILL_MS;
     localStorage.setItem('chrono_life_refill_at', newRefillAt);
     tickLifeRefill(newRefillAt);
   } else if (now >= refillAt) {
-    // Timer already expired — refill now
+
     grantLifeRefill();
   } else {
-    // Timer still running — resume countdown
+
     tickLifeRefill(refillAt);
   }
 }
@@ -2834,7 +2593,6 @@ function tickLifeRefill(refillAt) {
     const elapsed   = LIFE_REFILL_MS - remaining;
     const pct       = Math.min(100, (elapsed / LIFE_REFILL_MS) * 100);
 
-    // Format HH:MM:SS
     const h  = Math.floor(remaining / 3600000);
     const m  = Math.floor((remaining % 3600000) / 60000);
     const s  = Math.floor((remaining % 60000) / 1000);
@@ -2852,23 +2610,21 @@ function tickLifeRefill(refillAt) {
     }
   }
 
-  update(); // Run immediately
+  update();
   _lifeRefillTicker = setInterval(update, 1000);
 }
 
 function grantLifeRefill() {
-  // Award 5 lives
+
   gameState.lives = MAX_LIVES;
   localStorage.setItem('chrono_lives', MAX_LIVES);
   localStorage.removeItem('chrono_life_refill_at');
 
-  // Update UI
   updateLivesDisplay();
 
   const bar = document.getElementById('lifeRefillBar');
   if (bar) bar.style.display = 'none';
 
-  // Show a toast so player knows
   showShopToast('❤️ Your 5 lives have been refilled!');
   triggerVibration([60, 30, 60]);
 }
