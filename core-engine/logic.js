@@ -790,14 +790,13 @@ function applyGravityAndRefill(itemSet) {
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
       animateDrop(r, c);
-
-  setTimeout(checkChallengeAndScore, 600);
+  // No auto-cascade — caller decides what happens next
 }
 
 function refillDestroyedTiles(positions, itemSet) {
-  // Set destroyed positions to null then apply gravity
   positions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
   applyGravityAndRefill(itemSet);
+  setTimeout(checkChallengeAndScore, 700);
 }
 
 function destroyTile(r, c, itemSet) {
@@ -812,12 +811,13 @@ function destroyTile(r, c, itemSet) {
    DISCO BALL ACTIVATION
    ============================================================ */
 function activateDiscoBall(r, c, targetItem) {
-  const era = getCurrentEraForLevel(gameState.currentLevel);
+  const era   = getCurrentEraForLevel(gameState.currentLevel);
+  const items = era.items.slice(0, 3);
 
-  // If no target passed, blast the most common tile on the board
+  // If no target, use most common tile
   if (!targetItem || targetItem === DISCO_BALL) {
     const counts = {};
-    era.items.slice(0,3).forEach(item => counts[item] = 0);
+    items.forEach(item => counts[item] = 0);
     for (let row = 0; row < BOARD_SIZE; row++)
       for (let col = 0; col < BOARD_SIZE; col++) {
         const t = gameState.grid[row][col];
@@ -826,45 +826,33 @@ function activateDiscoBall(r, c, targetItem) {
     targetItem = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
   }
 
-  // Animate the disco ball exploding
+  // Animate disco ball exploding
   const ballTile = getTile(r, c);
-  if (ballTile) {
-    ballTile.classList.add('disco-ball-explode');
-  }
+  if (ballTile) ballTile.classList.add('disco-ball-explode');
 
-  // Find ALL tiles of target type on the board + the disco ball itself
-  const blastPositions = [{ r, c }]; // include the disco ball position
+  // Clear disco ball from grid immediately
+  gameState.grid[r][c] = null;
+
+  // Find all tiles of target type and clear them
   for (let row = 0; row < BOARD_SIZE; row++)
     for (let col = 0; col < BOARD_SIZE; col++)
-      if (gameState.grid[row][col] === targetItem)
-        blastPositions.push({ r: row, c: col });
+      if (gameState.grid[row][col] === targetItem) {
+        animateMatch(row, col);
+        gameState.grid[row][col] = null;
+      }
 
-  // Disco ball gives only 5 points — it's a strategic tool not a scorer
+  // Flat 5 points only
   gameState.score += 5;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
-
-  // Blast each tile with staggered animation
-  blastPositions.forEach((pos, i) => {
-    setTimeout(() => {
-      if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
-        gameState.challengeProgress++;
-      gameState.grid[pos.r][pos.c] = null;
-      animateMatch(pos.r, pos.c);
-    }, i * 60);
-  });
-
   triggerVibration([80, 30, 80, 30, 120]);
-  showShopToast(`🪩 DISCO BLAST! +${pts} pts`);
-  updateChallengeBanner();
 
-  // Refill after all blasts — use gravity so tiles fall properly
-  const delay = blastPositions.length * 60 + 500;
+  // Immediately apply gravity and refill — NO cascade check after
+  // Player keeps their remaining moves and plays on normally
   setTimeout(() => {
-    // Set blasted positions to null
-    blastPositions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
+    applyGravityAndRefill(items);
     updateChallengeBanner();
-    applyGravityAndRefill(era.items);
-  }, delay);
+    // No checkChallengeAndScore — disco ball does NOT trigger auto-play
+  }, 500);
 }
 
 /* ============================================================
@@ -1022,6 +1010,7 @@ function checkChallengeAndScore() {
       for (let c = 0; c < BOARD_SIZE; c++)
         animateDrop(r, c);
 
+    // Check for chain matches after gravity settles
     setTimeout(checkChallengeAndScore, 600);
   }, 500);
 }
