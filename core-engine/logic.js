@@ -170,10 +170,30 @@ function onTileClick(e) {
     triggerVibration(25);
     renderBoard();
   } else {
-    const dr = Math.abs(gameState.selectedTile.r - r);
-    const dc = Math.abs(gameState.selectedTile.c - c);
+    const sr = gameState.selectedTile.r;
+    const sc = gameState.selectedTile.c;
+    const dr = Math.abs(sr - r);
+    const dc = Math.abs(sc - c);
+
+    // Same tile tapped — deselect
+    if (dr === 0 && dc === 0) {
+      gameState.selectedTile = null;
+      renderBoard();
+      return;
+    }
+
+    const selectedVal = gameState.grid[sr][sc];
+    const targetVal   = gameState.grid[r][c];
+
+    // Disco ball can swap with ANY tile on the board — no adjacency needed
+    if (selectedVal === DISCO_BALL || targetVal === DISCO_BALL) {
+      swapTiles(sr, sc, r, c);
+      return;
+    }
+
+    // Normal swap — must be adjacent
     if (dr + dc === 1) {
-      swapTiles(gameState.selectedTile.r, gameState.selectedTile.c, r, c);
+      swapTiles(sr, sc, r, c);
     } else {
       gameState.selectedTile = { r, c };
       triggerVibration(25);
@@ -758,6 +778,80 @@ function destroyTile(r, c, itemSet) {
   }
   animateMatch(r, c);
   gameState.grid[r][c] = null;
+}
+
+/* ============================================================
+   DISCO BALL ACTIVATION
+   ============================================================ */
+function activateDiscoBall(r, c, targetItem) {
+  const era = getCurrentEraForLevel(gameState.currentLevel);
+
+  // If no target passed, blast the most common tile on the board
+  if (!targetItem || targetItem === DISCO_BALL) {
+    const counts = {};
+    era.items.slice(0,3).forEach(item => counts[item] = 0);
+    for (let row = 0; row < BOARD_SIZE; row++)
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        const t = gameState.grid[row][col];
+        if (t && t !== DISCO_BALL && counts[t] !== undefined) counts[t]++;
+      }
+    targetItem = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+  }
+
+  // Animate the disco ball exploding
+  const ballTile = getTile(r, c);
+  if (ballTile) {
+    ballTile.classList.add('disco-ball-explode');
+  }
+
+  // Find ALL tiles of target type on the board + the disco ball itself
+  const blastPositions = [{ r, c }]; // include the disco ball position
+  for (let row = 0; row < BOARD_SIZE; row++)
+    for (let col = 0; col < BOARD_SIZE; col++)
+      if (gameState.grid[row][col] === targetItem)
+        blastPositions.push({ r: row, c: col });
+
+  // Points — 3× for each blasted tile
+  const ptsMult = gameState.currentLevel <= 9  ? 50  :
+                  gameState.currentLevel <= 29 ? 100 :
+                  gameState.currentLevel <= 49 ? 150 :
+                  gameState.currentLevel <= 59 ? 200 :
+                  gameState.currentLevel <= 70 ? 250 : 300;
+
+  const pts = blastPositions.length * ptsMult * 3;
+  gameState.score += pts;
+  document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
+
+  // Blast each tile with staggered animation
+  blastPositions.forEach((pos, i) => {
+    setTimeout(() => {
+      if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
+        gameState.challengeProgress++;
+      gameState.grid[pos.r][pos.c] = null;
+      animateMatch(pos.r, pos.c);
+    }, i * 60);
+  });
+
+  triggerVibration([80, 30, 80, 30, 120]);
+  showShopToast(`🪩 DISCO BLAST! +${pts} pts`);
+  updateChallengeBanner();
+
+  // Refill after all blasts complete
+  const delay = blastPositions.length * 60 + 500;
+  setTimeout(() => {
+    blastPositions.forEach(pos => {
+      gameState.grid[pos.r][pos.c] = randomItem(era.items.slice(0,3));
+      const tile = getTile(pos.r, pos.c);
+      if (tile) {
+        tile.classList.remove('matched', 'disco-ball-tile', 'disco-ball-explode');
+        tile.textContent = gameState.grid[pos.r][pos.c];
+        tile.title = '';
+        animateDrop(pos.r, pos.c);
+      }
+    });
+    updateChallengeBanner();
+    setTimeout(checkChallengeAndScore, 600);
+  }, delay);
 }
 
 /* ============================================================
