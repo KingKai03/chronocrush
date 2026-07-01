@@ -949,10 +949,15 @@ function findBoardMatches() {
    4. Check for new matches (chain reaction)              (loop)
    ──────────────────────────────────────────────────────────────────── */
 function checkChallengeAndScore() {
+  const era   = getCurrentEraForLevel(gameState.currentLevel);
+  const items = era.items.slice(0, 3);
   const { matches: matchedPositions, match5s } = findBoardMatches();
-  if (matchedPositions.length === 0) { evaluateLevelEndConditions(); return; }
 
-  const era = getCurrentEraForLevel(gameState.currentLevel);
+  // No matches — just check win/fail condition and stop
+  if (matchedPositions.length === 0) {
+    evaluateLevelEndConditions();
+    return;
+  }
 
   // Points scale with level
   const ptsMult = gameState.currentLevel <= 9  ? 50  :
@@ -961,35 +966,30 @@ function checkChallengeAndScore() {
                   gameState.currentLevel <= 59 ? 200 :
                   gameState.currentLevel <= 70 ? 250 : 300;
 
-  // Normal points — no bonus for match-5 (disco ball is the reward itself)
   gameState.score += matchedPositions.length * ptsMult;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
   triggerVibration([60, 40, 60]);
 
-  // Track challenge progress + animate all matched tiles
+  // Track challenge + animate cleared tiles
   matchedPositions.forEach(pos => {
     if (gameState.challengeTarget && gameState.grid[pos.r][pos.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
     animateMatch(pos.r, pos.c);
+    gameState.grid[pos.r][pos.c] = null; // clear immediately
   });
 
   updateChallengeBanner();
 
-  // Track where disco balls should spawn (middle of each match-5 group)
+  // Track disco ball spawns
   const discoBallSpawns = match5s.map(m5 => {
     const mid = Math.floor(m5.positions.length / 2);
     return { pos: m5.positions[mid], item: m5.item };
   });
 
-  // After vanish: apply gravity then spawn any disco balls
+  // After flash animation — apply gravity ONCE, then stop
+  // Player must make the next move themselves
   setTimeout(() => {
-    const discoPosKeys = new Set(discoBallSpawns.map(d => `${d.pos.r},${d.pos.c}`));
-
-    // Set matched cells to null so gravity fills them
-    matchedPositions.forEach(pos => { gameState.grid[pos.r][pos.c] = null; });
-
-    // Apply gravity — tiles fall down, new ones fill from top
-    const items = era.items.slice(0, 3);
+    // Apply gravity column by column
     for (let c = 0; c < BOARD_SIZE; c++) {
       const column = [];
       for (let r = BOARD_SIZE - 1; r >= 0; r--) {
@@ -999,20 +999,22 @@ function checkChallengeAndScore() {
       for (let r = BOARD_SIZE - 1; r >= 0; r--) gameState.grid[r][c] = column[BOARD_SIZE - 1 - r];
     }
 
-    // Place disco balls at their designated spawn positions
+    // Place disco balls
     discoBallSpawns.forEach(d => {
       gameState.grid[d.pos.r][d.pos.c] = DISCO_BALL;
     });
 
-    // Re-render with animations
+    // Render full board — always completely filled
     renderBoard();
     for (let r = 0; r < BOARD_SIZE; r++)
       for (let c = 0; c < BOARD_SIZE; c++)
         animateDrop(r, c);
 
-    // Check for chain matches after gravity settles
-    setTimeout(checkChallengeAndScore, 600);
-  }, 500);
+    // Check win/fail only — NO recursive match check
+    // Player must make their next move to trigger more matches
+    setTimeout(evaluateLevelEndConditions, 400);
+
+  }, 480);
 }
 
 function afterMatch() {
