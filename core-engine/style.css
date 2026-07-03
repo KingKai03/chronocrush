@@ -909,6 +909,39 @@ body {
   gap: 12px;
   margin-bottom: 12px;
 }
+/* ── Booster slot wrapper with + button ─────────────────────── */
+.booster-slot {
+  position: relative;
+  display: inline-flex;
+}
+
+.booster-plus-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  color: #1a1300;
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.1s, background 0.1s;
+}
+.booster-plus-btn:active {
+  transform: scale(0.9);
+  background: #ffe066;
+}
+
 .booster-btn {
   background: rgba(17,23,26,0.85);
   border: 1px solid var(--border-color);
@@ -1014,16 +1047,17 @@ body {
 
 /* ── Disco Ball tile ─────────────────────────────────────────── */
 .board-tile.disco-ball-tile {
-  background: radial-gradient(circle at 35% 35%, #e040fb, #7b1fa2 50%, #1a0033) !important;
-  box-shadow: 0 0 12px #e040fb, 0 0 24px rgba(224,64,251,0.6), inset 0 0 8px rgba(255,255,255,0.3) !important;
+  background: radial-gradient(circle at 30% 30%, #f48fff, #c000d4 40%, #5a0080 70%, #1a0033) !important;
+  box-shadow: 0 0 16px #e040fb, 0 0 32px rgba(224,64,251,0.7), 0 0 48px rgba(224,64,251,0.3), inset 0 0 10px rgba(255,255,255,0.4) !important;
   color: #fff !important;
-  font-size: 1.1rem !important;
+  font-size: 1.3rem !important;
   font-weight: 900 !important;
-  text-shadow: 0 0 8px #fff, 0 0 16px #e040fb !important;
-  border: 2px solid rgba(224,64,251,0.8) !important;
-  animation: discoBallPulse 1.2s ease-in-out infinite, discoBallSpawn 0.7s cubic-bezier(0.175,0.885,0.32,1.275);
-  z-index: 10;
-  cursor: pointer;
+  text-shadow: 0 0 10px #fff, 0 0 20px #e040fb, 0 0 30px #fff !important;
+  border: 2px solid #e040fb !important;
+  animation: discoBallPulse 1s ease-in-out infinite !important;
+  z-index: 10 !important;
+  cursor: pointer !important;
+  transform: none !important;
 }
 @keyframes discoBallSpawn {
   0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
