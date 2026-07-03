@@ -491,15 +491,24 @@
       <div class="challenge-banner" id="challengeBanner">Clear 10 📻 Radios to pass!</div>
 
       <div class="booster-tray">
-        <button class="booster-btn" id="boosterHammerBtn" onclick="selectBooster('hammer')">
-          <span class="booster-icon">🔨</span><span class="booster-count" id="hammerCount">3</span>
-        </button>
-        <button class="booster-btn" id="boosterBombBtn" onclick="selectBooster('bomb')">
-          <span class="booster-icon">💣</span><span class="booster-count" id="bombCount">3</span>
-        </button>
-        <button class="booster-btn" id="boosterShuffleBtn" onclick="selectBooster('shuffle')">
-          <span class="booster-icon">🔀</span><span class="booster-count" id="shuffleCount">3</span>
-        </button>
+        <div class="booster-slot">
+          <button class="booster-btn" id="boosterHammerBtn" onclick="selectBooster('hammer')">
+            <span class="booster-icon">🔨</span><span class="booster-count" id="hammerCount">0</span>
+          </button>
+          <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
+        </div>
+        <div class="booster-slot">
+          <button class="booster-btn" id="boosterBombBtn" onclick="selectBooster('bomb')">
+            <span class="booster-icon">💣</span><span class="booster-count" id="bombCount">0</span>
+          </button>
+          <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
+        </div>
+        <div class="booster-slot">
+          <button class="booster-btn" id="boosterShuffleBtn" onclick="selectBooster('shuffle')">
+            <span class="booster-icon">🔀</span><span class="booster-count" id="shuffleCount">0</span>
+          </button>
+          <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
+        </div>
       </div>
 
       <div class="dom-board" id="domBoard"></div>
