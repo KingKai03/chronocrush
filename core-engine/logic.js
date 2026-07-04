@@ -1,9 +1,8 @@
 /* ============================================================
    CHRONOCRUSH — logic.js  (DOM grid, no canvas for game board)
+   v31 — booster persistence + game-feel polish layer
    ============================================================ */
-
 const BOARD_SIZE = 6;
-
 const gameState = {
   lives: 5,
   gold: 100,
@@ -55,16 +54,20 @@ function boot() {
   gameState.preferences   = JSON.parse(localStorage.getItem("chrono_preferences"))    || { sound: true, sfx: true, vibe: true };
   gameState.gold  = parseInt(localStorage.getItem("chrono_gold"))  || 100;
   gameState.lives = parseInt(localStorage.getItem("chrono_lives")) || 5;
-  const savedBoosters = JSON.parse(localStorage.getItem("chrono_boosters") || 'null');
-  if (savedBoosters) gameState.boosters = savedBoosters;
+
   if (isNaN(gameState.gold))  gameState.gold  = 100;
   if (isNaN(gameState.lives)) gameState.lives = 5;
+
   gameState.lifeShield = localStorage.getItem("chrono_shield") === "1";
+
+  // Restore purchased boosters from localStorage on boot
+  const savedBoosters = JSON.parse(localStorage.getItem("chrono_boosters") || 'null');
+  if (savedBoosters) gameState.boosters = savedBoosters;
+
   gameState.lastSeenEraName  = localStorage.getItem("chrono_last_era") || eraTimeline[0].name;
   gameState.authProvider     = localStorage.getItem("chrono_auth_provider") || "Guest";
 
   syncSettingsUI();
-
   fxCanvas = document.getElementById("fireworksCanvas");
   if (fxCanvas) fxCtx = fxCanvas.getContext("2d");
   window.addEventListener("resize", resizeFireworksCanvas);
@@ -73,9 +76,7 @@ function boot() {
   setTimeout(() => {
     const savedProvider = localStorage.getItem("chrono_auth_provider");
     const savedTerms    = localStorage.getItem("chrono_terms_agreed_permanent");
-
     if (savedProvider && savedTerms) {
-
       afterAuthSuccess();
     } else {
       switchView("authScreen");
@@ -90,7 +91,6 @@ function initOfflineDetection() {
   function updateOnlineStatus() {
     const banner = document.getElementById('offlineBanner');
     const isOffline = !navigator.onLine;
-
     if (banner) banner.style.display = isOffline ? 'block' : 'none';
 
     const googleBtn = document.getElementById('googleSignInBtn');
@@ -112,10 +112,8 @@ function initOfflineDetection() {
       console.log('[CHRONOCRUSH] Back online');
     }
   }
-
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
-
   updateOnlineStatus();
 }
 
@@ -133,6 +131,53 @@ function resizeFireworksCanvas() {
   if (fxCanvas) { fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; }
 }
 
+/* ============================================================
+   GAME-FEEL POLISH HELPERS
+   ============================================================ */
+
+// Floating score / praise popups
+function spawnScorePopup(text, x, y, praise) {
+  const el = document.createElement('div');
+  el.className = 'score-popup' + (praise ? ' praise' : '');
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// Get screen-centre of a group of matched tiles
+function getMatchCentroid(matches) {
+  let sx = 0, sy = 0, n = 0;
+  matches.forEach(p => {
+    const tile = getTile(p.r, p.c);
+    if (!tile) return;
+    const rect = tile.getBoundingClientRect();
+    sx += rect.left + rect.width / 2;
+    sy += rect.top  + rect.height / 2;
+    n++;
+  });
+  if (n === 0) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  return { x: sx / n, y: sy / n };
+}
+
+// Bump animation on a stat value (score / moves / gold)
+function bumpStat(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.classList.remove('stat-bump');
+  void el.offsetWidth;
+  el.classList.add('stat-bump');
+}
+
+function bumpGoldPill() {
+  document.querySelectorAll('.gold-pill, .shop-balance-amount').forEach(el => {
+    el.classList.remove('gold-bump');
+    void el.offsetWidth;
+    el.classList.add('gold-bump');
+  });
+}
+
 function buildDomBoard() {
   const board = document.getElementById('domBoard');
   if (!board) return;
@@ -140,7 +185,9 @@ function buildDomBoard() {
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
       const tile = document.createElement('div');
-      tile.className = 'board-tile';
+      tile.className = 'board-tile tile-enter';
+      // Staggered entrance: diagonal wave from top-left
+      tile.style.animationDelay = ((r + c) * 42) + 'ms';
       tile.dataset.r = r;
       tile.dataset.c = c;
       tile.addEventListener('click', onTileClick);
@@ -148,6 +195,14 @@ function buildDomBoard() {
     }
   }
   renderBoard();
+
+  // Clean up entrance classes once the wave completes
+  setTimeout(() => {
+    board.querySelectorAll('.board-tile').forEach(t => {
+      t.classList.remove('tile-enter');
+      t.style.animationDelay = '';
+    });
+  }, (BOARD_SIZE * 2) * 42 + 450);
 }
 
 function onTileClick(e) {
@@ -199,6 +254,7 @@ function clearHighlight() {
   if (board) board.querySelectorAll('.board-tile.selected').forEach(t => t.classList.remove('selected'));
 }
 
+// Clears all animation classes before rendering so refilled tiles never appear blank
 function renderBoard() {
   const board = document.getElementById('domBoard');
   if (!board) return;
@@ -207,6 +263,9 @@ function renderBoard() {
     const r = parseInt(tile.dataset.r);
     const c = parseInt(tile.dataset.c);
     const v = gameState.grid[r] ? gameState.grid[r][c] : null;
+
+    tile.classList.remove('matched', 'dropping', 'swapping', 'disco-ball-explode');
+
     if (v === DISCO_BALL) {
       tile.textContent = '✦';
       tile.classList.add('disco-ball-tile');
@@ -216,6 +275,7 @@ function renderBoard() {
       tile.classList.remove('disco-ball-tile');
       tile.title = '';
     }
+
     tile.classList.toggle('selected',
       !!(gameState.selectedTile &&
          gameState.selectedTile.r === r &&
@@ -239,12 +299,11 @@ function animateMatch(r, c) {
 function animateDrop(r, c) {
   const tile = getTile(r, c);
   if (!tile) return;
-
   if (gameState.grid[r] && gameState.grid[r][c] === DISCO_BALL) return;
+
   tile.classList.remove('dropping');
   void tile.offsetWidth;
   tile.classList.add('dropping');
-
   setTimeout(() => tile.classList.remove('dropping'), 360);
 }
 
@@ -262,7 +321,6 @@ function initAudio() {
     gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (gameState.audioCtx.state === 'suspended') gameState.audioCtx.resume();
-
   resumeMusicAfterInteraction();
 }
 
@@ -279,7 +337,6 @@ function _getBgAudio() {
   _bgAudio.loop   = true;
   _bgAudio.volume = 0;
   _bgAudio.preload = 'auto';
-
   _bgAudio.addEventListener('error', (e) => {
     console.warn('Audio load error:', e);
   });
@@ -289,22 +346,16 @@ function _getBgAudio() {
 function startSpaceMusic() {
   if (!gameState.preferences.sound) return;
   const audio = _getBgAudio();
-
   if (!audio.paused) return;
-
   const playPromise = audio.play();
   if (playPromise !== undefined) {
-    playPromise.catch(() => {
-
-    });
+    playPromise.catch(() => {});
   }
-
   _fadeVolume(0, 0.45, 2000);
 }
 
 function stopSpaceMusic() {
   if (!_bgAudio || _bgAudio.paused) return;
-
   _fadeVolume(_bgAudio.volume, 0, 1000, () => {
     _bgAudio.pause();
     _bgAudio.currentTime = 0;
@@ -332,7 +383,6 @@ function _fadeVolume(from, to, durationMs, onDone) {
   }, interval);
 }
 
-// Called by initAudio() on first user tap — starts music if not already playing
 function resumeMusicAfterInteraction() {
   if (gameState.preferences.sound && _bgAudio && _bgAudio.paused) {
     startSpaceMusic();
@@ -355,9 +405,11 @@ function switchView(id) {
 function playLevelTransition(callback) {
   const screen = document.getElementById('levelTransitionScreen');
   if (!screen) { if (callback) callback(); return; }
+
   screen.classList.remove('panels-closed','show-content');
   document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
   screen.classList.add('active');
+
   requestAnimationFrame(() => requestAnimationFrame(() => screen.classList.add('panels-closed')));
   setTimeout(() => screen.classList.add('show-content'), 620);
   setTimeout(() => {
@@ -371,6 +423,7 @@ function loadHomepage() {
   switchView("homePage");
   document.getElementById("livesCounter").innerText = gameState.lives;
   document.getElementById("profileGold").innerText  = gameState.gold;
+
   const cd = document.getElementById("mapCornerLevelDisk");
   const cl = document.getElementById("mapCornerLives");
   if (cd) cd.innerText = gameState.highestUnlockedLevel;
@@ -378,6 +431,7 @@ function loadHomepage() {
 
   const mapLayer = document.getElementById("mapLayer");
   mapLayer.innerHTML = "";
+
   const align = ["mid","left","mid","right"];
 
   eraTimeline.forEach(era => {
@@ -385,24 +439,30 @@ function loadHomepage() {
     banner.className = "era-header-banner";
     banner.innerHTML = `${era.name.toUpperCase()}<span class="era-sub">Levels ${era.startLvl}–${era.endLvl}</span>`;
     mapLayer.appendChild(banner);
+
     for (let i = era.startLvl; i <= era.endLvl; i++) {
       const row = document.createElement("div");
       row.className = `map-row ${align[i % 4]}`;
+
       const btn = document.createElement("button");
       let sc = '';
       if (i === gameState.highestUnlockedLevel) sc = 'active';
       else if (i < gameState.highestUnlockedLevel) sc = 'unlocked';
+
       btn.className = `level-node ${sc}`;
       if (i > gameState.highestUnlockedLevel) btn.disabled = true;
+
       btn.onclick = () => {
         initAudio();
         gameState.levelPendingStart = i;
         document.getElementById("modalLevelTitle").innerText = `LEVEL ${i}`;
         toggleModal('levelReadyModal', true);
       };
+
       const recs = gameState.levelRecords[i]
         ? "📀".repeat(gameState.levelRecords[i])
         : (i <= gameState.highestUnlockedLevel ? "⚪⚪⚪" : "🔒");
+
       btn.innerHTML = `<div class="node-circle">${i}</div><div class="node-records">${recs}</div>`;
       row.appendChild(btn);
       mapLayer.appendChild(row);
@@ -417,6 +477,7 @@ function loadHomepage() {
   updateLivesDisplay();
   startLifeRefillTimer();
   maybeShowDailyReward();
+
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
     if (an) an.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -434,7 +495,6 @@ function toggleModal(id, open) {
     m.classList.remove('visible');
     m.style.display = 'none';
     if (id === 'levelSuccessModal') { cancelAnimationFrame(fxAnimationId); fxParticles = []; }
-
     requestAnimationFrame(() => { if (!m.classList.contains('visible')) m.style.display = ''; });
   }
 }
@@ -459,7 +519,6 @@ function advanceToNextLevel() {
 }
 
 function getDifficulty(lvl) {
-
   if (lvl <= 9) {
     return {
       moves:          20,
@@ -468,7 +527,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   if (lvl <= 29) {
     const t = (lvl - 10) / 19;
     return {
@@ -478,7 +536,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   if (lvl <= 49) {
     const t = (lvl - 30) / 19;
     return {
@@ -488,7 +545,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
@@ -498,7 +554,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
@@ -508,7 +563,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
@@ -518,7 +572,6 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
-
   const t = (lvl - 81) / 9;
   return {
     moves:          20,
@@ -539,12 +592,17 @@ function startLevelLogic(lvl) {
   gameState.moves       = diff.moves;
   gameState.targetScore = diff.targetScore;
 
+  // ADD difficulty boosters on top of existing ones — preserves shop purchases
+  gameState.boosters.hammer  += diff.boosters.hammer;
+  gameState.boosters.bomb    += diff.boosters.bomb;
+  gameState.boosters.shuffle += diff.boosters.shuffle;
+
   const era = getCurrentEraForLevel(lvl);
 
   if (lvl <= 20) {
-
     const challengeItem = era.items[(lvl - 1) % era.items.length];
     const clearCount    = 6 + Math.floor(lvl * 0.4);
+
     gameState.challengeTarget   = { item: challengeItem, count: clearCount };
     gameState.challengeProgress = 0;
     gameState.levelMode         = 'tile';
@@ -553,10 +611,10 @@ function startLevelLogic(lvl) {
     document.getElementById("movesDisplay").innerText  = gameState.moves;
     document.getElementById("targetDisplay").innerText = `0/${clearCount}`;
     document.getElementById("scoreDisplay").innerText  = 0;
+
     const banner = document.getElementById("challengeBanner");
     if (banner) banner.innerText = `Clear ${clearCount} ${challengeItem} to pass this level!`;
   } else {
-
     gameState.challengeTarget   = null;
     gameState.challengeProgress = 0;
     gameState.levelMode         = 'score';
@@ -565,6 +623,7 @@ function startLevelLogic(lvl) {
     document.getElementById("movesDisplay").innerText  = gameState.moves;
     document.getElementById("targetDisplay").innerText = diff.targetScore.toLocaleString();
     document.getElementById("scoreDisplay").innerText  = 0;
+
     const banner = document.getElementById("challengeBanner");
     if (banner) banner.innerText = `Score ${diff.targetScore.toLocaleString()} pts before moves run out!`;
   }
@@ -597,16 +656,13 @@ function showEraUnlockToast(eraName) {
 }
 
 function generateBoard(itemSet) {
-
   const reduced = itemSet.slice(0, 3);
-
   for (let r = 0; r < BOARD_SIZE; r++) {
     gameState.grid[r] = [];
     for (let c = 0; c < BOARD_SIZE; c++) {
       gameState.grid[r][c] = randomItem(reduced);
     }
   }
-
   let guard = 0;
   while (findBoardMatches().matches.length > 0 && guard < 50) {
     resolveSilentMatches(reduced); guard++;
@@ -619,7 +675,6 @@ function randomItem(itemSet) {
 }
 
 function resolveSilentMatches(itemSet) {
-
   findBoardMatches().matches.forEach(pos => { gameState.grid[pos.r][pos.c] = randomItem(itemSet); });
 }
 
@@ -647,6 +702,7 @@ function useShuffleBooster() {
   triggerVibration(50);
   updateBoosterUI();
   renderBoard();
+  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
 }
 
 function useHammerOnTile(r, c) {
@@ -657,6 +713,7 @@ function useHammerOnTile(r, c) {
   gameState.activeBooster = null;
   triggerVibration(60);
   updateBoosterUI();
+  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
   setTimeout(() => refillDestroyedTiles([{r, c}], era.items), 280);
 }
 
@@ -676,6 +733,7 @@ function useBombOnTile(r, c) {
   gameState.activeBooster = null;
   triggerVibration([80,40,80]);
   updateBoosterUI();
+  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
   setTimeout(() => refillDestroyedTiles(destroyed, era.items), 280);
 }
 
@@ -684,15 +742,12 @@ function applyGravityAndRefill(items) {
   const pool = (items || era.items).slice(0, 3);
 
   for (let c = 0; c < BOARD_SIZE; c++) {
-
     const survive = [];
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       const v = gameState.grid[r][c];
       if (v !== null && v !== undefined && v !== '') survive.push(v);
     }
-
     while (survive.length < BOARD_SIZE) survive.push(randomItem(pool));
-
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       gameState.grid[r][c] = survive[BOARD_SIZE - 1 - r];
     }
@@ -707,7 +762,6 @@ function applyGravityAndRefill(items) {
   }
 
   renderBoard();
-
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
       if (gameState.grid[r][c] !== DISCO_BALL) animateDrop(r, c);
@@ -743,10 +797,13 @@ function activateDiscoBall(r, c, targetItem) {
   }
 
   const ballTile = getTile(r, c);
-  if (ballTile) ballTile.classList.add('disco-ball-explode');
+  if (ballTile) {
+    ballTile.classList.add('disco-ball-explode');
+    const rect = ballTile.getBoundingClientRect();
+    spawnScorePopup('✦ DISCO! ✦', rect.left + rect.width / 2, rect.top, true);
+  }
 
   gameState.grid[r][c] = null;
-
   for (let row = 0; row < BOARD_SIZE; row++)
     for (let col = 0; col < BOARD_SIZE; col++)
       if (gameState.grid[row][col] === targetItem) {
@@ -756,12 +813,12 @@ function activateDiscoBall(r, c, targetItem) {
 
   gameState.score += 10;
   document.getElementById("scoreDisplay").innerText = gameState.score.toLocaleString();
+  bumpStat('scoreDisplay');
   triggerVibration([80, 30, 80, 30, 120]);
 
   setTimeout(() => {
     applyGravityAndRefill(items);
     updateChallengeBanner();
-
   }, 500);
 }
 
@@ -773,6 +830,7 @@ function swapTiles(r1, c1, r2, c2) {
     const discoR  = v1 === DISCO_BALL ? r1 : r2;
     const discoC  = v1 === DISCO_BALL ? c1 : c2;
     const target  = v1 === DISCO_BALL ? v2 : v1;
+
     gameState.moves--;
     document.getElementById("movesDisplay").innerText = gameState.moves;
     gameState.selectedTile = null;
@@ -783,13 +841,16 @@ function swapTiles(r1, c1, r2, c2) {
 
   gameState.grid[r1][c1] = v2;
   gameState.grid[r2][c2] = v1;
+
   gameState.moves--;
   document.getElementById("movesDisplay").innerText = gameState.moves;
   triggerVibration(40);
   gameState.selectedTile = null;
+
   renderBoard();
   animateSwap(r1, c1);
   animateSwap(r2, c2);
+
   setTimeout(checkChallengeAndScore, 300);
 }
 
@@ -859,14 +920,46 @@ function checkChallengeAndScore() {
               gameState.currentLevel <= 59 ? 200 :
               gameState.currentLevel <= 70 ? 250 : 300;
 
-  gameState.score += matches.length * pts;
+  const gained = matches.length * pts;
+  const prevScore = gameState.score;
+
+  gameState.score += gained;
   document.getElementById('scoreDisplay').innerText = gameState.score.toLocaleString();
+  bumpStat('scoreDisplay');
   triggerVibration([60, 40, 60]);
+
+  // ── Floating score popup at the centre of the match ──
+  const centroid = getMatchCentroid(matches);
+  spawnScorePopup('+' + gained.toLocaleString(), centroid.x, centroid.y, false);
+
+  // ── Praise text for big matches ──
+  if (matches.length >= 4) {
+    const praise = matches.length >= 7 ? 'AMAZING!'
+                 : matches.length >= 5 ? 'GREAT!'
+                 : 'NICE!';
+    setTimeout(() => {
+      spawnScorePopup(praise, centroid.x, centroid.y - 34, true);
+    }, 140);
+    triggerVibration([40, 30, 40, 30, 90]);
+  }
+
+  // ── Celebrate the moment the target is crossed ──
+  if (gameState.levelMode === 'score' &&
+      prevScore < gameState.targetScore &&
+      gameState.score >= gameState.targetScore) {
+    const banner = document.getElementById('challengeBanner');
+    if (banner) {
+      banner.classList.remove('banner-party');
+      void banner.offsetWidth;
+      banner.classList.add('banner-party');
+    }
+  }
 
   matches.forEach(p => {
     if (gameState.challengeTarget && gameState.grid[p.r][p.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
   });
+
   updateChallengeBanner();
 
   const discoBallPos = [];
@@ -876,20 +969,16 @@ function checkChallengeAndScore() {
       discoBallPos.push(m5.positions[mid]);
     }
   });
-  const discoPosKeys = new Set(discoBallPos.map(p => `${p.r},${p.c}`));
 
   matches.forEach(p => animateMatch(p.r, p.c));
-
   matches.forEach(p => { gameState.grid[p.r][p.c] = null; });
 
   setTimeout(() => {
     applyGravityAndRefill(pool);
-
     discoBallPos.forEach(p => {
       gameState.grid[p.r][p.c] = DISCO_BALL;
     });
     if (discoBallPos.length > 0) renderBoard();
-
     setTimeout(evaluateLevelEndConditions, 300);
   }, 420);
 }
@@ -905,7 +994,6 @@ function updateChallengeBanner() {
   if (!banner) return;
 
   if (gameState.levelMode === 'tile' && gameState.challengeTarget) {
-
     const done      = gameState.challengeProgress;
     const total     = gameState.challengeTarget.count;
     const remaining = Math.max(0, total - done);
@@ -914,7 +1002,6 @@ function updateChallengeBanner() {
       ? `Clear ${remaining} more ${gameState.challengeTarget.item} to pass!`
       : `Level complete! 🎉`;
   } else {
-
     const remaining = Math.max(0, gameState.targetScore - gameState.score);
     if (remaining > 0) {
       banner.innerText = `${remaining.toLocaleString()} points to go! ${gameState.moves} moves left`;
@@ -926,36 +1013,29 @@ function updateChallengeBanner() {
 
 function evaluateLevelEndConditions() {
   if (gameState.levelMode === 'tile') {
-
     const challengeMet = gameState.challengeTarget &&
                          gameState.challengeProgress >= gameState.challengeTarget.count;
     if (challengeMet) { setTimeout(win, 400); return; }
   } else {
-
     if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
   }
+
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
-
       if (gameState.lifeShield) {
-
         gameState.lifeShield = false;
         localStorage.removeItem("chrono_shield");
         showShopToast("🛡️ Life Shield saved you!");
         showFailModal(true);
       } else {
-
         gameState.lives = Math.max(0, gameState.lives - 1);
         localStorage.setItem("chrono_lives", gameState.lives);
-
         updateLivesDisplay();
-
         if (gameState.lives === 0) {
           if (!localStorage.getItem('chrono_life_refill_at')) {
             localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
           }
-
           startLifeRefillTimer();
         }
         showFailModal(false);
@@ -965,9 +1045,7 @@ function evaluateLevelEndConditions() {
 }
 
 function showFailModal(shieldSaved) {
-  const needed   = gameState.targetScore - gameState.score;
-  const pct      = Math.round((gameState.score / gameState.targetScore) * 100);
-
+  const pct = Math.round((gameState.score / gameState.targetScore) * 100);
   let title, subtext;
   if (shieldSaved) {
     title   = "SHIELD SAVED YOU!";
@@ -1014,24 +1092,30 @@ function backToMapAfterFail() {
 function win() {
   gameState.isGameActive = false;
   triggerVibration([100,40,100,40,300]);
+
   const stars = gameState.score > gameState.targetScore * 1.4 ? 3
               : gameState.score > gameState.targetScore * 1.1 ? 2 : 1;
   gameState.levelRecords[gameState.currentLevel] = stars;
   localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
+
   gameState.boosters.hammer  += 1;
   gameState.boosters.bomb    += (stars >= 2 ? 1 : 0);
   gameState.boosters.shuffle += (stars >= 3 ? 1 : 0);
+
+  // Persist boosters earned from winning a level
+  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
+
   gameState.gold += 10 * stars;
   localStorage.setItem("chrono_gold", gameState.gold);
-  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
+
   if (gameState.currentLevel === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < gameState.totalLevels) {
     gameState.highestUnlockedLevel++;
     localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel);
   }
+
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
   trackDailyWin();
   checkAwardsBadge();
-
   const justCompletedEra = checkEraCompletion(gameState.currentLevel);
 
   switchView("homePage");
@@ -1075,12 +1159,31 @@ function runFireworksLoop() {
 function exitToHome() { gameState.isGameActive=false; gameState.activeBooster=null; loadHomepage(); }
 function transitionToMap() { initAudio(); triggerFlashAnimation(); loadHomepage(); }
 
-// Called by Firebase module (index.html) once sign-in succeeds
+/* ── Shop navigation that remembers where you came from ── */
+let _shopReturnView = null;
+
+function openShopFromGame() {
+  // Opened via the "+" buttons next to boosters mid-level
+  _shopReturnView = 'gamePlayScreen';
+  const disp = document.getElementById('shopGoldDisplay');
+  if (disp) disp.textContent = gameState.gold.toLocaleString();
+  switchView('shopPage');
+}
+
+function closeShop() {
+  if (_shopReturnView === 'gamePlayScreen' && gameState.isGameActive) {
+    _shopReturnView = null;
+    switchView('gamePlayScreen');
+    updateBoosterUI();
+  } else {
+    _shopReturnView = null;
+    loadHomepage();
+  }
+}
+
 window.afterFirebaseAuth = function(user) {
   if (!user) return;
-  gameState.authProvider = user.providerData[0]
-    ? 'Google'
-    : 'Social';
+  gameState.authProvider = user.providerData[0] ? 'Google' : 'Social';
   gameState.authDisplayName  = user.displayName  || '';
   gameState.authEmail        = user.email        || '';
   gameState.authPhotoURL     = user.photoURL     || '';
@@ -1106,23 +1209,18 @@ function setAuthBtnLoading(btnId, loading, originalHTML) {
 
 async function handleSocialAuth(provider) {
   initAudio();
-
   if (window._firebaseReady) {
     const btnId = 'googleSignInBtn';
     setAuthBtnLoading(btnId, true);
-
     try {
       let user = null;
       if (provider === 'google') {
         user = await window.firebaseSignInGoogle();
       }
-
       setAuthBtnLoading(btnId, false);
-
       if (user) {
         window.afterFirebaseAuth(user);
       } else {
-
         showAuthError('Sign-in was cancelled. Please try again.');
       }
     } catch(err) {
@@ -1131,7 +1229,6 @@ async function handleSocialAuth(provider) {
     }
     return;
   }
-
   showAuthSetupNotice(provider);
 }
 
@@ -1150,8 +1247,6 @@ function showAuthError(msg) {
 }
 
 function showAuthSetupNotice(provider) {
-
-  const providerName = 'Google';
   let el = document.getElementById('authErrorMsg');
   if (!el) {
     el = document.createElement('p');
@@ -1181,7 +1276,6 @@ function _doGuestAuth() {
 }
 
 function showTermsAgreePopup() {
-
   const chk = document.getElementById('termsAgreeModalCheck');
   const btn = document.getElementById('termsAgreeConfirmBtn');
   if (chk) chk.checked = false;
@@ -1196,24 +1290,19 @@ function toggleTermsAgreeBtn() {
 }
 
 function confirmTermsAndProceed() {
-
   const modal = document.getElementById('termsAgreeModal');
   if (modal) {
     modal.classList.remove('visible');
     modal.style.display = 'none';
   }
-
   const provider = _pendingAuthProvider;
   _pendingAuthProvider = null;
-
   setTimeout(() => {
     if (provider === 'guest') {
       _doGuestAuth();
     } else if (provider === 'google_redirect_complete') {
-
       afterAuthSuccess();
     } else if (provider) {
-
       localStorage.setItem('chrono_terms_agreed', '1');
       _doSocialAuth(provider);
     }
@@ -1245,7 +1334,6 @@ function afterAuthSuccess() {
 function handleNotifPermission(allow) {
   toggleModal('notifModal', false);
   localStorage.setItem('chrono_notif_asked', '1');
-
   if (allow && 'Notification' in window) {
     Notification.requestPermission().then(perm => {
       localStorage.setItem('chrono_notif_perm', perm);
@@ -1256,13 +1344,11 @@ function handleNotifPermission(allow) {
   } else {
     localStorage.setItem('chrono_notif_perm', 'denied');
   }
-
   triggerFlashAnimation();
   switchView('welcomeScreen');
 }
 
 function scheduleWelcomeNotification() {
-
   if (Notification.permission === 'granted') {
     setTimeout(() => {
       try {
@@ -1274,12 +1360,14 @@ function scheduleWelcomeNotification() {
     }, 3000);
   }
 }
+
 function triggerFlashAnimation() {
   const f = document.getElementById("portalFlash");
   if (!f) return;
   f.classList.add('active');
   setTimeout(() => f.classList.remove('active'), 300);
 }
+
 function openSettingsModal() { toggleModal('settingsModal', true); }
 
 function openHowToPlay() {
@@ -1300,7 +1388,7 @@ function resetGameProgress() {
 }
 
 function openShopPage() {
-
+  _shopReturnView = null; // opened from home footer
   const disp = document.getElementById('shopGoldDisplay');
   if (disp) disp.textContent = gameState.gold.toLocaleString();
   switchView('shopPage');
@@ -1311,6 +1399,7 @@ function buyItem(type, cost) {
     showShopToast("Not enough gold! 🪙 Buy more below.", 'error');
     return;
   }
+
   gameState.gold -= cost;
 
   switch(type) {
@@ -1344,7 +1433,6 @@ function buyItem(type, cost) {
       showShopToast("🛡️ Life Shield active!");
       break;
     case 'gold': {
-
       const todayKey = 'chrono_free_gold_' + new Date().toDateString();
       if (localStorage.getItem(todayKey)) {
         showShopToast('Already claimed today! Come back tomorrow.', 'error');
@@ -1358,12 +1446,17 @@ function buyItem(type, cost) {
     }
   }
 
-  localStorage.setItem("chrono_gold", gameState.gold);
+  // Persist boosters + gold immediately after every purchase
   localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
+  localStorage.setItem("chrono_gold", gameState.gold);
+
   const profileGold = document.getElementById("profileGold");
   if (profileGold) profileGold.innerText = gameState.gold;
+
   const shopDisp = document.getElementById("shopGoldDisplay");
   if (shopDisp) shopDisp.textContent = gameState.gold.toLocaleString();
+
+  bumpGoldPill();
   updateBoosterUI();
   triggerVibration(40);
 }
@@ -1385,21 +1478,18 @@ function showShopToast(msg, type) {
   toast.style.borderColor = type === 'error' ? 'rgba(163,42,42,0.7)' : 'rgba(212,175,55,0.4)';
   toast.textContent = msg;
   toast.style.opacity = '1';
+
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
 }
 
-// ⚠️  SETUP REQUIRED: Replace these with your real PayFast credentials
-// Get them at https://www.payfast.co.za after creating a merchant account
-// PayFast config — update merchant_id and merchant_key before going live
-// Sign up at https://www.payfast.co.za to get your credentials
 const PAYFAST_CONFIG = {
   merchant_id:  'YOUR_MERCHANT_ID',
   merchant_key: 'YOUR_MERCHANT_KEY',
   sandbox:      true,
   notify_url:   ''
 };
-// return/cancel URLs built at runtime to always match current domain
+
 function getPayfastUrls() {
   const base = window.location.origin + window.location.pathname;
   return {
@@ -1412,34 +1502,30 @@ let pendingPayment = null;
 
 function initiatePayment(packageId, amountZAR, goldCoins) {
   pendingPayment = { packageId, amountZAR, goldCoins };
-
   const labels = {
     '500gold':  'Starter Pouch — 500 Gold',
     '1000gold': 'Gold Pouch — 1,000 Gold',
     '2500gold': 'Gold Chest — 2,500 Gold',
     '6000gold': 'Gold Vault — 6,000 Gold',
   };
-
   document.getElementById('paymentModalTitle').textContent = labels[packageId] || 'Buy Gold';
   document.getElementById('paymentGoldAmt').textContent    = goldCoins.toLocaleString();
   document.getElementById('paymentModalPrice').textContent = `R ${amountZAR}`;
-
   toggleModal('paymentModal', true);
 }
 
 function confirmPayment() {
   if (!pendingPayment) return;
-
   const { packageId, amountZAR, goldCoins } = pendingPayment;
 
   if (PAYFAST_CONFIG.merchant_id === 'YOUR_MERCHANT_ID') {
-    const msg = 'PayFast not configured yet. Gold added in test mode.';
     gameState.gold += goldCoins;
     localStorage.setItem('chrono_gold', gameState.gold);
     const pg = document.getElementById('profileGold');
     if (pg) pg.innerText = gameState.gold;
     const sd = document.getElementById('shopGoldDisplay');
     if (sd) sd.textContent = gameState.gold.toLocaleString();
+    bumpGoldPill();
     showShopToast('🪙 +' + goldCoins.toLocaleString() + ' Gold added! (Test mode)');
     toggleModal('paymentModal', false);
     pendingPayment = null;
@@ -1449,7 +1535,6 @@ function confirmPayment() {
   const host = PAYFAST_CONFIG.sandbox
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
-
   const urls   = getPayfastUrls();
   const params = {
     merchant_id:      PAYFAST_CONFIG.merchant_id,
@@ -1462,6 +1547,7 @@ function confirmPayment() {
     custom_str1:      packageId,
     custom_str2:      String(goldCoins)
   };
+
   if (PAYFAST_CONFIG.notify_url) params.notify_url = PAYFAST_CONFIG.notify_url;
 
   const form = document.createElement('form');
@@ -1478,15 +1564,12 @@ function confirmPayment() {
   form.submit();
 }
 
-// Check for payment return from PayFast
 function checkPaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   const result = params.get('payment');
   if (result === 'success') {
-
     setTimeout(() => {
       showShopToast('✅ Payment received! Your gold will arrive shortly.');
-
       window.history.replaceState({}, '', window.location.pathname);
     }, 800);
   } else if (result === 'cancel') {
@@ -1502,26 +1585,23 @@ function copyInviteLink() {
   if (navigator.clipboard) navigator.clipboard.writeText(link).then(()=>alert("Copied!")).catch(()=>alert("Link: "+link));
   else alert("Link: "+link);
 }
+
 function shareToFacebook() {
   window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href.split('?')[0])}`, '_blank', 'width=600,height=400');
 }
 
-// Trophy tier based on average stars across all levels in an era
 function getEraTrophy(era) {
   const levelRecords = gameState.levelRecords;
   let totalStars = 0;
   let completedLevels = 0;
-
   for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
     if (levelRecords[lvl]) {
       totalStars += levelRecords[lvl];
       completedLevels++;
     }
   }
-
   const totalLevels = era.endLvl - era.startLvl + 1;
   if (completedLevels < totalLevels) return { tier: 'locked', completedLevels, totalLevels, totalStars };
-
   const avgStars = totalStars / totalLevels;
   if (avgStars >= 2.5) return { tier: 'gold',   completedLevels, totalLevels, totalStars };
   if (avgStars >= 1.8) return { tier: 'silver', completedLevels, totalLevels, totalStars };
@@ -1535,7 +1615,6 @@ const TROPHY_LABELS = { gold: 'GOLD', silver: 'SILVER', bronze: 'BRONZE', locked
 function openAwardsPage() {
   const body = document.getElementById('awardsBody');
   if (!body) return;
-
   let html = `<p class="awards-intro">Complete all 10 levels of an era to earn a trophy.<br>Higher average stars = better trophy.</p>`;
   html += `<div class="era-trophy-grid">`;
 
@@ -1543,15 +1622,13 @@ function openAwardsPage() {
     const result = getEraTrophy(era);
     const { tier, completedLevels, totalLevels, totalStars } = result;
     const pct = Math.round((completedLevels / totalLevels) * 100);
-
     const maxStars = totalLevels * 3;
-    const starPct = tier !== 'locked' ? Math.round((totalStars / maxStars) * 100) : Math.round((completedLevels / totalLevels) * 100);
-
     let starsHtml = '';
+
     if (tier !== 'locked') {
       const avg = totalStars / totalLevels;
       const fullStars = Math.floor(avg);
-      starsHtml = '📀'.repeat(fullStars) + (avg % 1 >= 0.5 ? '⭐' : '') ;
+      starsHtml = '📀'.repeat(fullStars) + (avg % 1 >= 0.5 ? '⭐' : '');
     }
 
     html += `
@@ -1580,14 +1657,12 @@ function openAwardsPage() {
   switchView('awardsPage');
 }
 
-// Seed daily challenges from the date so everyone gets the same ones each day
 function getDailySeed() {
   const d = new Date();
   return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
 
 function seededRand(seed, n) {
-
   const val = ((seed * 1664525 + 1013904223) & 0xffffffff) >>> 0;
   return val % n;
 }
@@ -1596,13 +1671,11 @@ function getDailyTasks() {
   const seed = getDailySeed();
   const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
   const eraIdx = eraTimeline.indexOf(currentEra);
-
   const eraResult = getEraTrophy(currentEra);
   const eraComplete = eraResult.tier !== 'locked';
 
   const dailyWinsKey = `chrono_daily_wins_${getDailySeed()}`;
   const dailyWins = parseInt(localStorage.getItem(dailyWinsKey)) || 0;
-
   const targetLvl = currentEra.startLvl + seededRand(seed, 10);
   const has3Star  = (gameState.levelRecords[targetLvl] || 0) >= 3;
 
@@ -1659,7 +1732,7 @@ function openDailyChallenge() {
   const body  = document.getElementById('dailyChallengeBody');
   if (!body) return;
 
-  const tasks   = getDailyTasks();
+  const tasks    = getDailyTasks();
   const timeLeft = msUntilMidnight();
   const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
 
@@ -1696,37 +1769,30 @@ function openDailyChallenge() {
   const allDone = tasks.every(t => t.done);
   const badge   = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'block';
-
   switchView('dailyPage');
 }
 
-// Call this after every level win to track daily wins
 function trackDailyWin() {
   const key = `chrono_daily_wins_${getDailySeed()}`;
   const wins = (parseInt(localStorage.getItem(key)) || 0) + 1;
   localStorage.setItem(key, wins);
-
   if (wins === 3) {
     gameState.gold += 60;
     localStorage.setItem("chrono_gold", gameState.gold);
   }
 }
 
-// Check if daily badge should show on load
 function checkDailyBadge() {
-  const tasks  = getDailyTasks();
+  const tasks   = getDailyTasks();
   const allDone = tasks.every(t => t.done);
-  const badge  = document.getElementById('dailyBadge');
+  const badge   = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'block';
 }
 
-// Returns the era object if completing `level` just finished that era, else null
 function checkEraCompletion(level) {
   const era = getCurrentEraForLevel(level);
   if (!era) return null;
-
   if (level !== era.endLvl) return null;
-
   for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
     if (!gameState.levelRecords[lvl]) return null;
   }
@@ -1739,7 +1805,6 @@ function showEraTrophyModal(era) {
   const result = getEraTrophy(era);
   const { tier, totalStars } = result;
   const maxStars = (era.endLvl - era.startLvl + 1) * 3;
-  const eraIdx   = eraTimeline.indexOf(era);
 
   const trophyIcon = { gold: '🥇', silver: '🥈', bronze: '🥉' }[tier] || '🏆';
   const tierLabel  = { gold: 'GOLD TROPHY', silver: 'SILVER TROPHY', bronze: 'BRONZE TROPHY' }[tier] || 'TROPHY';
@@ -1753,6 +1818,7 @@ function showEraTrophyModal(era) {
 
   const card = document.getElementById('eraTrophyCard');
   card.className = `era-trophy-modal-card card-${tier}`;
+
   document.getElementById('eraTrophyIcon').textContent  = trophyIcon;
   document.getElementById('eraTrophyTier').textContent  = tierLabel;
   document.getElementById('eraTrophyEra').textContent   = era.name;
@@ -1789,7 +1855,6 @@ function spawnTrophyBurst(tier) {
   };
   const colors = colorMap[tier] || colorMap.gold;
   const cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
-
   for (let b = 0; b < 4; b++) {
     const ox = cx + (Math.random() * 260 - 130);
     const oy = cy + (Math.random() * 120 - 60);
@@ -1812,6 +1877,7 @@ function spawnTrophyBurst(tier) {
 function runTrophyFireworks() {
   if (!trophyFxCtx) return;
   trophyFxCtx.clearRect(0, 0, trophyFxCanvas.width, trophyFxCanvas.height);
+
   for (let i = trophyFxParticles.length - 1; i >= 0; i--) {
     const p = trophyFxParticles[i];
     p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= p.decay;
@@ -1833,10 +1899,10 @@ function runTrophyFireworks() {
       spawnTrophyBurst(tier);
     }
   }
+
   trophyFxId = requestAnimationFrame(runTrophyFireworks);
 }
 
-// Hardcoded announcements — update this array as the game evolves
 const ANNOUNCEMENTS = [
   {
     id: 'ann_001',
@@ -1892,7 +1958,6 @@ function openAnnouncementsPage() {
   const seenKey  = 'chrono_seen_announcements';
   const seen     = JSON.parse(localStorage.getItem(seenKey) || '[]');
   const newIds   = ANNOUNCEMENTS.filter(a => a.isNew && !seen.includes(a.id)).map(a => a.id);
-
   const allSeen  = [...new Set([...seen, ...ANNOUNCEMENTS.map(a => a.id)])];
   localStorage.setItem(seenKey, JSON.stringify(allSeen));
 
@@ -1900,8 +1965,8 @@ function openAnnouncementsPage() {
   if (badge) badge.style.display = 'none';
 
   const tagClass = { update: 'ann-tag-update', feature: 'ann-tag-feature', event: 'ann-tag-event', tip: 'ann-tag-tip' };
-
   let html = '';
+
   ANNOUNCEMENTS.forEach(ann => {
     const isUnseen = newIds.includes(ann.id);
     html += `
@@ -1917,7 +1982,6 @@ function openAnnouncementsPage() {
   switchView('announcementsPage');
 }
 
-// Show red dot on News tab if there are unread announcements
 function checkNewsBadge() {
   const seenKey = 'chrono_seen_announcements';
   const seen    = JSON.parse(localStorage.getItem(seenKey) || '[]');
@@ -1926,15 +1990,14 @@ function checkNewsBadge() {
   if (badge) badge.style.display = hasNew ? 'block' : 'none';
 }
 
-// 7-day reward cycle — loops back after day 7
 const DAILY_REWARDS = [
-  { day: 1, icon: '🪙', label: 'Gold',       desc: 'Day 1 reward',  type: 'gold',    amount: 100  },
-  { day: 2, icon: '❤️', label: '+3 Lives',   desc: 'Day 2 reward',  type: 'lives',   amount: 3    },
-  { day: 3, icon: '🪙', label: 'Gold',        desc: 'Day 3 reward',  type: 'gold',    amount: 150  },
-  { day: 4, icon: '🔨', label: 'Hammer ×2',  desc: 'Day 4 reward',  type: 'hammer',  amount: 2    },
-  { day: 5, icon: '🪙', label: 'Gold',        desc: 'Day 5 reward',  type: 'gold',    amount: 200  },
-  { day: 6, icon: '💣', label: 'Bomb ×2',    desc: 'Day 6 reward',  type: 'bomb',    amount: 2    },
-  { day: 7, icon: '🎁', label: '500 Gold',   desc: 'Weekly jackpot!',type: 'gold',   amount: 500  },
+  { day: 1, icon: '🪙', label: 'Gold',      desc: 'Day 1 reward',   type: 'gold',    amount: 100 },
+  { day: 2, icon: '❤️', label: '+3 Lives',  desc: 'Day 2 reward',   type: 'lives',   amount: 3   },
+  { day: 3, icon: '🪙', label: 'Gold',       desc: 'Day 3 reward',   type: 'gold',    amount: 150 },
+  { day: 4, icon: '🔨', label: 'Hammer ×2', desc: 'Day 4 reward',   type: 'hammer',  amount: 2   },
+  { day: 5, icon: '🪙', label: 'Gold',       desc: 'Day 5 reward',   type: 'gold',    amount: 200 },
+  { day: 6, icon: '💣', label: 'Bomb ×2',   desc: 'Day 6 reward',   type: 'bomb',    amount: 2   },
+  { day: 7, icon: '🎁', label: '500 Gold',  desc: 'Weekly jackpot!', type: 'gold',   amount: 500 },
 ];
 
 function getDayKey(offsetDays) {
@@ -1948,7 +2011,6 @@ function getDailyRewardState() {
   const streak     = parseInt(localStorage.getItem('chrono_daily_reward_streak')) || 0;
   const todayKey   = getDayKey(0);
   const alreadyClaimedToday = lastClaim === todayKey;
-
   const dayIndex = streak % 7;
   return { alreadyClaimedToday, streak, dayIndex, todayKey };
 }
@@ -1956,7 +2018,6 @@ function getDailyRewardState() {
 function maybeShowDailyReward() {
   const { alreadyClaimedToday } = getDailyRewardState();
   if (alreadyClaimedToday) return;
-
   setTimeout(showDailyRewardModal, 800);
 }
 
@@ -1971,13 +2032,13 @@ function showDailyRewardModal() {
   const strip = document.getElementById('dailyStreakStrip');
   if (strip) {
     strip.innerHTML = '';
-    const DAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     DAILY_REWARDS.forEach((r, i) => {
       const div = document.createElement('div');
       let cls = 'streak-day';
-      if (i < dayIndex)      cls += ' claimed';
+      if (i < dayIndex)        cls += ' claimed';
       else if (i === dayIndex) cls += ' today';
-      else                    cls += ' locked';
+      else                     cls += ' locked';
+
       div.className = cls;
       div.innerHTML = `<span class="streak-day-icon">${r.icon}</span><span>Day ${r.day}</span>`;
       strip.appendChild(div);
@@ -1997,6 +2058,7 @@ function claimDailyReward() {
       localStorage.setItem('chrono_gold', gameState.gold);
       const pg = document.getElementById('profileGold');
       if (pg) pg.innerText = gameState.gold;
+      bumpGoldPill();
       break;
     case 'lives':
       gameState.lives = Math.min(99, gameState.lives + reward.amount);
@@ -2006,12 +2068,15 @@ function claimDailyReward() {
       break;
     case 'hammer':
       gameState.boosters.hammer += reward.amount;
+      localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
       break;
     case 'bomb':
       gameState.boosters.bomb += reward.amount;
+      localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
       break;
     case 'shuffle':
       gameState.boosters.shuffle += reward.amount;
+      localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
       break;
   }
 
@@ -2026,25 +2091,20 @@ function claimDailyReward() {
 function checkAwardsBadge() {
   const badge = document.getElementById('awardsBadge');
   if (!badge) return;
-
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
-
   const hasNewTrophy = eraTimeline.some(era => {
     const result = getEraTrophy(era);
     if (result.tier === 'locked') return false;
     const trophyId = era.name + '_' + result.tier;
     return !viewed.includes(trophyId);
   });
-
   badge.style.display = hasNewTrophy ? 'inline' : 'none';
 }
 
-// Mark trophies as viewed when player opens awards page
 const _origOpenAwards = openAwardsPage;
 openAwardsPage = function() {
   _origOpenAwards();
-
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
   eraTimeline.forEach(era => {
@@ -2054,12 +2114,10 @@ openAwardsPage = function() {
     if (!viewed.includes(trophyId)) viewed.push(trophyId);
   });
   localStorage.setItem(viewedKey, JSON.stringify(viewed));
-
   const badge = document.getElementById('awardsBadge');
   if (badge) badge.style.display = 'none';
 };
 
-// Also check daily badge with gold logic — show if not all done today
 const _origCheckDailyBadge = checkDailyBadge;
 checkDailyBadge = function() {
   const tasks   = getDailyTasks();
@@ -2069,7 +2127,6 @@ checkDailyBadge = function() {
 };
 
 let _termsCalledFrom = 'settings';
-
 function openTermsPage() {
   _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
   toggleModal('settingsModal', false);
@@ -2083,7 +2140,6 @@ function openPrivacyPage() {
 }
 
 function closeTermsOrPrivacy() {
-
   if (_termsCalledFrom && _termsCalledFrom !== 'termsPage' && _termsCalledFrom !== 'privacyPage') {
     switchView(_termsCalledFrom);
   } else {
@@ -2093,7 +2149,6 @@ function closeTermsOrPrivacy() {
 
 function confirmDeactivateAccount() {
   toggleModal('settingsModal', false);
-
   const chk = document.getElementById('deactivateConfirmCheck');
   if (chk) chk.checked = false;
   const btn = document.getElementById('deactivateConfirmBtn');
@@ -2110,31 +2165,26 @@ function toggleDeactivateBtn() {
 async function executeDeactivation() {
   const btn = document.getElementById('deactivateConfirmBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
-
   try {
-
     if (window._firebaseReady && window.firebaseDeleteAccount) {
       await window.firebaseDeleteAccount();
     }
   } catch(err) {
     console.warn('Firebase deletion:', err.message);
-
   }
 
   localStorage.clear();
-
-  gameState.gold                = 100;
-  gameState.lives               = 5;
+  gameState.gold                 = 100;
+  gameState.lives                = 5;
   gameState.highestUnlockedLevel = 1;
-  gameState.levelRecords        = {};
-  gameState.currentLevel        = 1;
-  gameState.authProvider        = 'Guest';
-  gameState.authDisplayName     = '';
-  gameState.authEmail           = '';
-  gameState.boosters            = { hammer: 3, bomb: 3, shuffle: 3 };
+  gameState.levelRecords         = {};
+  gameState.currentLevel         = 1;
+  gameState.authProvider         = 'Guest';
+  gameState.authDisplayName      = '';
+  gameState.authEmail            = '';
+  gameState.boosters             = { hammer: 3, bomb: 3, shuffle: 3 };
 
   toggleModal('deactivateModal', false);
-
   setTimeout(() => {
     alert('Your account has been permanently deleted. Thank you for playing CHRONOCRUSH.');
     location.reload();
@@ -2142,7 +2192,6 @@ async function executeDeactivation() {
 }
 
 const QUIZ_QUESTIONS = [
-
   {
     era: "1940s Noir", icon: "🎷",
     question: "Which famous jazz musician was known as the 'King of Swing' in the 1940s?",
@@ -2164,7 +2213,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "The Maltese Falcon (1941) defined the film noir genre and made Humphrey Bogart a Hollywood legend."
   },
-
   {
     era: "1950s Rockabilly", icon: "🎸",
     question: "Which artist recorded 'Rock Around the Clock' in 1954, helping launch rock and roll?",
@@ -2186,7 +2234,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "The Chevrolet Corvette launched in 1953 and became the definitive American sports car — a symbol of post-war optimism and freedom."
   },
-
   {
     era: "1960s Psychedelic", icon: "☮️",
     question: "What famous music festival took place in August 1969?",
@@ -2208,7 +2255,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "On 20 July 1969, Neil Armstrong became the first human to walk on the Moon, watched live by 600 million people worldwide."
   },
-
   {
     era: "1970s Disco", icon: "🪩",
     question: "Which New York nightclub was the epicentre of the 1970s disco scene?",
@@ -2230,7 +2276,6 @@ const QUIZ_QUESTIONS = [
     correct: 0,
     fact: "The Hustle became the signature dance of the disco era. Van McCoy's 1975 hit 'Do The Hustle' sparked a line-dancing revolution worldwide."
   },
-
   {
     era: "1970s Disco", icon: "🪩",
     question: "Where were the Bee Gees originally from before becoming international superstars?",
@@ -2252,7 +2297,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "Barry Gibb is the last surviving Bee Gee. After the group disbanded following Maurice's passing in 2003, Barry continued touring and recording, keeping the Bee Gees legacy alive."
   },
-
   {
     era: "1980s Retro Synth", icon: "🎮",
     question: "Which video game console launched in 1983 and revolutionised home gaming?",
@@ -2274,7 +2318,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "The Human League's 'Don't You Want Me' was the Christmas number one in the UK in 1981 and became one of the defining songs of the synth-pop era."
   },
-
   {
     era: "1990s Grunge", icon: "📀",
     question: "Which Nirvana album is considered the defining record of the grunge movement?",
@@ -2296,7 +2339,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "Netscape Navigator launched in 1994 and at its peak controlled 90% of the web browser market, making the internet accessible to everyday people for the first time."
   },
-
   {
     era: "2000s Y2K Pop", icon: "💿",
     question: "The Y2K bug caused worldwide panic in 1999. What was it?",
@@ -2318,7 +2360,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "Facebook launched on 4 February 2004 from Mark Zuckerberg's Harvard dorm room. It now has over 3 billion monthly users worldwide."
   },
-
   {
     era: "2001: Rise of the Web", icon: "💻",
     question: "Which online encyclopedia launched in January 2001 and transformed how we access knowledge?",
@@ -2340,7 +2381,6 @@ const QUIZ_QUESTIONS = [
     correct: 1,
     fact: "MSN Messenger (later Windows Live Messenger) became the dominant chat platform for teenagers in the early 2000s before smartphones changed everything."
   },
-
   {
     era: "2002: Flip Phone Era", icon: "📲",
     question: "Which iconic flip phone, released around 2004, became a fashion symbol worldwide?",
@@ -2364,16 +2404,15 @@ const QUIZ_QUESTIONS = [
   }
 ];
 
-// Daily quiz state
 function getQuizDayKey() {
   return 'chrono_quiz_' + new Date().toDateString();
 }
+
 function getQuizAnsweredKey() {
   return 'chrono_quiz_answered_' + new Date().toDateString();
 }
 
 function getTodaysQuestion() {
-
   const seed = new Date().getFullYear() * 10000 +
                (new Date().getMonth() + 1) * 100 +
                new Date().getDate();
@@ -2401,7 +2440,6 @@ function openQuizPage() {
     </div>`;
 
   if (alreadyAnswered) {
-
     if (wasCorrect) {
       html += `
         <div class="quiz-already-done">
@@ -2422,9 +2460,7 @@ function openQuizPage() {
         </div>`;
     }
   } else {
-
     const letters = ['A', 'B', 'C'];
-
     const rewards = [
       { icon: '❤️', label: '+1 Life',    type: 'life'    },
       { icon: '💣', label: 'Bomb ×1',    type: 'bomb'    },
@@ -2456,7 +2492,6 @@ function openQuizPage() {
           <div class="quiz-option-text">${opt}</div>
         </button>`;
     });
-
     html += `</div>`;
   }
 
@@ -2465,7 +2500,6 @@ function openQuizPage() {
 }
 
 function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
-
   document.querySelectorAll('.quiz-option-btn').forEach((btn, i) => {
     btn.disabled = true;
     if (i === correct) btn.classList.add('correct');
@@ -2480,7 +2514,6 @@ function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
 
   setTimeout(() => {
     if (isCorrect) {
-
       switch(rewardType) {
         case 'life':
           gameState.lives = Math.min(99, gameState.lives + 1);
@@ -2488,18 +2521,22 @@ function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
           break;
         case 'bomb':
           gameState.boosters.bomb += 1;
+          localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
           break;
         case 'hammer':
           gameState.boosters.hammer += 1;
+          localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
           break;
         case 'shuffle':
           gameState.boosters.shuffle += 1;
+          localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
           break;
         case 'gold':
           gameState.gold += 75;
           localStorage.setItem('chrono_gold', gameState.gold);
           const pg = document.getElementById('profileGold');
           if (pg) pg.innerText = gameState.gold;
+          bumpGoldPill();
           break;
       }
       showQuizResult(true, rewardIcon, rewardLabel, question.fact);
@@ -2545,7 +2582,6 @@ const MAX_LIVES         = 5;
 let   _lifeRefillTicker = null;
 
 function updateLivesDisplay() {
-
   const lc = document.getElementById('livesCounter');
   if (lc) lc.innerText = gameState.lives;
   const cl = document.getElementById('mapCornerLives');
@@ -2553,15 +2589,12 @@ function updateLivesDisplay() {
 }
 
 function startLifeRefillTimer() {
-
   if (_lifeRefillTicker) { clearInterval(_lifeRefillTicker); _lifeRefillTicker = null; }
-
   const bar = document.getElementById('lifeRefillBar');
   if (!bar) return;
 
   if (gameState.lives > 0) {
     bar.style.display = 'none';
-
     if (gameState.lives >= MAX_LIVES) {
       localStorage.removeItem('chrono_life_refill_at');
     }
@@ -2572,15 +2605,12 @@ function startLifeRefillTimer() {
   const now      = Date.now();
 
   if (!refillAt || isNaN(refillAt)) {
-
     const newRefillAt = now + LIFE_REFILL_MS;
     localStorage.setItem('chrono_life_refill_at', newRefillAt);
     tickLifeRefill(newRefillAt);
   } else if (now >= refillAt) {
-
     grantLifeRefill();
   } else {
-
     tickLifeRefill(refillAt);
   }
 }
@@ -2589,8 +2619,8 @@ function tickLifeRefill(refillAt) {
   const bar      = document.getElementById('lifeRefillBar');
   const timerEl  = document.getElementById('lifeRefillTimer');
   const fillEl   = document.getElementById('lifeRefillFill');
-
   if (!bar) return;
+
   bar.style.display = 'block';
 
   function update() {
@@ -2602,6 +2632,7 @@ function tickLifeRefill(refillAt) {
     const h  = Math.floor(remaining / 3600000);
     const m  = Math.floor((remaining % 3600000) / 60000);
     const s  = Math.floor((remaining % 60000) / 1000);
+
     const hh = String(h).padStart(2, '0');
     const mm = String(m).padStart(2, '0');
     const ss = String(s).padStart(2, '0');
@@ -2621,11 +2652,9 @@ function tickLifeRefill(refillAt) {
 }
 
 function grantLifeRefill() {
-
   gameState.lives = MAX_LIVES;
   localStorage.setItem('chrono_lives', MAX_LIVES);
   localStorage.removeItem('chrono_life_refill_at');
-
   updateLivesDisplay();
 
   const bar = document.getElementById('lifeRefillBar');
