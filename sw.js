@@ -1,8 +1,7 @@
 /* ============================================================
-   CHRONOCRUSH Service Worker v4 — Full Offline Support
+   CHRONOCRUSH Service Worker v5 — Full Offline Support
    ============================================================ */
-
-const CACHE_NAME    = 'chronocrush-v29';
+const CACHE_NAME    = 'chronocrush-v31';
 const OFFLINE_URL   = '/chronocrush/';
 
 // Everything the game needs to run with zero internet
@@ -10,6 +9,7 @@ const PRECACHE_URLS = [
   '/chronocrush/',
   '/chronocrush/index.html',
   '/chronocrush/core-engine/style.css',
+  '/chronocrush/core-engine/polish.css',
   '/chronocrush/core-engine/logic.js',
   '/chronocrush/manifest.json',
   '/chronocrush/icons/icon-72.png',
@@ -53,7 +53,6 @@ self.addEventListener('fetch', event => {
       url.includes('accounts.google')) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        // Return empty 503 so Firebase fails gracefully
         return new Response('{"error":"offline"}', {
           status: 503,
           headers: { 'Content-Type': 'application/json' }
@@ -63,9 +62,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Game assets — cache first, network fallback
+  // Game assets — cache first (ignoring ?v= query), network fallback
   event.respondWith(
-    caches.match(event.request).then(cached => {
+    caches.match(event.request, { ignoreSearch: true }).then(cached => {
       if (cached) return cached;
 
       return fetch(event.request).then(response => {
@@ -75,11 +74,9 @@ self.addEventListener('fetch', event => {
         }
         return response;
       }).catch(() => {
-        // Offline fallback for page navigations
         if (event.request.mode === 'navigate') {
           return caches.match(OFFLINE_URL);
         }
-        // For other assets return empty response
         return new Response('', { status: 503 });
       });
     })
@@ -120,6 +117,7 @@ self.addEventListener('push', event => {
   if (!event.data) return;
   let data = {};
   try { data = event.data.json(); } catch(e) { data = { title: 'CHRONOCRUSH', body: event.data.text() }; }
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'CHRONOCRUSH 🎵', {
       body:    data.body || 'Something new is waiting!',
