@@ -1,7 +1,8 @@
 /* ============================================================
    CHRONOCRUSH Service Worker v5 — Full Offline Support
    ============================================================ */
-const CACHE_NAME    = 'chronocrush-v31';
+
+const CACHE_NAME    = 'chronocrush-v32';
 const OFFLINE_URL   = '/chronocrush/';
 
 // Everything the game needs to run with zero internet
@@ -117,7 +118,6 @@ self.addEventListener('push', event => {
   if (!event.data) return;
   let data = {};
   try { data = event.data.json(); } catch(e) { data = { title: 'CHRONOCRUSH', body: event.data.text() }; }
-
   event.waitUntil(
     self.registration.showNotification(data.title || 'CHRONOCRUSH 🎵', {
       body:    data.body || 'Something new is waiting!',
