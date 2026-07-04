@@ -4,6 +4,68 @@
    Safe to remove at any time — only adds juice, no layout.
    ============================================================ */
 
+/* ── Era theming: JS sets these two vars per era (see applyEraTheme) ── */
+:root {
+  --era-accent: #ffd700;
+  --era-hue: 0deg;
+}
+
+/* Backdrop hue-shifts smoothly as you move between eras — same stars
+   and clouds, just a different color mood per era, like flipping
+   through decades. */
+#cosmicBackdrop {
+  position: relative;
+  filter: hue-rotate(var(--era-hue));
+  transition: filter 1.4s ease;
+}
+
+/* ── Subtle twinkle overlay on top of the existing starfield ── */
+#cosmicBackdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 22%, rgba(255,255,255,0.95), transparent 60%),
+    radial-gradient(1.2px 1.2px at 28% 68%, rgba(255,255,255,0.8),  transparent 60%),
+    radial-gradient(1.8px 1.8px at 47% 12%, rgba(255,255,255,0.9),  transparent 60%),
+    radial-gradient(1.3px 1.3px at 63% 78%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1.5px 1.5px at 74% 33%, rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 85% 58%, rgba(255,255,255,0.7),  transparent 60%),
+    radial-gradient(1.7px 1.7px at 91% 15%, rgba(255,255,255,0.9),  transparent 60%),
+    radial-gradient(1.3px 1.3px at 8%  85%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 44%, rgba(255,255,255,0.8),  transparent 60%),
+    radial-gradient(1.2px 1.2px at 55% 90%, rgba(255,255,255,0.7),  transparent 60%);
+  animation: starTwinkleA 3.6s ease-in-out infinite;
+}
+/* Second layer, offset timing, so twinkles feel scattered rather than
+   uniformly blinking together */
+#starLayer {
+  position: relative;
+}
+#starLayer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 20% 40%, rgba(255,255,255,0.9), transparent 60%),
+    radial-gradient(1.1px 1.1px at 66% 20%, rgba(255,255,255,0.8), transparent 60%),
+    radial-gradient(1.6px 1.6px at 80% 70%, rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 33% 88%, rgba(255,255,255,0.7), transparent 60%),
+    radial-gradient(1.4px 1.4px at 15% 65%, rgba(255,255,255,0.8), transparent 60%);
+  animation: starTwinkleB 2.9s ease-in-out infinite;
+  animation-delay: 0.7s;
+}
+@keyframes starTwinkleA {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+@keyframes starTwinkleB {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.3; }
+}
+
 /* ── Board tile entrance: staggered pop-in when a level starts ── */
 @keyframes tileEnter {
   0%   { transform: scale(0) rotate(-8deg); opacity: 0; }
@@ -125,13 +187,19 @@
   filter: brightness(1.15);
 }
 
-/* ── Booster selected: pulsing ring so armed state is obvious ── */
+/* ── Booster selected: pulsing ring, tinted per current era ── */
 @keyframes boosterArmed {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.9), 0 0 10px rgba(0, 242, 254, 0.4); }
-  50%      { box-shadow: 0 0 0 3px rgba(0, 242, 254, 1),   0 0 20px rgba(0, 242, 254, 0.8); }
+  0%, 100% { box-shadow: 0 0 0 2px var(--era-accent), 0 0 10px var(--era-accent); }
+  50%      { box-shadow: 0 0 0 3px var(--era-accent), 0 0 20px var(--era-accent); }
 }
 .booster-btn.selected {
   animation: boosterArmed 0.8s ease-in-out infinite;
+}
+
+/* ── Challenge banner: thin era-accent underline for a per-decade feel ── */
+.challenge-banner {
+  border-bottom: 2px solid var(--era-accent);
+  transition: border-color 1.2s ease;
 }
 
 /* ── Stat cards flash when score updates (JS toggles .stat-bump) ── */
