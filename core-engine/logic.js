@@ -1,8 +1,10 @@
 /* ============================================================
    CHRONOCRUSH — logic.js  (DOM grid, no canvas for game board)
-   v31 — booster persistence + game-feel polish layer
+   v32 — challenge-item bug fix, era theming, Google Play Billing
    ============================================================ */
+
 const BOARD_SIZE = 6;
+
 const gameState = {
   lives: 5,
   gold: 100,
@@ -35,16 +37,22 @@ const gameState = {
 let fxCanvas = null, fxCtx = null, fxParticles = [], fxAnimationId = null;
 
 const eraTimeline = [
-  { name: "1940s Noir",          startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'] },
-  { name: "1950s Rockabilly",    startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'] },
-  { name: "1960s Psychedelic",   startLvl: 21, endLvl: 30, items: ['☮️','🌸','🚌','🎨'] },
-  { name: "1970s Disco",         startLvl: 31, endLvl: 40, items: ['🪩','✨','🛼','🕺'] },
-  { name: "1980s Retro Synth",   startLvl: 41, endLvl: 50, items: ['🎮','📼','🕹️','📟'] },
-  { name: "1990s Grunge",        startLvl: 51, endLvl: 60, items: ['📀','☎️','🧥','🎧'] },
-  { name: "2000s Y2K Pop",       startLvl: 61, endLvl: 70, items: ['💿','📱','👛','🌐'] },
-  { name: "2001 Rise of the Web",startLvl: 71, endLvl: 80, items: ['💻','🖱️','📡','🔋'] },
-  { name: "2002 Flip Phone Era", startLvl: 81, endLvl: 90, items: ['📲','🎵','🕹️','💾'] }
+  { name: "1940s Noir",          startLvl: 1,  endLvl: 10, items: ['📻','🎩','✒️','🎷'], accent: '#d4af37', hue: 0   },
+  { name: "1950s Rockabilly",    startLvl: 11, endLvl: 20, items: ['🥤','🎸','🕶️','🚗'], accent: '#ff5e62', hue: 320 },
+  { name: "1960s Psychedelic",   startLvl: 21, endLvl: 30, items: ['☮️','🌸','🚌','🎨'], accent: '#b19ffb', hue: 260 },
+  { name: "1970s Disco",         startLvl: 31, endLvl: 40, items: ['🪩','✨','🛼','🕺'], accent: '#ffd700', hue: 300 },
+  { name: "1980s Retro Synth",   startLvl: 41, endLvl: 50, items: ['🎮','📼','🕹️','📟'], accent: '#00f2fe', hue: 190 },
+  { name: "1990s Grunge",        startLvl: 51, endLvl: 60, items: ['📀','☎️','🧥','🎧'], accent: '#c17a4f', hue: 20  },
+  { name: "2000s Y2K Pop",       startLvl: 61, endLvl: 70, items: ['💿','📱','👛','🌐'], accent: '#ff69b4', hue: 330 },
+  { name: "2001 Rise of the Web",startLvl: 71, endLvl: 80, items: ['💻','🖱️','📡','🔋'], accent: '#4facfe', hue: 210 },
+  { name: "2002 Flip Phone Era", startLvl: 81, endLvl: 90, items: ['📲','🎵','🕹️','💾'], accent: '#34a853', hue: 150 }
 ];
+
+// Applies each era's accent color + backdrop hue-shift so eras feel distinct
+function applyEraTheme(era) {
+  document.documentElement.style.setProperty('--era-accent', era.accent);
+  document.documentElement.style.setProperty('--era-hue', era.hue + 'deg');
+}
 
 document.addEventListener("DOMContentLoaded", boot);
 
@@ -54,10 +62,8 @@ function boot() {
   gameState.preferences   = JSON.parse(localStorage.getItem("chrono_preferences"))    || { sound: true, sfx: true, vibe: true };
   gameState.gold  = parseInt(localStorage.getItem("chrono_gold"))  || 100;
   gameState.lives = parseInt(localStorage.getItem("chrono_lives")) || 5;
-
   if (isNaN(gameState.gold))  gameState.gold  = 100;
   if (isNaN(gameState.lives)) gameState.lives = 5;
-
   gameState.lifeShield = localStorage.getItem("chrono_shield") === "1";
 
   // Restore purchased boosters from localStorage on boot
@@ -68,6 +74,7 @@ function boot() {
   gameState.authProvider     = localStorage.getItem("chrono_auth_provider") || "Guest";
 
   syncSettingsUI();
+
   fxCanvas = document.getElementById("fireworksCanvas");
   if (fxCanvas) fxCtx = fxCanvas.getContext("2d");
   window.addEventListener("resize", resizeFireworksCanvas);
@@ -76,6 +83,7 @@ function boot() {
   setTimeout(() => {
     const savedProvider = localStorage.getItem("chrono_auth_provider");
     const savedTerms    = localStorage.getItem("chrono_terms_agreed_permanent");
+
     if (savedProvider && savedTerms) {
       afterAuthSuccess();
     } else {
@@ -91,6 +99,7 @@ function initOfflineDetection() {
   function updateOnlineStatus() {
     const banner = document.getElementById('offlineBanner');
     const isOffline = !navigator.onLine;
+
     if (banner) banner.style.display = isOffline ? 'block' : 'none';
 
     const googleBtn = document.getElementById('googleSignInBtn');
@@ -112,8 +121,10 @@ function initOfflineDetection() {
       console.log('[CHRONOCRUSH] Back online');
     }
   }
+
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
+
   updateOnlineStatus();
 }
 
@@ -195,7 +206,6 @@ function buildDomBoard() {
     }
   }
   renderBoard();
-
   // Clean up entrance classes once the wave completes
   setTimeout(() => {
     board.querySelectorAll('.board-tile').forEach(t => {
@@ -263,9 +273,7 @@ function renderBoard() {
     const r = parseInt(tile.dataset.r);
     const c = parseInt(tile.dataset.c);
     const v = gameState.grid[r] ? gameState.grid[r][c] : null;
-
     tile.classList.remove('matched', 'dropping', 'swapping', 'disco-ball-explode');
-
     if (v === DISCO_BALL) {
       tile.textContent = '✦';
       tile.classList.add('disco-ball-tile');
@@ -275,7 +283,6 @@ function renderBoard() {
       tile.classList.remove('disco-ball-tile');
       tile.title = '';
     }
-
     tile.classList.toggle('selected',
       !!(gameState.selectedTile &&
          gameState.selectedTile.r === r &&
@@ -299,11 +306,12 @@ function animateMatch(r, c) {
 function animateDrop(r, c) {
   const tile = getTile(r, c);
   if (!tile) return;
-  if (gameState.grid[r] && gameState.grid[r][c] === DISCO_BALL) return;
 
+  if (gameState.grid[r] && gameState.grid[r][c] === DISCO_BALL) return;
   tile.classList.remove('dropping');
   void tile.offsetWidth;
   tile.classList.add('dropping');
+
   setTimeout(() => tile.classList.remove('dropping'), 360);
 }
 
@@ -321,6 +329,7 @@ function initAudio() {
     gameState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (gameState.audioCtx.state === 'suspended') gameState.audioCtx.resume();
+
   resumeMusicAfterInteraction();
 }
 
@@ -337,6 +346,7 @@ function _getBgAudio() {
   _bgAudio.loop   = true;
   _bgAudio.volume = 0;
   _bgAudio.preload = 'auto';
+
   _bgAudio.addEventListener('error', (e) => {
     console.warn('Audio load error:', e);
   });
@@ -346,16 +356,20 @@ function _getBgAudio() {
 function startSpaceMusic() {
   if (!gameState.preferences.sound) return;
   const audio = _getBgAudio();
+
   if (!audio.paused) return;
+
   const playPromise = audio.play();
   if (playPromise !== undefined) {
     playPromise.catch(() => {});
   }
+
   _fadeVolume(0, 0.45, 2000);
 }
 
 function stopSpaceMusic() {
   if (!_bgAudio || _bgAudio.paused) return;
+
   _fadeVolume(_bgAudio.volume, 0, 1000, () => {
     _bgAudio.pause();
     _bgAudio.currentTime = 0;
@@ -405,11 +419,9 @@ function switchView(id) {
 function playLevelTransition(callback) {
   const screen = document.getElementById('levelTransitionScreen');
   if (!screen) { if (callback) callback(); return; }
-
   screen.classList.remove('panels-closed','show-content');
   document.querySelectorAll('.full-screen-view').forEach(s => s.classList.remove('active'));
   screen.classList.add('active');
-
   requestAnimationFrame(() => requestAnimationFrame(() => screen.classList.add('panels-closed')));
   setTimeout(() => screen.classList.add('show-content'), 620);
   setTimeout(() => {
@@ -421,9 +433,9 @@ function playLevelTransition(callback) {
 
 function loadHomepage() {
   switchView("homePage");
+  applyEraTheme(getCurrentEraForLevel(gameState.highestUnlockedLevel));
   document.getElementById("livesCounter").innerText = gameState.lives;
   document.getElementById("profileGold").innerText  = gameState.gold;
-
   const cd = document.getElementById("mapCornerLevelDisk");
   const cl = document.getElementById("mapCornerLives");
   if (cd) cd.innerText = gameState.highestUnlockedLevel;
@@ -431,7 +443,6 @@ function loadHomepage() {
 
   const mapLayer = document.getElementById("mapLayer");
   mapLayer.innerHTML = "";
-
   const align = ["mid","left","mid","right"];
 
   eraTimeline.forEach(era => {
@@ -439,30 +450,24 @@ function loadHomepage() {
     banner.className = "era-header-banner";
     banner.innerHTML = `${era.name.toUpperCase()}<span class="era-sub">Levels ${era.startLvl}–${era.endLvl}</span>`;
     mapLayer.appendChild(banner);
-
     for (let i = era.startLvl; i <= era.endLvl; i++) {
       const row = document.createElement("div");
       row.className = `map-row ${align[i % 4]}`;
-
       const btn = document.createElement("button");
       let sc = '';
       if (i === gameState.highestUnlockedLevel) sc = 'active';
       else if (i < gameState.highestUnlockedLevel) sc = 'unlocked';
-
       btn.className = `level-node ${sc}`;
       if (i > gameState.highestUnlockedLevel) btn.disabled = true;
-
       btn.onclick = () => {
         initAudio();
         gameState.levelPendingStart = i;
         document.getElementById("modalLevelTitle").innerText = `LEVEL ${i}`;
         toggleModal('levelReadyModal', true);
       };
-
       const recs = gameState.levelRecords[i]
         ? "📀".repeat(gameState.levelRecords[i])
         : (i <= gameState.highestUnlockedLevel ? "⚪⚪⚪" : "🔒");
-
       btn.innerHTML = `<div class="node-circle">${i}</div><div class="node-records">${recs}</div>`;
       row.appendChild(btn);
       mapLayer.appendChild(row);
@@ -477,7 +482,6 @@ function loadHomepage() {
   updateLivesDisplay();
   startLifeRefillTimer();
   maybeShowDailyReward();
-
   requestAnimationFrame(() => {
     const an = mapLayer.querySelector('.level-node.active');
     if (an) an.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -495,6 +499,7 @@ function toggleModal(id, open) {
     m.classList.remove('visible');
     m.style.display = 'none';
     if (id === 'levelSuccessModal') { cancelAnimationFrame(fxAnimationId); fxParticles = []; }
+
     requestAnimationFrame(() => { if (!m.classList.contains('visible')) m.style.display = ''; });
   }
 }
@@ -527,6 +532,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   if (lvl <= 29) {
     const t = (lvl - 10) / 19;
     return {
@@ -536,6 +542,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   if (lvl <= 49) {
     const t = (lvl - 30) / 19;
     return {
@@ -545,6 +552,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   if (lvl <= 59) {
     const t = (lvl - 50) / 9;
     return {
@@ -554,6 +562,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   if (lvl <= 70) {
     const t = (lvl - 60) / 10;
     return {
@@ -563,6 +572,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   if (lvl <= 80) {
     const t = (lvl - 71) / 9;
     return {
@@ -572,6 +582,7 @@ function getDifficulty(lvl) {
       boosters:       { hammer: 0, bomb: 0, shuffle: 0 }
     };
   }
+
   const t = (lvl - 81) / 9;
   return {
     moves:          20,
@@ -600,9 +611,13 @@ function startLevelLogic(lvl) {
   const era = getCurrentEraForLevel(lvl);
 
   if (lvl <= 20) {
-    const challengeItem = era.items[(lvl - 1) % era.items.length];
+    // IMPORTANT: challenge item must come from the same reduced 3-item pool
+    // the board actually spawns (generateBoard only ever uses the first 3
+    // items of an era). Picking from all 4 era.items caused levels to ask
+    // for a tile that could never appear on the board.
+    const boardPool     = era.items.slice(0, 3);
+    const challengeItem = boardPool[(lvl - 1) % boardPool.length];
     const clearCount    = 6 + Math.floor(lvl * 0.4);
-
     gameState.challengeTarget   = { item: challengeItem, count: clearCount };
     gameState.challengeProgress = 0;
     gameState.levelMode         = 'tile';
@@ -611,7 +626,6 @@ function startLevelLogic(lvl) {
     document.getElementById("movesDisplay").innerText  = gameState.moves;
     document.getElementById("targetDisplay").innerText = `0/${clearCount}`;
     document.getElementById("scoreDisplay").innerText  = 0;
-
     const banner = document.getElementById("challengeBanner");
     if (banner) banner.innerText = `Clear ${clearCount} ${challengeItem} to pass this level!`;
   } else {
@@ -623,11 +637,11 @@ function startLevelLogic(lvl) {
     document.getElementById("movesDisplay").innerText  = gameState.moves;
     document.getElementById("targetDisplay").innerText = diff.targetScore.toLocaleString();
     document.getElementById("scoreDisplay").innerText  = 0;
-
     const banner = document.getElementById("challengeBanner");
     if (banner) banner.innerText = `Score ${diff.targetScore.toLocaleString()} pts before moves run out!`;
   }
 
+  applyEraTheme(era);
   updateBoosterUI();
   switchView("gamePlayScreen");
   generateBoard(era.items);
@@ -657,12 +671,14 @@ function showEraUnlockToast(eraName) {
 
 function generateBoard(itemSet) {
   const reduced = itemSet.slice(0, 3);
+
   for (let r = 0; r < BOARD_SIZE; r++) {
     gameState.grid[r] = [];
     for (let c = 0; c < BOARD_SIZE; c++) {
       gameState.grid[r][c] = randomItem(reduced);
     }
   }
+
   let guard = 0;
   while (findBoardMatches().matches.length > 0 && guard < 50) {
     resolveSilentMatches(reduced); guard++;
@@ -747,7 +763,9 @@ function applyGravityAndRefill(items) {
       const v = gameState.grid[r][c];
       if (v !== null && v !== undefined && v !== '') survive.push(v);
     }
+
     while (survive.length < BOARD_SIZE) survive.push(randomItem(pool));
+
     for (let r = BOARD_SIZE - 1; r >= 0; r--) {
       gameState.grid[r][c] = survive[BOARD_SIZE - 1 - r];
     }
@@ -762,6 +780,7 @@ function applyGravityAndRefill(items) {
   }
 
   renderBoard();
+
   for (let r = 0; r < BOARD_SIZE; r++)
     for (let c = 0; c < BOARD_SIZE; c++)
       if (gameState.grid[r][c] !== DISCO_BALL) animateDrop(r, c);
@@ -804,6 +823,7 @@ function activateDiscoBall(r, c, targetItem) {
   }
 
   gameState.grid[r][c] = null;
+
   for (let row = 0; row < BOARD_SIZE; row++)
     for (let col = 0; col < BOARD_SIZE; col++)
       if (gameState.grid[row][col] === targetItem) {
@@ -830,7 +850,6 @@ function swapTiles(r1, c1, r2, c2) {
     const discoR  = v1 === DISCO_BALL ? r1 : r2;
     const discoC  = v1 === DISCO_BALL ? c1 : c2;
     const target  = v1 === DISCO_BALL ? v2 : v1;
-
     gameState.moves--;
     document.getElementById("movesDisplay").innerText = gameState.moves;
     gameState.selectedTile = null;
@@ -841,16 +860,13 @@ function swapTiles(r1, c1, r2, c2) {
 
   gameState.grid[r1][c1] = v2;
   gameState.grid[r2][c2] = v1;
-
   gameState.moves--;
   document.getElementById("movesDisplay").innerText = gameState.moves;
   triggerVibration(40);
   gameState.selectedTile = null;
-
   renderBoard();
   animateSwap(r1, c1);
   animateSwap(r2, c2);
-
   setTimeout(checkChallengeAndScore, 300);
 }
 
@@ -922,7 +938,6 @@ function checkChallengeAndScore() {
 
   const gained = matches.length * pts;
   const prevScore = gameState.score;
-
   gameState.score += gained;
   document.getElementById('scoreDisplay').innerText = gameState.score.toLocaleString();
   bumpStat('scoreDisplay');
@@ -959,7 +974,6 @@ function checkChallengeAndScore() {
     if (gameState.challengeTarget && gameState.grid[p.r][p.c] === gameState.challengeTarget.item)
       gameState.challengeProgress++;
   });
-
   updateChallengeBanner();
 
   const discoBallPos = [];
@@ -975,10 +989,12 @@ function checkChallengeAndScore() {
 
   setTimeout(() => {
     applyGravityAndRefill(pool);
+
     discoBallPos.forEach(p => {
       gameState.grid[p.r][p.c] = DISCO_BALL;
     });
     if (discoBallPos.length > 0) renderBoard();
+
     setTimeout(evaluateLevelEndConditions, 300);
   }, 420);
 }
@@ -1019,10 +1035,10 @@ function evaluateLevelEndConditions() {
   } else {
     if (gameState.score >= gameState.targetScore) { setTimeout(win, 400); return; }
   }
-
   if (gameState.moves <= 0) {
     setTimeout(() => {
       gameState.isGameActive = false;
+
       if (gameState.lifeShield) {
         gameState.lifeShield = false;
         localStorage.removeItem("chrono_shield");
@@ -1032,6 +1048,7 @@ function evaluateLevelEndConditions() {
         gameState.lives = Math.max(0, gameState.lives - 1);
         localStorage.setItem("chrono_lives", gameState.lives);
         updateLivesDisplay();
+
         if (gameState.lives === 0) {
           if (!localStorage.getItem('chrono_life_refill_at')) {
             localStorage.setItem('chrono_life_refill_at', Date.now() + LIFE_REFILL_MS);
@@ -1046,6 +1063,7 @@ function evaluateLevelEndConditions() {
 
 function showFailModal(shieldSaved) {
   const pct = Math.round((gameState.score / gameState.targetScore) * 100);
+
   let title, subtext;
   if (shieldSaved) {
     title   = "SHIELD SAVED YOU!";
@@ -1092,7 +1110,6 @@ function backToMapAfterFail() {
 function win() {
   gameState.isGameActive = false;
   triggerVibration([100,40,100,40,300]);
-
   const stars = gameState.score > gameState.targetScore * 1.4 ? 3
               : gameState.score > gameState.targetScore * 1.1 ? 2 : 1;
   gameState.levelRecords[gameState.currentLevel] = stars;
@@ -1107,15 +1124,14 @@ function win() {
 
   gameState.gold += 10 * stars;
   localStorage.setItem("chrono_gold", gameState.gold);
-
   if (gameState.currentLevel === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < gameState.totalLevels) {
     gameState.highestUnlockedLevel++;
     localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel);
   }
-
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
   trackDailyWin();
   checkAwardsBadge();
+
   const justCompletedEra = checkEraCompletion(gameState.currentLevel);
 
   switchView("homePage");
@@ -1209,15 +1225,19 @@ function setAuthBtnLoading(btnId, loading, originalHTML) {
 
 async function handleSocialAuth(provider) {
   initAudio();
+
   if (window._firebaseReady) {
     const btnId = 'googleSignInBtn';
     setAuthBtnLoading(btnId, true);
+
     try {
       let user = null;
       if (provider === 'google') {
         user = await window.firebaseSignInGoogle();
       }
+
       setAuthBtnLoading(btnId, false);
+
       if (user) {
         window.afterFirebaseAuth(user);
       } else {
@@ -1229,6 +1249,7 @@ async function handleSocialAuth(provider) {
     }
     return;
   }
+
   showAuthSetupNotice(provider);
 }
 
@@ -1295,8 +1316,10 @@ function confirmTermsAndProceed() {
     modal.classList.remove('visible');
     modal.style.display = 'none';
   }
+
   const provider = _pendingAuthProvider;
   _pendingAuthProvider = null;
+
   setTimeout(() => {
     if (provider === 'guest') {
       _doGuestAuth();
@@ -1334,6 +1357,7 @@ function afterAuthSuccess() {
 function handleNotifPermission(allow) {
   toggleModal('notifModal', false);
   localStorage.setItem('chrono_notif_asked', '1');
+
   if (allow && 'Notification' in window) {
     Notification.requestPermission().then(perm => {
       localStorage.setItem('chrono_notif_perm', perm);
@@ -1344,6 +1368,7 @@ function handleNotifPermission(allow) {
   } else {
     localStorage.setItem('chrono_notif_perm', 'denied');
   }
+
   triggerFlashAnimation();
   switchView('welcomeScreen');
 }
@@ -1399,7 +1424,6 @@ function buyItem(type, cost) {
     showShopToast("Not enough gold! 🪙 Buy more below.", 'error');
     return;
   }
-
   gameState.gold -= cost;
 
   switch(type) {
@@ -1452,10 +1476,8 @@ function buyItem(type, cost) {
 
   const profileGold = document.getElementById("profileGold");
   if (profileGold) profileGold.innerText = gameState.gold;
-
   const shopDisp = document.getElementById("shopGoldDisplay");
   if (shopDisp) shopDisp.textContent = gameState.gold.toLocaleString();
-
   bumpGoldPill();
   updateBoosterUI();
   triggerVibration(40);
@@ -1478,93 +1500,128 @@ function showShopToast(msg, type) {
   toast.style.borderColor = type === 'error' ? 'rgba(163,42,42,0.7)' : 'rgba(212,175,55,0.4)';
   toast.textContent = msg;
   toast.style.opacity = '1';
-
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2200);
 }
 
-const PAYFAST_CONFIG = {
-  merchant_id:  'YOUR_MERCHANT_ID',
-  merchant_key: 'YOUR_MERCHANT_KEY',
-  sandbox:      true,
-  notify_url:   ''
+// ══════════════════════════════════════════════════════════════
+// GOOGLE PLAY BILLING — placeholder scaffold
+//
+// SETUP (once closed testing passes and you're ready to sell gold):
+// 1. In Play Console → Monetize → Products → In-app products, create
+//    one managed product per packageId below with matching Product ID.
+// 2. Set PLAY_BILLING_ENABLED = true.
+// 3. This uses the Digital Goods API + PaymentRequest, the standard
+//    path for a TWA/PWA wrapped via PWABuilder and published on Play.
+// 4. Purchase tokens should be verified server-side (Cloud Function +
+//    Play Developer API) before granting gold in production — this
+//    client-side grant is fine for testing but not for launch.
+// ══════════════════════════════════════════════════════════════
+const PLAY_BILLING_ENABLED = false; // flip to true once Play Console products exist
+
+const PLAY_BILLING_PRODUCT_IDS = {
+  '500gold':  'gold_500',
+  '1000gold': 'gold_1000',
+  '2500gold': 'gold_2500',
+  '6000gold': 'gold_6000'
 };
 
-function getPayfastUrls() {
-  const base = window.location.origin + window.location.pathname;
-  return {
-    return_url: base + '?payment=success',
-    cancel_url: base + '?payment=cancel'
-  };
+let _digitalGoodsService = null;
+async function getDigitalGoodsService() {
+  if (_digitalGoodsService) return _digitalGoodsService;
+  if ('getDigitalGoodsService' in window) {
+    try {
+      _digitalGoodsService = await window.getDigitalGoodsService('https://play.google.com/billing');
+      return _digitalGoodsService;
+    } catch (e) {
+      console.warn('Digital Goods Service unavailable:', e);
+    }
+  }
+  return null;
 }
 
 let pendingPayment = null;
 
-function initiatePayment(packageId, amountZAR, goldCoins) {
-  pendingPayment = { packageId, amountZAR, goldCoins };
+function initiatePayment(packageId, displayPrice, goldCoins) {
+  pendingPayment = { packageId, displayPrice, goldCoins };
+
   const labels = {
     '500gold':  'Starter Pouch — 500 Gold',
     '1000gold': 'Gold Pouch — 1,000 Gold',
     '2500gold': 'Gold Chest — 2,500 Gold',
     '6000gold': 'Gold Vault — 6,000 Gold',
   };
+
   document.getElementById('paymentModalTitle').textContent = labels[packageId] || 'Buy Gold';
   document.getElementById('paymentGoldAmt').textContent    = goldCoins.toLocaleString();
-  document.getElementById('paymentModalPrice').textContent = `R ${amountZAR}`;
+  document.getElementById('paymentModalPrice').textContent = displayPrice;
+
   toggleModal('paymentModal', true);
 }
 
-function confirmPayment() {
-  if (!pendingPayment) return;
-  const { packageId, amountZAR, goldCoins } = pendingPayment;
+function _grantGoldTestMode(goldCoins, note) {
+  gameState.gold += goldCoins;
+  localStorage.setItem('chrono_gold', gameState.gold);
+  const pg = document.getElementById('profileGold');
+  if (pg) pg.innerText = gameState.gold;
+  const sd = document.getElementById('shopGoldDisplay');
+  if (sd) sd.textContent = gameState.gold.toLocaleString();
+  bumpGoldPill();
+  showShopToast('🪙 +' + goldCoins.toLocaleString() + ' Gold added!' + (note ? ' (' + note + ')' : ''));
+  toggleModal('paymentModal', false);
+  pendingPayment = null;
+}
 
-  if (PAYFAST_CONFIG.merchant_id === 'YOUR_MERCHANT_ID') {
-    gameState.gold += goldCoins;
-    localStorage.setItem('chrono_gold', gameState.gold);
-    const pg = document.getElementById('profileGold');
-    if (pg) pg.innerText = gameState.gold;
-    const sd = document.getElementById('shopGoldDisplay');
-    if (sd) sd.textContent = gameState.gold.toLocaleString();
-    bumpGoldPill();
-    showShopToast('🪙 +' + goldCoins.toLocaleString() + ' Gold added! (Test mode)');
-    toggleModal('paymentModal', false);
-    pendingPayment = null;
+async function confirmPayment() {
+  if (!pendingPayment) return;
+  const { packageId, goldCoins } = pendingPayment;
+
+  // Not yet configured in Play Console — grant in test mode so the
+  // shop flow is fully testable before billing goes live.
+  if (!PLAY_BILLING_ENABLED) {
+    _grantGoldTestMode(goldCoins, 'Test mode — Play Billing not yet configured');
     return;
   }
 
-  const host = PAYFAST_CONFIG.sandbox
-    ? 'https://sandbox.payfast.co.za/eng/process'
-    : 'https://www.payfast.co.za/eng/process';
-  const urls   = getPayfastUrls();
-  const params = {
-    merchant_id:      PAYFAST_CONFIG.merchant_id,
-    merchant_key:     PAYFAST_CONFIG.merchant_key,
-    return_url:       urls.return_url,
-    cancel_url:       urls.cancel_url,
-    amount:           amountZAR.toFixed(2),
-    item_name:        'CHRONOCRUSH ' + goldCoins.toLocaleString() + ' Gold Coins',
-    item_description: goldCoins + ' gold coins for CHRONOCRUSH',
-    custom_str1:      packageId,
-    custom_str2:      String(goldCoins)
-  };
+  const productId = PLAY_BILLING_PRODUCT_IDS[packageId];
+  if (!productId) {
+    showShopToast('Product not configured.', 'error');
+    return;
+  }
 
-  if (PAYFAST_CONFIG.notify_url) params.notify_url = PAYFAST_CONFIG.notify_url;
+  try {
+    const paymentMethodData = [{
+      supportedMethods: 'https://play.google.com/billing',
+      data: { sku: productId }
+    }];
+    const paymentDetails = {
+      total: {
+        label: 'CHRONOCRUSH Gold',
+        amount: { currency: 'USD', value: '0' } // actual price set in Play Console
+      }
+    };
 
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = host;
-  Object.entries(params).forEach(function(entry) {
-    var inp = document.createElement('input');
-    inp.type  = 'hidden';
-    inp.name  = entry[0];
-    inp.value = entry[1];
-    form.appendChild(inp);
-  });
-  document.body.appendChild(form);
-  form.submit();
+    const request = new PaymentRequest(paymentMethodData, paymentDetails);
+    const paymentResponse = await request.show();
+
+    // ── In production: send paymentResponse.details.purchaseToken to your
+    //    backend, verify with the Play Developer API, THEN grant gold and
+    //    call acknowledge()/consume() on the Digital Goods Service. ──
+    await paymentResponse.complete('success');
+
+    _grantGoldTestMode(goldCoins, null);
+  } catch (err) {
+    console.warn('Play Billing purchase failed or cancelled:', err);
+    showShopToast('Purchase cancelled or unavailable.', 'error');
+    toggleModal('paymentModal', false);
+    pendingPayment = null;
+  }
 }
 
 function checkPaymentReturn() {
+  // Play Billing purchases resolve via PaymentRequest directly (no
+  // redirect round-trip needed), so this is kept only for backward
+  // compatibility with any old ?payment= links already shared.
   const params = new URLSearchParams(window.location.search);
   const result = params.get('payment');
   if (result === 'success') {
@@ -1594,14 +1651,17 @@ function getEraTrophy(era) {
   const levelRecords = gameState.levelRecords;
   let totalStars = 0;
   let completedLevels = 0;
+
   for (let lvl = era.startLvl; lvl <= era.endLvl; lvl++) {
     if (levelRecords[lvl]) {
       totalStars += levelRecords[lvl];
       completedLevels++;
     }
   }
+
   const totalLevels = era.endLvl - era.startLvl + 1;
   if (completedLevels < totalLevels) return { tier: 'locked', completedLevels, totalLevels, totalStars };
+
   const avgStars = totalStars / totalLevels;
   if (avgStars >= 2.5) return { tier: 'gold',   completedLevels, totalLevels, totalStars };
   if (avgStars >= 1.8) return { tier: 'silver', completedLevels, totalLevels, totalStars };
@@ -1615,6 +1675,7 @@ const TROPHY_LABELS = { gold: 'GOLD', silver: 'SILVER', bronze: 'BRONZE', locked
 function openAwardsPage() {
   const body = document.getElementById('awardsBody');
   if (!body) return;
+
   let html = `<p class="awards-intro">Complete all 10 levels of an era to earn a trophy.<br>Higher average stars = better trophy.</p>`;
   html += `<div class="era-trophy-grid">`;
 
@@ -1623,8 +1684,8 @@ function openAwardsPage() {
     const { tier, completedLevels, totalLevels, totalStars } = result;
     const pct = Math.round((completedLevels / totalLevels) * 100);
     const maxStars = totalLevels * 3;
-    let starsHtml = '';
 
+    let starsHtml = '';
     if (tier !== 'locked') {
       const avg = totalStars / totalLevels;
       const fullStars = Math.floor(avg);
@@ -1671,11 +1732,13 @@ function getDailyTasks() {
   const seed = getDailySeed();
   const currentEra = getCurrentEraForLevel(gameState.highestUnlockedLevel);
   const eraIdx = eraTimeline.indexOf(currentEra);
+
   const eraResult = getEraTrophy(currentEra);
   const eraComplete = eraResult.tier !== 'locked';
 
   const dailyWinsKey = `chrono_daily_wins_${getDailySeed()}`;
   const dailyWins = parseInt(localStorage.getItem(dailyWinsKey)) || 0;
+
   const targetLvl = currentEra.startLvl + seededRand(seed, 10);
   const has3Star  = (gameState.levelRecords[targetLvl] || 0) >= 3;
 
@@ -1769,6 +1832,7 @@ function openDailyChallenge() {
   const allDone = tasks.every(t => t.done);
   const badge   = document.getElementById('dailyBadge');
   if (badge) badge.style.display = allDone ? 'none' : 'block';
+
   switchView('dailyPage');
 }
 
@@ -1776,6 +1840,7 @@ function trackDailyWin() {
   const key = `chrono_daily_wins_${getDailySeed()}`;
   const wins = (parseInt(localStorage.getItem(key)) || 0) + 1;
   localStorage.setItem(key, wins);
+
   if (wins === 3) {
     gameState.gold += 60;
     localStorage.setItem("chrono_gold", gameState.gold);
@@ -1818,7 +1883,6 @@ function showEraTrophyModal(era) {
 
   const card = document.getElementById('eraTrophyCard');
   card.className = `era-trophy-modal-card card-${tier}`;
-
   document.getElementById('eraTrophyIcon').textContent  = trophyIcon;
   document.getElementById('eraTrophyTier').textContent  = tierLabel;
   document.getElementById('eraTrophyEra').textContent   = era.name;
@@ -1855,6 +1919,7 @@ function spawnTrophyBurst(tier) {
   };
   const colors = colorMap[tier] || colorMap.gold;
   const cx = window.innerWidth / 2, cy = window.innerHeight * 0.4;
+
   for (let b = 0; b < 4; b++) {
     const ox = cx + (Math.random() * 260 - 130);
     const oy = cy + (Math.random() * 120 - 60);
@@ -1877,7 +1942,6 @@ function spawnTrophyBurst(tier) {
 function runTrophyFireworks() {
   if (!trophyFxCtx) return;
   trophyFxCtx.clearRect(0, 0, trophyFxCanvas.width, trophyFxCanvas.height);
-
   for (let i = trophyFxParticles.length - 1; i >= 0; i--) {
     const p = trophyFxParticles[i];
     p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= p.decay;
@@ -1899,7 +1963,6 @@ function runTrophyFireworks() {
       spawnTrophyBurst(tier);
     }
   }
-
   trophyFxId = requestAnimationFrame(runTrophyFireworks);
 }
 
@@ -1965,8 +2028,8 @@ function openAnnouncementsPage() {
   if (badge) badge.style.display = 'none';
 
   const tagClass = { update: 'ann-tag-update', feature: 'ann-tag-feature', event: 'ann-tag-event', tip: 'ann-tag-tip' };
-  let html = '';
 
+  let html = '';
   ANNOUNCEMENTS.forEach(ann => {
     const isUnseen = newIds.includes(ann.id);
     html += `
@@ -2038,7 +2101,6 @@ function showDailyRewardModal() {
       if (i < dayIndex)        cls += ' claimed';
       else if (i === dayIndex) cls += ' today';
       else                     cls += ' locked';
-
       div.className = cls;
       div.innerHTML = `<span class="streak-day-icon">${r.icon}</span><span>Day ${r.day}</span>`;
       strip.appendChild(div);
@@ -2091,20 +2153,24 @@ function claimDailyReward() {
 function checkAwardsBadge() {
   const badge = document.getElementById('awardsBadge');
   if (!badge) return;
+
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
+
   const hasNewTrophy = eraTimeline.some(era => {
     const result = getEraTrophy(era);
     if (result.tier === 'locked') return false;
     const trophyId = era.name + '_' + result.tier;
     return !viewed.includes(trophyId);
   });
+
   badge.style.display = hasNewTrophy ? 'inline' : 'none';
 }
 
 const _origOpenAwards = openAwardsPage;
 openAwardsPage = function() {
   _origOpenAwards();
+
   const viewedKey = 'chrono_viewed_trophies';
   const viewed    = JSON.parse(localStorage.getItem(viewedKey) || '[]');
   eraTimeline.forEach(era => {
@@ -2114,6 +2180,7 @@ openAwardsPage = function() {
     if (!viewed.includes(trophyId)) viewed.push(trophyId);
   });
   localStorage.setItem(viewedKey, JSON.stringify(viewed));
+
   const badge = document.getElementById('awardsBadge');
   if (badge) badge.style.display = 'none';
 };
@@ -2127,6 +2194,7 @@ checkDailyBadge = function() {
 };
 
 let _termsCalledFrom = 'settings';
+
 function openTermsPage() {
   _termsCalledFrom = document.querySelector('.full-screen-view.active')?.id || 'homePage';
   toggleModal('settingsModal', false);
@@ -2165,6 +2233,7 @@ function toggleDeactivateBtn() {
 async function executeDeactivation() {
   const btn = document.getElementById('deactivateConfirmBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+
   try {
     if (window._firebaseReady && window.firebaseDeleteAccount) {
       await window.firebaseDeleteAccount();
@@ -2174,6 +2243,7 @@ async function executeDeactivation() {
   }
 
   localStorage.clear();
+
   gameState.gold                 = 100;
   gameState.lives                = 5;
   gameState.highestUnlockedLevel = 1;
@@ -2185,6 +2255,7 @@ async function executeDeactivation() {
   gameState.boosters             = { hammer: 3, bomb: 3, shuffle: 3 };
 
   toggleModal('deactivateModal', false);
+
   setTimeout(() => {
     alert('Your account has been permanently deleted. Thank you for playing CHRONOCRUSH.');
     location.reload();
@@ -2407,7 +2478,6 @@ const QUIZ_QUESTIONS = [
 function getQuizDayKey() {
   return 'chrono_quiz_' + new Date().toDateString();
 }
-
 function getQuizAnsweredKey() {
   return 'chrono_quiz_answered_' + new Date().toDateString();
 }
@@ -2492,6 +2562,7 @@ function openQuizPage() {
           <div class="quiz-option-text">${opt}</div>
         </button>`;
     });
+
     html += `</div>`;
   }
 
@@ -2590,6 +2661,7 @@ function updateLivesDisplay() {
 
 function startLifeRefillTimer() {
   if (_lifeRefillTicker) { clearInterval(_lifeRefillTicker); _lifeRefillTicker = null; }
+
   const bar = document.getElementById('lifeRefillBar');
   if (!bar) return;
 
@@ -2619,8 +2691,8 @@ function tickLifeRefill(refillAt) {
   const bar      = document.getElementById('lifeRefillBar');
   const timerEl  = document.getElementById('lifeRefillTimer');
   const fillEl   = document.getElementById('lifeRefillFill');
-  if (!bar) return;
 
+  if (!bar) return;
   bar.style.display = 'block';
 
   function update() {
@@ -2632,7 +2704,6 @@ function tickLifeRefill(refillAt) {
     const h  = Math.floor(remaining / 3600000);
     const m  = Math.floor((remaining % 3600000) / 60000);
     const s  = Math.floor((remaining % 60000) / 1000);
-
     const hh = String(h).padStart(2, '0');
     const mm = String(m).padStart(2, '0');
     const ss = String(s).padStart(2, '0');
@@ -2655,6 +2726,7 @@ function grantLifeRefill() {
   gameState.lives = MAX_LIVES;
   localStorage.setItem('chrono_lives', MAX_LIVES);
   localStorage.removeItem('chrono_life_refill_at');
+
   updateLivesDisplay();
 
   const bar = document.getElementById('lifeRefillBar');
