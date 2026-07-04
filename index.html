@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
-  <link rel="stylesheet" href="core-engine/style.css">
-  <link rel="stylesheet" href="core-engine/polish.css">
+  <link rel="stylesheet" href="core-engine/style.css?v=32">
+  <link rel="stylesheet" href="core-engine/polish.css?v=32">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -17,12 +17,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 
-  <!-- ══ Firebase SDK ══════════════════════════════════════════
-       1. Go to https://console.firebase.google.com
-       2. Create a project → Add a Web App → copy the firebaseConfig
-       3. Enable Authentication → Sign-in methods → Google
-       4. Replace the firebaseConfig object below with your own values
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- ══ Firebase SDK ══════════════════════════════════════════ -->
   <script type="module">
     import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithRedirect, getRedirectResult, signOut,
@@ -38,7 +33,6 @@
       appId:             "1:141039557626:web:31ded9bf8827702806a243"
     };
 
-    // Only initialise if config is filled in
     const FIREBASE_READY = true; // Firebase configured ✓
 
     let auth = null;
@@ -46,7 +40,6 @@
       const app = initializeApp(firebaseConfig);
       auth = getAuth(app);
 
-      // If player is already signed in, skip straight to game
       onAuthStateChanged(auth, user => {
         if (user && document.getElementById('authScreen').classList.contains('active')) {
           window._firebaseUser = user;
@@ -55,10 +48,8 @@
       });
     }
 
-    // Expose sign-in functions to global scope so logic.js can call them
     window._firebaseReady = FIREBASE_READY;
 
-    // Handle redirect result when page loads (after Google sign-in redirect)
     if (FIREBASE_READY) {
       getRedirectResult(auth).then(result => {
         if (result && result.user) {
@@ -83,21 +74,17 @@
       }
     };
 
-
     window.firebaseSignOut = async function() {
       if (auth) await signOut(auth);
     };
 
-    // Delete the Firebase Auth account entirely (called on deactivation)
     window.firebaseDeleteAccount = async function() {
       if (!auth || !auth.currentUser) return;
-      // Import deleteUser inline
       const { deleteUser } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
       try {
         await deleteUser(auth.currentUser);
       } catch(err) {
         if (err.code === 'auth/requires-recent-login') {
-          // Re-authenticate with Google then retry
           const { GoogleAuthProvider, reauthenticateWithPopup } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
           const provider = new GoogleAuthProvider();
           await reauthenticateWithPopup(auth.currentUser, provider);
@@ -113,7 +100,6 @@
 
   <!-- ============================================================
        COSMIC BACKDROP — navy starfield + drifting clouds
-       Sits behind every screen via z-index: 0
        ============================================================ -->
   <div id="cosmicBackdrop">
     <div id="starLayer"></div>
@@ -144,13 +130,12 @@
   <div id="authScreen" class="full-screen-view">
     <div class="auth-card">
 
-      <!-- Logo / branding -->
       <div class="auth-record-wrap">
         <div class="auth-record-spin">💿</div>
       </div>
       <h1 class="game-brand-title">CHRONOCRUSH</h1>
       <p class="game-brand-tagline">The Era Odyssey</p>
-      <p class="auth-welcome-msg">Match tiles across 7 musical eras.<br>Your journey through time starts here.</p>
+      <p class="auth-welcome-msg">Match tiles across 9 musical eras.<br>Your journey through time starts here.</p>
 
       <div class="auth-divider-label">Sign in to save your progress</div>
 
@@ -182,7 +167,7 @@
   </div>
 
   <!-- ============================================================
-       TERMS AGREEMENT POPUP — shown after sign-in choice, before game
+       TERMS AGREEMENT POPUP
        ============================================================ -->
   <div id="termsAgreeModal" class="modal-overlay">
     <div class="modal-window terms-agree-window">
@@ -256,7 +241,6 @@
     </div>
 
     <main class="map-scroll-viewport">
-      <!-- Top-left corner badge: black record disk showing current/next level + lives -->
       <div class="map-corner-badge">
         <div class="mini-record-disk" id="mapCornerLevelDisk">1</div>
         <span class="badge-lives">❤️ <span id="mapCornerLives">5</span></span>
@@ -296,7 +280,7 @@
        ============================================================ -->
   <div id="shopPage" class="full-screen-view generic-subpage">
     <header class="subpage-header">
-      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <button class="btn-back" onclick="closeShop()">◀ Back</button>
       <h2>🛒 TIME SHOP</h2>
     </header>
     <div class="subpage-body scrollable-content">
@@ -357,7 +341,7 @@
 
       <!-- ── Section 2: Buy gold with real money ────────────────── -->
       <div class="shop-section-label">💎 Buy Gold  <span>top up with real money</span></div>
-      <p class="shop-iap-note">Secure payments via PayFast · South African Rand (ZAR)</p>
+      <p class="shop-iap-note">Secure payments via Google Play · Billing handled by the Play Store</p>
 
       <div class="shop-iap-grid">
 
@@ -365,7 +349,7 @@
           <div class="iap-coins">🪙 500</div>
           <div class="iap-label">Starter Pouch</div>
           <div class="iap-price">R 50</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('500gold', 50, 500)">Buy Now</button>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('500gold', 'R 50', 500)">Buy Now</button>
         </div>
 
         <div class="shop-iap-card iap-popular">
@@ -373,21 +357,21 @@
           <div class="iap-coins">🪙 1,000</div>
           <div class="iap-label">Gold Pouch</div>
           <div class="iap-price">R 100</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 100, 1000)">Buy Now</button>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 'R 100', 1000)">Buy Now</button>
         </div>
 
         <div class="shop-iap-card">
           <div class="iap-coins">🪙 2,500</div>
           <div class="iap-label">Gold Chest</div>
           <div class="iap-price">R 200</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('2500gold', 200, 2500)">Buy Now</button>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('2500gold', 'R 200', 2500)">Buy Now</button>
         </div>
 
         <div class="shop-iap-card">
           <div class="iap-coins">🪙 6,000</div>
           <div class="iap-label">Gold Vault</div>
           <div class="iap-price">R 400</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('6000gold', 400, 6000)">Buy Now</button>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('6000gold', 'R 400', 6000)">Buy Now</button>
         </div>
 
       </div>
@@ -398,7 +382,7 @@
   </div>
 
   <!-- ============================================================
-       PAYMENT MODAL — PayFast redirect confirmation
+       PAYMENT MODAL — Google Play Billing confirmation
        ============================================================ -->
   <div id="paymentModal" class="modal-overlay">
     <div class="modal-window payment-modal-window">
@@ -410,8 +394,8 @@
         <span class="payment-modal-price-label">Total</span>
         <span class="payment-modal-price-amt" id="paymentModalPrice">R 100</span>
       </div>
-      <p class="payment-modal-secure">🔒 Secure payment via PayFast</p>
-      <button class="payment-confirm-btn" id="paymentConfirmBtn" onclick="confirmPayment()">Pay with PayFast</button>
+      <p class="payment-modal-secure">🔒 Secure payment via Google Play</p>
+      <button class="payment-confirm-btn" id="paymentConfirmBtn" onclick="confirmPayment()">Buy via Google Play</button>
       <button class="payment-cancel-btn" onclick="toggleModal('paymentModal', false)">Cancel</button>
     </div>
   </div>
@@ -460,8 +444,6 @@
 
   <!-- ============================================================
        LEVEL TRANSITION SCREEN
-       Two panels slide in from top + bottom and meet in the middle,
-       then a record spins with "LOADING!" text, then level starts.
        ============================================================ -->
   <div id="levelTransitionScreen" class="full-screen-view level-transition-screen">
     <div class="transition-panel-top" id="transitionPanelTop"></div>
@@ -526,7 +508,7 @@
   </div>
 
   <!-- ============================================================
-       LEVEL READY MODAL — record disc, do not change structure
+       LEVEL READY MODAL
        ============================================================ -->
   <div id="levelReadyModal" class="modal-overlay">
     <div class="record-modal-disc">
@@ -541,7 +523,7 @@
   </div>
 
   <!-- ============================================================
-       LEVEL SUCCESS MODAL — record disc + fireworks, do not change
+       LEVEL SUCCESS MODAL
        ============================================================ -->
   <div id="levelSuccessModal" class="modal-overlay">
     <canvas id="fireworksCanvas"></canvas>
@@ -560,7 +542,7 @@
   </div>
 
   <!-- ============================================================
-       LEVEL FAIL MODAL — record disc style, mirrors success modal
+       LEVEL FAIL MODAL
        ============================================================ -->
   <div id="levelFailModal" class="modal-overlay">
     <div class="record-modal-disc fail-disc">
@@ -655,7 +637,7 @@
           <div class="htp-step-num">6</div>
           <div class="htp-step-body">
             <h3>Conquer the Eras</h3>
-            <p>There are <strong>7 musical eras</strong> — from 1940s Noir to 2000s Y2K Pop — each with 10 levels and unique tiles. Complete an era to earn a <strong>🥇 Gold, 🥈 Silver, or 🥉 Bronze Trophy!</strong></p>
+            <p>There are <strong>9 musical eras</strong> — from 1940s Noir to the 2002 Flip Phone Era — each with 10 levels and unique tiles. Complete an era to earn a <strong>🥇 Gold, 🥈 Silver, or 🥉 Bronze Trophy!</strong></p>
           </div>
         </div>
 
@@ -674,7 +656,7 @@
   </div>
 
   <!-- ============================================================
-       ERA TROPHY MODAL — shown when player completes a full era
+       ERA TROPHY MODAL
        ============================================================ -->
   <div id="eraTrophyModal" class="modal-overlay">
     <canvas id="trophyFireworksCanvas"></canvas>
@@ -714,12 +696,10 @@
         <div class="daily-reward-subtitle">Come back every day for bigger rewards</div>
       </div>
 
-      <!-- 7-day streak strip -->
       <div class="daily-streak-strip" id="dailyStreakStrip">
         <!-- Populated by JS -->
       </div>
 
-      <!-- Today's reward showcase -->
       <div class="daily-reward-showcase" id="dailyRewardShowcase">
         <div class="daily-reward-icon" id="dailyRewardIcon">🪙</div>
         <div class="daily-reward-amount" id="dailyRewardAmount">+100 Gold</div>
@@ -899,7 +879,7 @@
   </div>
 
   <div id="portalFlash"></div>
-  <script src="core-engine/logic.js"></script>
+  <script src="core-engine/logic.js?v=32"></script>
 
   <!-- Register Service Worker -->
   <script>
@@ -913,4 +893,3 @@
   </script>
 </body>
 </html>
-<!-- DEPLOY -->
