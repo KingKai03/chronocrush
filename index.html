@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
-  <link rel="stylesheet" href="core-engine/style.css?v=32">
-  <link rel="stylesheet" href="core-engine/polish.css?v=32">
+  <link rel="stylesheet" href="core-engine/style.css?v=33">
+  <link rel="stylesheet" href="core-engine/polish.css?v=33">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -879,14 +879,43 @@
   </div>
 
   <div id="portalFlash"></div>
-  <script src="core-engine/logic.js?v=32"></script>
+  <script src="core-engine/logic.js?v=33"></script>
 
   <!-- Register Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
+      let _reloadedForUpdate = false;
+
+      // When a new SW takes control, reload once so the fresh code is used
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_reloadedForUpdate) return;
+        _reloadedForUpdate = true;
+        window.location.reload();
+      });
+
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/chronocrush/sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
+          .then(reg => {
+            console.log('SW registered:', reg.scope);
+
+            // If an updated SW is found, ask it to activate right away
+            function promptUpdate(worker) {
+              if (!worker) return;
+              worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                  worker.postMessage('SKIP_WAITING');
+                }
+              });
+            }
+
+            if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+            reg.addEventListener('updatefound', () => promptUpdate(reg.installing));
+
+            // Check for updates whenever the game regains focus
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') reg.update();
+            });
+          })
           .catch(err => console.log('SW failed:', err));
       });
     }
