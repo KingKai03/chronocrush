@@ -1,6 +1,6 @@
 /* ============================================================
    CHRONOCRUSH — logic.js  (DOM grid, no canvas for game board)
-   v32 — challenge-item bug fix, era theming, Google Play Billing
+   v34 — scarce coin economy, era collectibles, difficulty ramp, booster inventory UI
    ============================================================ */
 
 const BOARD_SIZE = 6;
@@ -52,6 +52,132 @@ const eraTimeline = [
 function applyEraTheme(era) {
   document.documentElement.style.setProperty('--era-accent', era.accent);
   document.documentElement.style.setProperty('--era-hue', era.hue + 'deg');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ERA COLLECTIBLES
+// Cosmetic "cool but earned" items — one signature object per era.
+// Players receive ONE random item per week (from eras they've unlocked)
+// as a free reward. These are NOT buyable and do NOT help you win —
+// they're pure collectibles you view in the Collection room. This keeps
+// them special and keeps gold as a purely gameplay currency.
+// ══════════════════════════════════════════════════════════════
+const ERA_COLLECTIBLES = [
+  { era: "1940s Noir",           icon: "📻", name: "Vintage Radio",     blurb: "A walnut-cased wireless that crackled with big-band swing." },
+  { era: "1950s Rockabilly",     icon: "🎸", name: "Electric Guitar",   blurb: "The sound that made a whole generation start to rock." },
+  { era: "1960s Psychedelic",    icon: "🌸", name: "Flower Crown",      blurb: "Peace, love, and a little tie-dye for good measure." },
+  { era: "1970s Disco",          icon: "🪩", name: "Mirror Ball",       blurb: "Spinning light across a thousand dance floors." },
+  { era: "1980s Retro Synth",    icon: "🕹️", name: "Arcade Joystick",   blurb: "Insert coin. High score or bust." },
+  { era: "1990s Grunge",         icon: "🎧", name: "Studio Headphones", blurb: "For blasting your favourite album on repeat." },
+  { era: "2000s Y2K Pop",        icon: "💿", name: "Burned CD",         blurb: "Your ultimate mixtape — 700MB of pure nostalgia." },
+  { era: "2001 Rise of the Web", icon: "💻", name: "Laptop",            blurb: "The world wide web, right on your desk." },
+  { era: "2002 Flip Phone Era",  icon: "📲", name: "Flip Phone",        blurb: "Snap it shut to end the call. Peak drama." }
+];
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Which eras has the player unlocked (reached at least level 1 of)?
+function getUnlockedEraIndexes() {
+  const unlocked = [];
+  eraTimeline.forEach((era, idx) => {
+    if (gameState.highestUnlockedLevel >= era.startLvl) unlocked.push(idx);
+  });
+  return unlocked.length ? unlocked : [0];
+}
+
+function getOwnedCollectibles() {
+  return JSON.parse(localStorage.getItem('chrono_collection') || '[]');
+}
+
+function saveOwnedCollectibles(list) {
+  localStorage.setItem('chrono_collection', JSON.stringify(list));
+}
+
+// Called after every win — grants a weekly free era item if 7 days have
+// passed since the last drop (or on the very first eligible win).
+function checkWeeklyEraItem() {
+  const lastDrop = parseInt(localStorage.getItem('chrono_last_era_item_at'));
+  const now = Date.now();
+
+  if (lastDrop && !isNaN(lastDrop) && (now - lastDrop) < WEEK_MS) return;
+
+  // Pick a random collectible from unlocked eras that the player doesn't
+  // already own; if they own them all, allow a duplicate-free skip.
+  const owned = getOwnedCollectibles();
+  const unlockedIdx = getUnlockedEraIndexes();
+  const candidates = unlockedIdx.filter(idx => !owned.includes(idx));
+
+  if (candidates.length === 0) {
+    // Player owns everything currently unlocked — reset the timer so they
+    // become eligible again once they unlock a new era.
+    localStorage.setItem('chrono_last_era_item_at', now);
+    return;
+  }
+
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  owned.push(pick);
+  saveOwnedCollectibles(owned);
+  localStorage.setItem('chrono_last_era_item_at', now);
+
+  // Queue the reveal to show after the level-success modal
+  gameState._pendingEraItem = pick;
+}
+
+function maybeShowEraItemReward() {
+  if (gameState._pendingEraItem === undefined || gameState._pendingEraItem === null) return;
+  const idx = gameState._pendingEraItem;
+  gameState._pendingEraItem = null;
+  const item = ERA_COLLECTIBLES[idx];
+  if (!item) return;
+
+  const modal = document.getElementById('eraItemModal');
+  if (!modal) return;
+
+  document.getElementById('eraItemIcon').textContent  = item.icon;
+  document.getElementById('eraItemName').textContent  = item.name;
+  document.getElementById('eraItemEra').textContent   = item.era;
+  document.getElementById('eraItemBlurb').textContent = item.blurb;
+
+  toggleModal('eraItemModal', true);
+  triggerVibration([80, 40, 120, 40, 200]);
+}
+
+function closeEraItemReward() {
+  toggleModal('eraItemModal', false);
+  loadHomepage();
+}
+
+function openCollectionPage() {
+  const body = document.getElementById('collectionBody');
+  if (!body) return;
+
+  const owned = getOwnedCollectibles();
+  const unlockedIdx = getUnlockedEraIndexes();
+
+  let html = `<p class="collection-intro">Earn one free era collectible each week.<br>Unlock more eras to widen your collection!</p>`;
+  html += `<div class="collection-progress">${owned.length} / ${ERA_COLLECTIBLES.length} collected</div>`;
+  html += `<div class="collection-grid">`;
+
+  ERA_COLLECTIBLES.forEach((item, idx) => {
+    const isOwned    = owned.includes(idx);
+    const isUnlocked = unlockedIdx.includes(idx);
+    let state = 'locked', display = '❓', sub = 'Locked';
+    if (isOwned)          { state = 'owned';    display = item.icon; sub = 'Collected'; }
+    else if (isUnlocked)  { state = 'unowned';  display = '🎁';      sub = 'Not yet earned'; }
+
+    html += `
+      <div class="collection-card collection-${state}">
+        <div class="collection-icon">${display}</div>
+        <div class="collection-name">${isOwned ? item.name : (isUnlocked ? '???' : 'Locked')}</div>
+        <div class="collection-era">${item.era}</div>
+        ${isOwned ? `<div class="collection-blurb">${item.blurb}</div>` : ''}
+        <div class="collection-state-label">${sub}</div>
+      </div>`;
+  });
+
+  html += `</div>`;
+  body.innerHTML = html;
+  switchView('collectionPage');
 }
 
 document.addEventListener("DOMContentLoaded", boot);
@@ -524,6 +650,29 @@ function advanceToNextLevel() {
 }
 
 function getDifficulty(lvl) {
+  const base = _getBaseDifficulty(lvl);
+
+  // ── MID-ERA PRESSURE RAMP ──
+  // Each era is 10 levels. In the FIRST half of an era, targets are as
+  // tuned. From the midpoint onward, we gently raise the score target
+  // (up to +18% by the last level of the era) and trim one move on the
+  // final two levels. This makes the back half of every era noticeably
+  // tougher, so players burn through boosters and gradually feel a real
+  // reason to top up gold — without an abrupt difficulty wall.
+  const posInEra = (lvl - 1) % 10; // 0..9
+  if (posInEra >= 5) {
+    const rampT = (posInEra - 5) / 4;              // 0 at level 6, 1 at level 10 of the era
+    const scoreMult = 1 + rampT * 0.18;            // up to +18%
+    base.targetScore = Math.round(base.targetScore * scoreMult);
+    if (posInEra >= 8 && base.moves > 15) {
+      base.moves -= 1;                             // last two levels: one fewer move
+    }
+  }
+
+  return base;
+}
+
+function _getBaseDifficulty(lvl) {
   if (lvl <= 9) {
     return {
       moves:          20,
@@ -703,10 +852,30 @@ function selectBooster(type) {
 
 function updateBoosterUI() {
   ['hammer','bomb','shuffle'].forEach(t => {
-    const btn = document.getElementById(`booster${t.charAt(0).toUpperCase()+t.slice(1)}Btn`);
-    const cnt = document.getElementById(`${t}Count`);
-    if (cnt) cnt.innerText = gameState.boosters[t];
-    if (btn) { btn.classList.toggle('selected', gameState.activeBooster === t); btn.disabled = gameState.boosters[t] <= 0; }
+    const btn  = document.getElementById(`booster${t.charAt(0).toUpperCase()+t.slice(1)}Btn`);
+    const cnt  = document.getElementById(`${t}Count`);
+    const have = gameState.boosters[t];
+
+    if (cnt) cnt.innerText = have;
+
+    // The booster slot shows the inventory count when you own at least one,
+    // and swaps to the "+" (buy) button only once you hit zero.
+    const slot = btn ? btn.closest('.booster-slot') : null;
+    if (slot) {
+      const plus = slot.querySelector('.booster-plus-btn');
+      if (have > 0) {
+        if (cnt)  cnt.style.display  = '';
+        if (plus) plus.style.display = 'none';
+      } else {
+        if (cnt)  cnt.style.display  = 'none';
+        if (plus) plus.style.display = '';
+      }
+    }
+
+    if (btn) {
+      btn.classList.toggle('selected', gameState.activeBooster === t);
+      btn.disabled = have <= 0;
+    }
   });
 }
 
@@ -1115,15 +1284,16 @@ function win() {
   gameState.levelRecords[gameState.currentLevel] = stars;
   localStorage.setItem("chrono_level_records", JSON.stringify(gameState.levelRecords));
 
-  gameState.boosters.hammer  += 1;
-  gameState.boosters.bomb    += (stars >= 2 ? 1 : 0);
-  gameState.boosters.shuffle += (stars >= 3 ? 1 : 0);
-
-  // Persist boosters earned from winning a level
-  localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
-
-  gameState.gold += 10 * stars;
+  // ── SCARCE COIN ECONOMY ──
+  // Base 5 coins per level + a modest star bonus (5 / 7 / 9 for 1/2/3 stars).
+  // Across a 10-level era that's ~50-90 coins — enough to feel earned,
+  // never enough to make gold purchases pointless. Free boosters on win
+  // were REMOVED entirely: boosters are now something you spend coins on
+  // or earn sparingly, which is what gives the shop a reason to exist.
+  const coinReward = 5 + (stars >= 3 ? 4 : stars >= 2 ? 2 : 0);
+  gameState.gold += coinReward;
   localStorage.setItem("chrono_gold", gameState.gold);
+
   if (gameState.currentLevel === gameState.highestUnlockedLevel && gameState.highestUnlockedLevel < gameState.totalLevels) {
     gameState.highestUnlockedLevel++;
     localStorage.setItem("chrono_highest_level", gameState.highestUnlockedLevel);
@@ -1131,6 +1301,7 @@ function win() {
   document.getElementById("modalRecordsDisplay").innerHTML = "📀".repeat(stars);
   trackDailyWin();
   checkAwardsBadge();
+  checkWeeklyEraItem();
 
   const justCompletedEra = checkEraCompletion(gameState.currentLevel);
 
@@ -1141,7 +1312,17 @@ function win() {
     setTimeout(() => {
       toggleModal('levelSuccessModal', false);
       showEraTrophyModal(justCompletedEra);
+      // If a weekly item also dropped this win, show it after the trophy
+      if (gameState._pendingEraItem !== null && gameState._pendingEraItem !== undefined) {
+        gameState._eraItemAfterTrophy = true;
+      }
     }, 2200);
+  } else if (gameState._pendingEraItem !== null && gameState._pendingEraItem !== undefined) {
+    // No era completion — reveal the weekly item shortly after success modal
+    setTimeout(() => {
+      toggleModal('levelSuccessModal', false);
+      maybeShowEraItemReward();
+    }, 2400);
   }
 }
 
@@ -1428,21 +1609,21 @@ function buyItem(type, cost) {
 
   switch(type) {
     case 'lives':
-      gameState.lives = Math.min(99, gameState.lives + 5);
+      gameState.lives = MAX_LIVES;
       localStorage.setItem("chrono_lives", gameState.lives);
-      showShopToast("❤️ +5 Lives added!");
+      showShopToast("❤️ Lives refilled!");
       break;
     case 'hammer':
-      gameState.boosters.hammer += 3;
-      showShopToast("🔨 Hammer ×3 added!");
+      gameState.boosters.hammer += 1;
+      showShopToast("🔨 Hammer added!");
       break;
     case 'bomb':
-      gameState.boosters.bomb += 3;
-      showShopToast("💣 Time Bomb ×3 added!");
+      gameState.boosters.bomb += 1;
+      showShopToast("💣 Time Bomb added!");
       break;
     case 'shuffle':
-      gameState.boosters.shuffle += 3;
-      showShopToast("🔀 Shuffle ×3 added!");
+      gameState.boosters.shuffle += 1;
+      showShopToast("🔀 Shuffle added!");
       break;
     case 'moves':
       if (gameState.isGameActive) {
@@ -1462,9 +1643,9 @@ function buyItem(type, cost) {
         showShopToast('Already claimed today! Come back tomorrow.', 'error');
         gameState.gold += cost;
       } else {
-        gameState.gold += 50;
+        gameState.gold += 10;
         localStorage.setItem(todayKey, '1');
-        showShopToast('🪙 +50 Free Gold claimed! Come back tomorrow.');
+        showShopToast('🪙 +10 Free Gold claimed! Come back tomorrow.');
       }
       break;
     }
@@ -1520,10 +1701,8 @@ function showShopToast(msg, type) {
 const PLAY_BILLING_ENABLED = false; // flip to true once Play Console products exist
 
 const PLAY_BILLING_PRODUCT_IDS = {
-  '500gold':  'gold_500',
   '1000gold': 'gold_1000',
-  '2500gold': 'gold_2500',
-  '6000gold': 'gold_6000'
+  '2000gold': 'gold_2000'
 };
 
 let _digitalGoodsService = null;
@@ -1546,10 +1725,8 @@ function initiatePayment(packageId, displayPrice, goldCoins) {
   pendingPayment = { packageId, displayPrice, goldCoins };
 
   const labels = {
-    '500gold':  'Starter Pouch — 500 Gold',
     '1000gold': 'Gold Pouch — 1,000 Gold',
-    '2500gold': 'Gold Chest — 2,500 Gold',
-    '6000gold': 'Gold Vault — 6,000 Gold',
+    '2000gold': 'Gold Chest — 2,000 Gold',
   };
 
   document.getElementById('paymentModalTitle').textContent = labels[packageId] || 'Buy Gold';
@@ -1759,8 +1936,8 @@ function getDailyTasks() {
       icon: '🎮',
       title: 'Win 3 Levels Today',
       desc: 'Complete any 3 levels before midnight',
-      reward: '🪙 +60 Gold',
-      rewardKey: 'gold_60',
+      reward: '🪙 +15 Gold',
+      rewardKey: 'gold_15',
       done: dailyWins >= 3,
       progress: Math.min(dailyWins, 3),
       total: 3
@@ -1770,8 +1947,8 @@ function getDailyTasks() {
       icon: '📀',
       title: `3-Star Level ${targetLvl}`,
       desc: `Score high enough to earn 3 stars on Level ${targetLvl}`,
-      reward: '🪙 +40 Gold',
-      rewardKey: 'gold_40',
+      reward: '🪙 +20 Gold',
+      rewardKey: 'gold_20',
       done: has3Star,
       progress: has3Star ? 1 : 0,
       total: 1
@@ -1842,7 +2019,7 @@ function trackDailyWin() {
   localStorage.setItem(key, wins);
 
   if (wins === 3) {
-    gameState.gold += 60;
+    gameState.gold += 15; // modest daily "win 3 levels" bonus
     localStorage.setItem("chrono_gold", gameState.gold);
   }
 }
@@ -1908,6 +2085,13 @@ function closeTrophyModal() {
   toggleModal('eraTrophyModal', false);
   cancelAnimationFrame(trophyFxId);
   trophyFxParticles = [];
+
+  // If a weekly era item also dropped on this win, reveal it now
+  if (gameState._eraItemAfterTrophy) {
+    gameState._eraItemAfterTrophy = false;
+    setTimeout(() => maybeShowEraItemReward(), 350);
+    return;
+  }
   loadHomepage();
 }
 
@@ -2053,14 +2237,19 @@ function checkNewsBadge() {
   if (badge) badge.style.display = hasNew ? 'block' : 'none';
 }
 
+// ── DAILY REWARDS — deliberately modest ──
+// These give small helpful nudges, NEVER the 3-packs the shop sells.
+// Coin amounts are small (10-25) so daily logins don't flood the economy.
+// Boosters are single items, occasional — enough to be a nice surprise,
+// not enough to make buying pointless. No big gold jackpot.
 const DAILY_REWARDS = [
-  { day: 1, icon: '🪙', label: 'Gold',      desc: 'Day 1 reward',   type: 'gold',    amount: 100 },
-  { day: 2, icon: '❤️', label: '+3 Lives',  desc: 'Day 2 reward',   type: 'lives',   amount: 3   },
-  { day: 3, icon: '🪙', label: 'Gold',       desc: 'Day 3 reward',   type: 'gold',    amount: 150 },
-  { day: 4, icon: '🔨', label: 'Hammer ×2', desc: 'Day 4 reward',   type: 'hammer',  amount: 2   },
-  { day: 5, icon: '🪙', label: 'Gold',       desc: 'Day 5 reward',   type: 'gold',    amount: 200 },
-  { day: 6, icon: '💣', label: 'Bomb ×2',   desc: 'Day 6 reward',   type: 'bomb',    amount: 2   },
-  { day: 7, icon: '🎁', label: '500 Gold',  desc: 'Weekly jackpot!', type: 'gold',   amount: 500 },
+  { day: 1, icon: '🪙', label: '10 Gold',   desc: 'Day 1 reward',    type: 'gold',    amount: 10 },
+  { day: 2, icon: '❤️', label: '+1 Life',   desc: 'Day 2 reward',    type: 'lives',   amount: 1  },
+  { day: 3, icon: '🪙', label: '15 Gold',   desc: 'Day 3 reward',    type: 'gold',    amount: 15 },
+  { day: 4, icon: '🔨', label: 'Hammer ×1', desc: 'Day 4 reward',    type: 'hammer',  amount: 1  },
+  { day: 5, icon: '🪙', label: '20 Gold',   desc: 'Day 5 reward',    type: 'gold',    amount: 20 },
+  { day: 6, icon: '💣', label: 'Bomb ×1',   desc: 'Day 6 reward',    type: 'bomb',    amount: 1  },
+  { day: 7, icon: '🪙', label: '25 Gold',   desc: 'Weekly bonus!',   type: 'gold',    amount: 25 },
 ];
 
 function getDayKey(offsetDays) {
@@ -2252,7 +2441,7 @@ async function executeDeactivation() {
   gameState.authProvider         = 'Guest';
   gameState.authDisplayName      = '';
   gameState.authEmail            = '';
-  gameState.boosters             = { hammer: 3, bomb: 3, shuffle: 3 };
+  gameState.boosters             = { hammer: 1, bomb: 1, shuffle: 1 };
 
   toggleModal('deactivateModal', false);
 
@@ -2535,7 +2724,7 @@ function openQuizPage() {
       { icon: '❤️', label: '+1 Life',    type: 'life'    },
       { icon: '💣', label: 'Bomb ×1',    type: 'bomb'    },
       { icon: '🔨', label: 'Hammer ×1',  type: 'hammer'  },
-      { icon: '🪙', label: '+75 Gold',   type: 'gold'    },
+      { icon: '🪙', label: '+20 Gold',   type: 'gold'    },
       { icon: '🔀', label: 'Shuffle ×1', type: 'shuffle' },
     ];
     const rewardSeed = Math.floor(new Date().getDate() + new Date().getMonth() * 31);
@@ -2603,7 +2792,7 @@ function answerQuiz(chosen, correct, rewardType, rewardLabel, rewardIcon) {
           localStorage.setItem("chrono_boosters", JSON.stringify(gameState.boosters));
           break;
         case 'gold':
-          gameState.gold += 75;
+          gameState.gold += 20;
           localStorage.setItem('chrono_gold', gameState.gold);
           const pg = document.getElementById('profileGold');
           if (pg) pg.innerText = gameState.gold;
