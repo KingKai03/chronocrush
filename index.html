@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
-  <link rel="stylesheet" href="core-engine/style.css?v=33">
-  <link rel="stylesheet" href="core-engine/polish.css?v=33">
+  <link rel="stylesheet" href="core-engine/style.css?v=34">
+  <link rel="stylesheet" href="core-engine/polish.css?v=34">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -272,6 +272,9 @@
         <span class="tab-icon">🏆</span><span>Awards</span>
         <span class="gold-flicker-badge" id="awardsBadge" style="display:none">🪙</span>
       </button>
+      <button class="footer-tab-btn" onclick="openCollectionPage()">
+        <span class="tab-icon">🗃️</span><span>Collection</span>
+      </button>
     </footer>
   </div>
 
@@ -297,44 +300,44 @@
 
         <div class="shop-item-card">
           <div class="shop-icon">❤️</div>
-          <h3>5 Extra Lives</h3>
-          <p>Refill your lives instantly</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('lives', 50)">🪙 50</button>
+          <h3>Refill Lives</h3>
+          <p>Refill all 5 lives instantly</p>
+          <button class="buy-btn gold-buy" onclick="buyItem('lives', 25)">🪙 25</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">🔨</div>
-          <h3>Hammer ×3</h3>
+          <h3>Hammer ×1</h3>
           <p>Smash any single tile</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('hammer', 40)">🪙 40</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('hammer', 15)">🪙 15</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">💣</div>
-          <h3>Time Bomb ×3</h3>
+          <h3>Time Bomb ×1</h3>
           <p>Clears a 3×3 area instantly</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('bomb', 60)">🪙 60</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('bomb', 20)">🪙 20</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">🔀</div>
-          <h3>Shuffle ×3</h3>
+          <h3>Shuffle ×1</h3>
           <p>Reshuffles the whole board</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('shuffle', 30)">🪙 30</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('shuffle', 12)">🪙 12</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">➕</div>
           <h3>+5 Moves</h3>
           <p>Bonus moves for this level</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('moves', 35)">🪙 35</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('moves', 18)">🪙 18</button>
         </div>
 
         <div class="shop-item-card">
           <div class="shop-icon">🛡️</div>
           <h3>Life Shield</h3>
           <p>Don't lose a life on your next fail</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('shield', 80)">🪙 80</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('shield', 30)">🪙 30</button>
         </div>
 
       </div>
@@ -346,32 +349,18 @@
       <div class="shop-iap-grid">
 
         <div class="shop-iap-card">
-          <div class="iap-coins">🪙 500</div>
-          <div class="iap-label">Starter Pouch</div>
-          <div class="iap-price">R 50</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('500gold', 'R 50', 500)">Buy Now</button>
+          <div class="iap-coins">🪙 1,000</div>
+          <div class="iap-label">Gold Pouch</div>
+          <div class="iap-price">R 25</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 'R 25', 1000)">Buy Now</button>
         </div>
 
         <div class="shop-iap-card iap-popular">
           <div class="iap-popular-badge">BEST VALUE</div>
-          <div class="iap-coins">🪙 1,000</div>
-          <div class="iap-label">Gold Pouch</div>
-          <div class="iap-price">R 100</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 'R 100', 1000)">Buy Now</button>
-        </div>
-
-        <div class="shop-iap-card">
-          <div class="iap-coins">🪙 2,500</div>
+          <div class="iap-coins">🪙 2,000</div>
           <div class="iap-label">Gold Chest</div>
-          <div class="iap-price">R 200</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('2500gold', 'R 200', 2500)">Buy Now</button>
-        </div>
-
-        <div class="shop-iap-card">
-          <div class="iap-coins">🪙 6,000</div>
-          <div class="iap-label">Gold Vault</div>
-          <div class="iap-price">R 400</div>
-          <button class="buy-btn iap-buy" onclick="initiatePayment('6000gold', 'R 400', 6000)">Buy Now</button>
+          <div class="iap-price">R 40</div>
+          <button class="buy-btn iap-buy" onclick="initiatePayment('2000gold', 'R 40', 2000)">Buy Now</button>
         </div>
 
       </div>
@@ -439,6 +428,34 @@
     </header>
     <div class="subpage-body scrollable-content" id="awardsBody">
       <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       COLLECTION PAGE — earned era collectibles
+       ============================================================ -->
+  <div id="collectionPage" class="full-screen-view generic-subpage">
+    <header class="subpage-header">
+      <button class="btn-back" onclick="loadHomepage()">◀ Back</button>
+      <h2>🗃️ COLLECTION</h2>
+    </header>
+    <div class="subpage-body scrollable-content" id="collectionBody">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ERA ITEM REWARD MODAL — weekly free collectible reveal
+       ============================================================ -->
+  <div id="eraItemModal" class="modal-overlay">
+    <div class="era-item-card">
+      <div class="era-item-glow"></div>
+      <div class="era-item-ribbon">WEEKLY COLLECTIBLE</div>
+      <div class="era-item-icon" id="eraItemIcon">📻</div>
+      <div class="era-item-name" id="eraItemName">Vintage Radio</div>
+      <div class="era-item-era" id="eraItemEra">1940s Noir</div>
+      <div class="era-item-blurb" id="eraItemBlurb"></div>
+      <button class="era-item-btn" onclick="closeEraItemReward()">Add to Collection ✨</button>
     </div>
   </div>
 
@@ -879,7 +896,7 @@
   </div>
 
   <div id="portalFlash"></div>
-  <script src="core-engine/logic.js?v=33"></script>
+  <script src="core-engine/logic.js?v=34"></script>
 
   <!-- Register Service Worker -->
   <script>
