@@ -2,7 +2,7 @@
    CHRONOCRUSH Service Worker v5 — Full Offline Support
    ============================================================ */
 
-const CACHE_NAME    = 'chronocrush-v32';
+const CACHE_NAME    = 'chronocrush-v33';
 const OFFLINE_URL   = '/chronocrush/';
 
 // Everything the game needs to run with zero internet
@@ -42,6 +42,11 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Allow the page to tell a waiting SW to activate immediately
+self.addEventListener('message', event => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
 // ── Fetch strategy ────────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const url = event.request.url;
@@ -63,7 +68,39 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Game assets — cache first (ignoring ?v= query), network fallback
+  // Core code files (HTML / JS / CSS) — NETWORK FIRST.
+  // This guarantees that when a player is online they always get the
+  // latest game logic and styles, so bug fixes reach every device on
+  // the next load instead of being trapped behind a stale cache.
+  // Falls back to cache when offline, so the game still runs with no
+  // internet.
+  const isCoreCode =
+    url.includes('/index.html') ||
+    url.endsWith('/chronocrush/') ||
+    url.includes('/core-engine/') ||
+    url.includes('logic.js') ||
+    url.includes('style.css') ||
+    url.includes('polish.css') ||
+    event.request.mode === 'navigate';
+
+  if (isCoreCode) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response.ok && event.request.method === 'GET') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        // Offline: fall back to whatever we have cached
+        return caches.match(event.request, { ignoreSearch: true })
+          .then(cached => cached || caches.match(OFFLINE_URL));
+      })
+    );
+    return;
+  }
+
+  // Everything else (audio, icons, images) — CACHE FIRST for speed.
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(cached => {
       if (cached) return cached;
