@@ -1,6 +1,6 @@
 /* ============================================================
    CHRONOCRUSH — logic.js  (DOM grid, no canvas for game board)
-   v34 — scarce coin economy, era collectibles, difficulty ramp, booster inventory UI
+   v35 — custom SVG icons, removed backdrop haze
    ============================================================ */
 
 const BOARD_SIZE = 6;
