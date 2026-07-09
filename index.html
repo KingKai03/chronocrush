@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
-  <link rel="stylesheet" href="core-engine/style.css?v=34">
-  <link rel="stylesheet" href="core-engine/polish.css?v=34">
+  <link rel="stylesheet" href="core-engine/style.css?v=35">
+  <link rel="stylesheet" href="core-engine/polish.css?v=35">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -97,6 +97,60 @@
   </script>
 </head>
 <body onclick="initAudio()">
+
+  <!-- ============================================================
+       CUSTOM ICON SPRITE — original SVG icons (no emoji)
+       Use anywhere with: <svg class="cc-ico"><use href="#ic-hammer"/></svg>
+       ============================================================ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="ic-hammer" viewBox="0 0 64 64">
+        <g stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+          <rect x="27" y="26" width="7" height="30" rx="3.5" fill="#c8956a"/>
+          <path d="M14 14 L38 14 L42 24 L10 24 Z" fill="#9de07d"/>
+          <rect x="16" y="10" width="20" height="7" rx="2" fill="#b8f09a"/>
+        </g>
+        <circle cx="20" cy="19" r="1.6" fill="#0f172a"/>
+      </symbol>
+      <symbol id="ic-bomb" viewBox="0 0 64 64">
+        <circle cx="29" cy="39" r="17" fill="#2d3b52" stroke="#0f172a" stroke-width="2.5"/>
+        <circle cx="23" cy="34" r="4" fill="#4a5b74"/>
+        <rect x="35" y="18" width="10" height="8" rx="2" transform="rotate(-40 40 22)" fill="#6b7a90" stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M42 18 Q48 14 46 8" fill="none" stroke="#c8956a" stroke-width="3" stroke-linecap="round"/>
+        <path d="M46 8 m-4 2 q4 -6 8 -2 q-2 5 -8 2 Z" fill="#ffb43a" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="47" cy="7" r="2.5" fill="#ffe08a"/>
+      </symbol>
+      <symbol id="ic-shuffle" viewBox="0 0 64 64">
+        <g fill="none" stroke="#9de07d" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20 L24 20 Q32 20 36 32 Q40 44 48 44 L54 44"/>
+          <path d="M12 44 L24 44 Q28 44 31 38"/>
+          <path d="M37 26 Q40 20 48 20 L54 20"/>
+        </g>
+        <path d="M50 15 L57 20 L50 25 Z" fill="#9de07d"/>
+        <path d="M50 39 L57 44 L50 49 Z" fill="#9de07d"/>
+      </symbol>
+      <symbol id="ic-heart" viewBox="0 0 64 64">
+        <path d="M32 52 C10 36 12 18 24 18 C29 18 32 22 32 26 C32 22 35 18 40 18 C52 18 54 36 32 52 Z"
+              fill="#ff5e6c" stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M24 25 C21 25 20 29 22 33" fill="none" stroke="#ff98a2" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="ic-coin" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="20" fill="#f4c430" stroke="#0f172a" stroke-width="2.5"/>
+        <circle cx="32" cy="32" r="14" fill="none" stroke="#d9a520" stroke-width="2.5"/>
+        <path d="M32 24 L32 40 M28 27 L36 27 M27 32 L37 32 M28 37 L36 37" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="ic-shield" viewBox="0 0 64 64">
+        <path d="M32 8 L52 16 L52 32 Q52 48 32 56 Q12 48 12 32 L12 16 Z"
+              fill="#9de07d" stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M23 31 L29 38 L42 23" fill="none" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="ic-moves" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="20" fill="#4facfe" stroke="#0f172a" stroke-width="2.5"/>
+        <path d="M32 21 L32 43 M21 32 L43 32" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
 
   <!-- ============================================================
        COSMIC BACKDROP — navy starfield + drifting clouds
@@ -220,8 +274,8 @@
   <div id="homePage" class="full-screen-view">
     <header class="app-status-bar">
       <div class="header-left-status">
-        <div class="status-indicator-pill lives-pill">❤️ <span id="livesCounter">5</span></div>
-        <div class="status-indicator-pill gold-pill">🪙 <span id="profileGold">150</span></div>
+        <div class="status-indicator-pill lives-pill"><svg class="cc-ico cc-ico-sm"><use href="#ic-heart"/></svg> <span id="livesCounter">5</span></div>
+        <div class="status-indicator-pill gold-pill"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> <span id="profileGold">150</span></div>
       </div>
       <button class="icon-btn header-settings-btn" onclick="openSettingsModal()">⚙️</button>
     </header>
@@ -229,7 +283,7 @@
     <!-- Life refill countdown — only visible when lives = 0 -->
     <div id="lifeRefillBar" style="display:none">
       <div class="life-refill-inner">
-        <span class="life-refill-icon">❤️</span>
+        <span class="life-refill-icon"><svg class="cc-ico"><use href="#ic-heart"/></svg></span>
         <div class="life-refill-text">
           <span class="life-refill-label">Lives refill in</span>
           <span class="life-refill-timer" id="lifeRefillTimer">12:00:00</span>
@@ -243,7 +297,7 @@
     <main class="map-scroll-viewport">
       <div class="map-corner-badge">
         <div class="mini-record-disk" id="mapCornerLevelDisk">1</div>
-        <span class="badge-lives">❤️ <span id="mapCornerLives">5</span></span>
+        <span class="badge-lives"><svg class="cc-ico cc-ico-sm"><use href="#ic-heart"/></svg> <span id="mapCornerLives">5</span></span>
       </div>
 
       <div class="zig-zag-map" id="mapLayer"></div>
@@ -291,7 +345,7 @@
       <!-- Gold balance banner -->
       <div class="shop-balance-bar">
         <span class="shop-balance-label">Your Balance</span>
-        <span class="shop-balance-amount">🪙 <span id="shopGoldDisplay">0</span></span>
+        <span class="shop-balance-amount"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> <span id="shopGoldDisplay">0</span></span>
       </div>
 
       <!-- ── Section 1: Spend gold ──────────────────────────────── -->
@@ -299,45 +353,45 @@
       <div class="shop-grid">
 
         <div class="shop-item-card">
-          <div class="shop-icon">❤️</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-heart"/></svg></div>
           <h3>Refill Lives</h3>
           <p>Refill all 5 lives instantly</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('lives', 25)">🪙 25</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('lives', 25)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 25</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">🔨</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-hammer"/></svg></div>
           <h3>Hammer ×1</h3>
           <p>Smash any single tile</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('hammer', 15)">🪙 15</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('hammer', 15)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 15</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">💣</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-bomb"/></svg></div>
           <h3>Time Bomb ×1</h3>
           <p>Clears a 3×3 area instantly</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('bomb', 20)">🪙 20</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('bomb', 20)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 20</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">🔀</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-shuffle"/></svg></div>
           <h3>Shuffle ×1</h3>
           <p>Reshuffles the whole board</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('shuffle', 12)">🪙 12</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('shuffle', 12)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 12</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">➕</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-moves"/></svg></div>
           <h3>+5 Moves</h3>
           <p>Bonus moves for this level</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('moves', 18)">🪙 18</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('moves', 18)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 18</button>
         </div>
 
         <div class="shop-item-card">
-          <div class="shop-icon">🛡️</div>
+          <div class="shop-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-shield"/></svg></div>
           <h3>Life Shield</h3>
           <p>Don't lose a life on your next fail</p>
-          <button class="buy-btn gold-buy" onclick="buyItem('shield', 30)">🪙 30</button>
+          <button class="buy-btn gold-buy" onclick="buyItem('shield', 30)"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 30</button>
         </div>
 
       </div>
@@ -349,7 +403,7 @@
       <div class="shop-iap-grid">
 
         <div class="shop-iap-card">
-          <div class="iap-coins">🪙 1,000</div>
+          <div class="iap-coins"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 1,000</div>
           <div class="iap-label">Gold Pouch</div>
           <div class="iap-price">R 25</div>
           <button class="buy-btn iap-buy" onclick="initiatePayment('1000gold', 'R 25', 1000)">Buy Now</button>
@@ -357,7 +411,7 @@
 
         <div class="shop-iap-card iap-popular">
           <div class="iap-popular-badge">BEST VALUE</div>
-          <div class="iap-coins">🪙 2,000</div>
+          <div class="iap-coins"><svg class="cc-ico cc-ico-sm"><use href="#ic-coin"/></svg> 2,000</div>
           <div class="iap-label">Gold Chest</div>
           <div class="iap-price">R 40</div>
           <button class="buy-btn iap-buy" onclick="initiatePayment('2000gold', 'R 40', 2000)">Buy Now</button>
@@ -376,7 +430,7 @@
   <div id="paymentModal" class="modal-overlay">
     <div class="modal-window payment-modal-window">
       <button class="modal-close-x" onclick="toggleModal('paymentModal', false)">✕</button>
-      <div class="payment-modal-icon">🪙</div>
+      <div class="payment-modal-icon"><svg class="cc-ico cc-ico-lg"><use href="#ic-coin"/></svg></div>
       <h2 id="paymentModalTitle">Buy 1,000 Gold</h2>
       <p id="paymentModalDesc" class="payment-modal-desc">You'll receive <strong id="paymentGoldAmt">1,000</strong> gold coins added to your account.</p>
       <div class="payment-modal-price-box">
@@ -493,19 +547,19 @@
       <div class="booster-tray">
         <div class="booster-slot">
           <button class="booster-btn" id="boosterHammerBtn" onclick="selectBooster('hammer')">
-            <span class="booster-icon">🔨</span><span class="booster-count" id="hammerCount">0</span>
+            <span class="booster-icon"><svg class="cc-ico"><use href="#ic-hammer"/></svg></span><span class="booster-count" id="hammerCount">0</span>
           </button>
           <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
         </div>
         <div class="booster-slot">
           <button class="booster-btn" id="boosterBombBtn" onclick="selectBooster('bomb')">
-            <span class="booster-icon">💣</span><span class="booster-count" id="bombCount">0</span>
+            <span class="booster-icon"><svg class="cc-ico"><use href="#ic-bomb"/></svg></span><span class="booster-count" id="bombCount">0</span>
           </button>
           <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
         </div>
         <div class="booster-slot">
           <button class="booster-btn" id="boosterShuffleBtn" onclick="selectBooster('shuffle')">
-            <span class="booster-icon">🔀</span><span class="booster-count" id="shuffleCount">0</span>
+            <span class="booster-icon"><svg class="cc-ico"><use href="#ic-shuffle"/></svg></span><span class="booster-count" id="shuffleCount">0</span>
           </button>
           <button class="booster-plus-btn" onclick="openShopFromGame()" title="Buy more">＋</button>
         </div>
@@ -896,7 +950,7 @@
   </div>
 
   <div id="portalFlash"></div>
-  <script src="core-engine/logic.js?v=34"></script>
+  <script src="core-engine/logic.js?v=35"></script>
 
   <!-- Register Service Worker -->
   <script>
