@@ -10,14 +10,11 @@
   --era-hue: 0deg;
 }
 
-/* Backdrop hue-shifts smoothly as you move between eras.
-   NOTE: we deliberately do NOT set position/inset here — style.css
-   already positions the backdrop and starfield. Overriding those
-   made the stars and clouds vanish. We only add a color filter. */
-#cosmicBackdrop {
-  filter: hue-rotate(var(--era-hue));
-  transition: filter 1.4s ease;
-}
+/* Era theming keeps a per-era ACCENT color (used on the booster ring,
+   challenge banner underline, etc.) but no longer hue-shifts the whole
+   backdrop — a full-screen hue-rotate on the dark navy gradient produced
+   an ugly yellow/brown haze on some eras. The accent color alone gives
+   each era its identity without washing out the playfield. */
 
 /* Twinkle the EXISTING starfield by gently pulsing its opacity.
    This animates whatever stars style.css already drew, without
@@ -404,3 +401,54 @@
   transition: transform 0.1s ease, filter 0.1s ease;
 }
 .era-item-btn:active { transform: scale(0.95); filter: brightness(1.1); }
+
+/* ============================================================
+   CUSTOM SVG ICONS — sizing helpers for the sprite
+   ============================================================ */
+.cc-ico {
+  width: 1.6em;
+  height: 1.6em;
+  vertical-align: middle;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.cc-ico-sm { width: 1.1em; height: 1.1em; }
+.cc-ico-lg { width: 2.6em; height: 2.6em; }
+
+/* Booster tray icons scale to the button */
+.booster-icon .cc-ico {
+  width: 30px;
+  height: 30px;
+}
+/* Shop card icon block */
+.shop-icon .cc-ico-lg {
+  width: 44px;
+  height: 44px;
+}
+/* Buy button coin sits inline with the price number */
+.buy-btn .cc-ico-sm {
+  width: 16px;
+  height: 16px;
+  margin-right: 1px;
+}
+/* Status pills: heart + coin inline with the count */
+.status-indicator-pill .cc-ico-sm,
+.badge-lives .cc-ico-sm,
+.shop-balance-amount .cc-ico-sm,
+.iap-coins .cc-ico-sm {
+  width: 15px;
+  height: 15px;
+  margin-right: 2px;
+}
+.life-refill-icon .cc-ico { width: 22px; height: 22px; }
+.payment-modal-icon .cc-ico-lg { width: 52px; height: 52px; }
+
+/* Gentle idle animations so the icons feel alive, matching the game's juice */
+.booster-icon .cc-ico { transition: transform 0.15s ease; }
+.booster-btn:active:not(:disabled) .cc-ico { transform: scale(0.88) rotate(-6deg); }
+.lives-pill .cc-ico-sm { animation: heartBeat 2.4s ease-in-out infinite; }
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  15%      { transform: scale(1.18); }
+  30%      { transform: scale(1); }
+}
