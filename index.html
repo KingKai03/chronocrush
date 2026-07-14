@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CHRONOCRUSH</title>
-  <link rel="stylesheet" href="core-engine/style.css?v=35">
-  <link rel="stylesheet" href="core-engine/polish.css?v=35">
+  <link rel="stylesheet" href="core-engine/style.css?v=36">
+  <link rel="stylesheet" href="core-engine/polish.css?v=36">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -396,7 +396,22 @@
 
       </div>
 
-      <!-- ── Section 2: Buy gold with real money ────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════
+           REAL-MONEY "BUY GOLD" SECTION — HIDDEN UNTIL v3
+           ──────────────────────────────────────────────────────────
+           This section is intentionally commented out for the initial
+           production launch. Play Billing is NOT yet wired up:
+             1. PWABuilder "Play Billing" option must be enabled when
+                generating the AAB (injects the Digital Goods bridge).
+             2. Two products must exist in Play Console → Monetize →
+                In-app products, with IDs: gold_1000 (R25) and
+                gold_2000 (R40), set to Active.
+             3. Set PLAY_BILLING_ENABLED = true in logic.js.
+             4. Add server-side purchase-token verification before
+                granting gold (see comments in logic.js).
+           To re-enable for v3: uncomment the block below.
+           ══════════════════════════════════════════════════════════ -->
+      <!--
       <div class="shop-section-label">💎 Buy Gold  <span>top up with real money</span></div>
       <p class="shop-iap-note">Secure payments via Google Play · Billing handled by the Play Store</p>
 
@@ -420,6 +435,7 @@
       </div>
 
       <p class="shop-legal-note">Purchases are non-refundable. Gold is consumed in-game only and has no cash value. By purchasing you agree to our terms of service.</p>
+      -->
 
     </div>
   </div>
@@ -950,7 +966,7 @@
   </div>
 
   <div id="portalFlash"></div>
-  <script src="core-engine/logic.js?v=35"></script>
+  <script src="core-engine/logic.js?v=36"></script>
 
   <!-- Register Service Worker -->
   <script>
