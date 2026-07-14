@@ -1,6 +1,6 @@
 /* ============================================================
    CHRONOCRUSH — logic.js  (DOM grid, no canvas for game board)
-   v35 — custom SVG icons, removed backdrop haze
+   v36 — Buy Gold section hidden until Play Billing wired (v3)
    ============================================================ */
 
 const BOARD_SIZE = 6;
